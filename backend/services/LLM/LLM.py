@@ -1,66 +1,53 @@
+import json
 import os
-from llama_cpp import Llama
 
-from llama_cpp.llama_chat_format import Llava15ChatHandler
-import base64
-import pyautogui
+from .BaseLLM import BaseLLM
+from .TextLLM import TextLLM
+from .VisionLLM import VisionLLM
 
-def image_to_base64_data_uri(file_path):
-    with open(file_path, "rb") as img_file:
-        base64_data = base64.b64encode(img_file.read()).decode('utf-8')
-        return f"data:image/png;base64,{base64_data}"
 
-class VisionLLM:
+class LLM:
     def __init__(self):
         self.current_module_directory = os.path.dirname(__file__)
-        self.mmproj_path = os.path.join(self.current_module_directory, "Models","mmproj-model-f16.gguf")
-        self.ggml_path = os.path.join(self.current_module_directory, "Models","ggml-model-q4_k.gguf")
-        self.screenshot_path = os.path.join(self.current_module_directory, "screen.png")
-        self.test_path = os.path.join(self.current_module_directory, "test.png")
+        self.model_data_path = os.path.join(self.current_module_directory, "model_data.json")
 
-        self.chat_handler = Llava15ChatHandler(clip_model_path=self.mmproj_path, verbose=False)
+        self.current_model_data = None
+        self.llm: BaseLLM.BaseLLM | None = None
+        self.all_model_data = None
 
-        self.llm = Llama(
-            model_path=self.ggml_path,
-            chat_handler=self.chat_handler,
-            n_ctx=2048, # n_ctx should be increased to accommodate the image embedding
-            n_gpu_layers=-1,
-            verbose=False
-        )
+        if os.path.exists(self.model_data_path):
+            with open(self.model_data_path, 'r') as f:
+                self.all_model_data = json.load(f)
+                if self.all_model_data:
+                    self.current_model_data = self.all_model_data[0]
+        
+    def load_model(self, model_data: dict):
+        self.current_model_data = model_data
+        model_directory = os.path.join(self.current_module_directory, "Models")
+        model_filename = model_data.get("filename")
+        model_path = os.path.join(model_directory, model_filename)
 
-    def get_image_description(self, image_url):
-        data_uri = image_to_base64_data_uri(image_url)
-        completion_chunks = self.llm.create_chat_completion(
-            messages = [
-                {"role": "system", "content": "You are an assistant who perfectly describes images."},
-                {
-                    "role": "user",
-                    "content": [
-                        # {"type": "image_url", "image_url": {"url": data_uri }},
-                        {"type" : "text", "text": "Use English, What are you?"}
-                    ]
-                }
-            ],
-            stream=True
-        )
-        for completion_chunk in completion_chunks:
-            if "content" in completion_chunk["choices"][0]["delta"].keys():
-                yield completion_chunk["choices"][0]["delta"]["content"]
-            else:
-                yield ""
-    
-    def get_screen_description(self):
-        screenshot = pyautogui.screenshot()
-        screenshot.save(self.screenshot_path)
-        return self.get_image_description(self.screenshot_path)
-    
-if __name__ == "__main__":
-    import time
-    startTime = time.time()
-    vision_llm = VisionLLM()
-    print("init time: ", time.time()-startTime)
-    startTime = time.time()
-    completion_chunks = vision_llm.get_screen_description()
-    for completion_chunk in completion_chunks:
-        print(completion_chunk, end="", flush=True)
-    print("Inference time: ", time.time()-startTime)
+        if not os.path.exists(self.model_path):
+            print(f"Model {model_filename} not found. Please press download to download the model.")
+            return
+        else:
+            if self.llm:
+                del self.llm
+            if model_data.get("type") == "text":
+                self.llm = TextLLM(model_path=model_path, n_ctx=4096, n_gpu_layers=-1, seed=-1)
+            elif model_data.get("type") == "vision":
+                self.llm = VisionLLM(model_path=model_path, mmproj_path=model_data.get("mmproj_path"), n_ctx = 4096, n_gpu_layers=-1, seed=-1)
+
+            print(f"Model changed to {model_filename}.")
+
+    def get_completion(self, text, history, system_prompt, screenshot=False):
+        if not self.llm:
+            print("error: Model not loaded")
+            return
+
+        if isinstance(self.llm, VisionLLM):
+            self.llm: VisionLLM.VisionLLM
+            return self.llm.get_chat_completion(text, history, system_prompt, screenshot)
+        elif isinstance(self.llm, TextLLM):
+            self.llm: TextLLM.TextLLM
+            return self.llm.get_chat_completion(text, history, system_prompt)
