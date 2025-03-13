@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import "./chatbox.css";
 
 const Chatbox: React.FC = () => {
     const [messages, setMessages] = useState<{ text: string, sender: 'user' | 'ai' }[]>([]);
@@ -28,29 +29,32 @@ const Chatbox: React.FC = () => {
             if (done) break;
             aiMessage += decoder.decode(value);
             setMessages((prevMessages) => [
-                ...prevMessages.filter((msg) => msg.sender !== 'ai'),
+                ...prevMessages,
                 { text: aiMessage, sender: 'ai' }
             ]);
         }
     };
 
     return (
-        <div>
-            <div style={{ height: '300px', overflowY: 'scroll', border: '1px solid #ccc', padding: '10px' }}>
+        <div className="chat-container">
+            <div className="chat-box">
                 {messages.map((msg, index) => (
-                    <div key={index} style={{ textAlign: msg.sender === 'user' ? 'right' : 'left' }}>
-                        <strong>{msg.sender === 'user' ? 'You' : 'AI'}:</strong> {msg.text}
+                    <div key={index} className={`chat-message ${msg.sender}`}>
+                        <strong>{msg.sender === "user" ? "You" : "AI"}:</strong> {msg.text}
                     </div>
                 ))}
             </div>
-            <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                style={{ width: '80%', marginRight: '10px' }}
-            />
-            <button onClick={handleSend}>Send</button>
+            <div className="chat-input-container">
+                <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    className="chat-input"
+                    placeholder="Type a message..."
+                />
+                <button onClick={handleSend} className="chat-send">Send</button>
+            </div>
         </div>
     );
 };
