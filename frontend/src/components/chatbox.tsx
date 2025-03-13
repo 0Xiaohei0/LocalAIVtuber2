@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import "./chatbox.css";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const Chatbox: React.FC = () => {
     const [messages, setMessages] = useState<{ text: string, sender: 'user' | 'ai' }[]>([]);
@@ -36,7 +37,7 @@ const Chatbox: React.FC = () => {
     };
 
     return (
-        <div className="chat-container">
+        <div className="p-4 bg-background">
             <div className="chat-box">
                 {messages.map((msg, index) => (
                     <div key={index} className={`chat-message ${msg.sender}`}>
@@ -44,16 +45,14 @@ const Chatbox: React.FC = () => {
                     </div>
                 ))}
             </div>
-            <div className="chat-input-container">
-                <input
-                    type="text"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    className="chat-input"
-                    placeholder="Type a message..."
+            <div className="flex w-full items-center space-x-2">
+                <Input 
+                value={input} 
+                placeholder="Type your message here." 
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 />
-                <button onClick={handleSend} className="chat-send">Send</button>
+                <Button onClick={handleSend}>Send message</Button>
             </div>
         </div>
     );
