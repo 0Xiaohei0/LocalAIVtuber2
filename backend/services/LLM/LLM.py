@@ -12,7 +12,7 @@ class LLM:
         self.model_data_path = os.path.join(self.current_module_directory, "model_data.json")
 
         self.current_model_data = None
-        self.llm: BaseLLM.BaseLLM | None = None
+        self.llm: BaseLLM | None = None
         self.all_model_data = None
 
         if os.path.exists(self.model_data_path):
@@ -22,12 +22,13 @@ class LLM:
                     self.current_model_data = self.all_model_data[0]
         
     def load_model(self, model_data: dict):
+        print(f"Loading model {model_data}...")
         self.current_model_data = model_data
         model_directory = os.path.join(self.current_module_directory, "Models")
-        model_filename = model_data.get("filename")
+        model_filename = model_data.get("fileName")
         model_path = os.path.join(model_directory, model_filename)
 
-        if not os.path.exists(self.model_path):
+        if not os.path.exists(model_path):
             print(f"Model {model_filename} not found. Please press download to download the model.")
             return
         else:
@@ -40,14 +41,24 @@ class LLM:
 
             print(f"Model changed to {model_filename}.")
 
+    def unload_model(self):
+        if self.llm:
+            del self.llm
+            self.llm = None
+            print("Model unloaded.")
+
     def get_completion(self, text, history, system_prompt, screenshot=False):
+        self.load_model(self.current_model_data)
         if not self.llm:
             print("error: Model not loaded")
             return
 
+        response = None
         if isinstance(self.llm, VisionLLM):
-            self.llm: VisionLLM.VisionLLM
-            return self.llm.get_chat_completion(text, history, system_prompt, screenshot)
+            self.llm: VisionLLM
+            response = self.llm.get_chat_completion(text, history, system_prompt, screenshot)
         elif isinstance(self.llm, TextLLM):
-            self.llm: TextLLM.TextLLM
-            return self.llm.get_chat_completion(text, history, system_prompt)
+            self.llm: TextLLM
+            response = self.llm.get_chat_completion(text, history, system_prompt)
+        self.unload_model()
+        return response

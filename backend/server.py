@@ -19,14 +19,20 @@ class LLMRequest(BaseModel):
     systemPrompt: str = ""
     screenshot: bool = False
 
-@app.get("/api/completion")
-async def get_completion(request: LLMRequest):
-    response = llm.get_completion(request.text, request.history, request.systemPrompt, request.screenshot)
-    return StreamingResponse(response, media_type="text/plain")
+# @app.get("/")
+# async def serve_webui():
+#     return FileResponse("../frontend/dist/index.html")
 
-@app.get("/")
-async def serve_webui():
-    return FileResponse("../frontend/dist/index.html")
+@app.post("/api/completion")
+async def get_completion(request: LLMRequest):
+    # try:
+        response = llm.get_completion(request.text, request.history, request.systemPrompt, request.screenshot)
+        if response is None:
+            return {"error": "No response from LLM service"}
+        return StreamingResponse(response, media_type="text/plain")
+    # except Exception as e:
+    #     return {"error": str(e)}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

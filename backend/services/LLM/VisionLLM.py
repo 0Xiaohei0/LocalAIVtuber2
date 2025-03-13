@@ -1,4 +1,5 @@
 import os
+from typing import Generator
 from llama_cpp import Llama
 
 from llama_cpp.llama_chat_format import Llava16ChatHandler
@@ -31,7 +32,7 @@ class VisionLLM(BaseLLM):
             verbose=False
         )
 
-    def get_chat_completion(self, text: str, history: list = [], system_prompt: str = "", screenshot: bool = False):
+    def get_chat_completion(self, text: str, history: list = [], system_prompt: str = "", screenshot: bool = False) -> Generator[str, None, None]:
         messages = [
             {"role": "system", "content": system_prompt},
         ]
@@ -39,7 +40,7 @@ class VisionLLM(BaseLLM):
         for entry in history:
             messages.append(entry)
 
-        if (screenshot):
+        if screenshot:
             image = pyautogui.screenshot()
             image.save(self.screenshot_path)
             data_uri = image_to_base64_data_uri(self.screenshot_path)
@@ -49,17 +50,16 @@ class VisionLLM(BaseLLM):
                     "role": "user",
                     "content": [
                         {"type": "image_url", "image_url": {"url": data_uri }},
-                        {"type" : "text", "text": text}
+                        {"type": "text", "text": text}
                     ]
                 }
             )
-        
         else:
             messages.append(
                 {
                     "role": "user",
                     "content": [
-                        {"type" : "text", "text": text}
+                        {"type": "text", "text": text}
                     ]
                 }
             )
@@ -76,7 +76,7 @@ class VisionLLM(BaseLLM):
             messages.pop(1)
 
         completion_chunks = self.llm.create_chat_completion(
-            messages = messages,
+            messages=messages,
             stream=True
         )
 
@@ -84,7 +84,8 @@ class VisionLLM(BaseLLM):
             if "content" in completion_chunk["choices"][0]["delta"].keys():
                 yield completion_chunk["choices"][0]["delta"]["content"]
             else:
-                yield ""
+                pass
+
     
 if __name__ == "__main__":
     import time

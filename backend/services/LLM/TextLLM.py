@@ -1,4 +1,5 @@
 import os
+from typing import Generator
 from llama_cpp import Llama
 from .BaseLLM import BaseLLM
 
@@ -13,13 +14,14 @@ class TextLLM(BaseLLM):
             verbose=False
         )
 
-    def get_chat_completion(self, text: str, history: list = [], system_prompt: str = ""):
+    def get_chat_completion(self, text: str, history: list = [], system_prompt: str = "") -> Generator[str, None, None]:
         messages = [
             {"role": "system", "content": system_prompt},
         ]
 
-        for entry in history:
-            messages.append(entry)
+        if history:
+            for entry in history:
+                messages.append(entry)
 
         messages.append({"role": "user", "content": text})
 
@@ -39,8 +41,8 @@ class TextLLM(BaseLLM):
             if "content" in completion_chunk["choices"][0]["delta"].keys():
                 yield completion_chunk["choices"][0]["delta"]["content"]
             else:
-                yield ""
-    
+                pass
+
 if __name__ == "__main__":
     current_module_directory = os.path.dirname(__file__)
     import time
