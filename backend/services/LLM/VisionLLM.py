@@ -1,3 +1,4 @@
+from services.lib.LAV_logger import logger
 import os
 from typing import Generator
 from llama_cpp import Llama
@@ -67,7 +68,7 @@ class VisionLLM(BaseLLM):
         def count_tokens(msg_list):
             result = sum(len(self.llm.tokenize(
                 str.encode(msg['content']))) for msg in msg_list)
-            print(f"Tokens_in_context = {result}")
+            logger.debug(f"Tokens_in_context = {result}")
             return result
 
         # Trim oldest messages if context length in tokens is exceeded
@@ -96,9 +97,9 @@ if __name__ == "__main__":
     vision_llm = VisionLLM(os.path.join(current_module_directory,"Models", "llava-v1.6-mistral-7b.Q4_K_M.gguf"),
                             os.path.join(current_module_directory,"Models", "mmproj-model-f161.6.gguf"))
     
-    print("init time: ", time.time()-startTime)
+    logger.debug("init time: ", time.time()-startTime)
     startTime = time.time()
     completion_chunks = vision_llm.get_chat_completion("What do you think of this image, use sarcasm and provide entertaining insight, don't simply describe the image.", screenshot=True)
     for completion_chunk in completion_chunks:
         print(completion_chunk, end="", flush=True)
-    print("Inference time: ", time.time()-startTime)
+    logger.debug("Inference time: ", time.time()-startTime)

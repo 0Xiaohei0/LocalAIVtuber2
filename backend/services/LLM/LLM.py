@@ -1,5 +1,6 @@
 import json
 import os
+from services.lib.LAV_logger import logger
 
 from .BaseLLM import BaseLLM
 from .TextLLM import TextLLM
@@ -22,35 +23,34 @@ class LLM:
                     self.current_model_data = self.all_model_data[0]
         
     def load_model(self, model_data: dict):
-        print(f"Loading model {model_data}...")
+        logger.debug(f"Loading model {model_data}...")
         self.current_model_data = model_data
         model_directory = os.path.join(self.current_module_directory, "Models")
         model_filename = model_data.get("fileName")
         model_path = os.path.join(model_directory, model_filename)
 
         if not os.path.exists(model_path):
-            print(f"Model {model_filename} not found. Please press download to download the model.")
+            logger.error(f"Model {model_filename} not found. Please press download to download the model.")
             return
         else:
-            if self.llm:
-                del self.llm
+            self.unload_model()
             if model_data.get("type") == "text":
                 self.llm = TextLLM(model_path=model_path, n_ctx=4096, n_gpu_layers=-1, seed=-1)
             elif model_data.get("type") == "vision":
                 self.llm = VisionLLM(model_path=model_path, mmproj_path=model_data.get("mmproj_path"), n_ctx = 4096, n_gpu_layers=-1, seed=-1)
 
-            print(f"Model changed to {model_filename}.")
+            logger.info(f"Model changed to {model_filename}.")
 
     def unload_model(self):
         if self.llm:
             del self.llm
             self.llm = None
-            print("Model unloaded.")
+            logger.info("Model unloaded.")
 
     def get_completion(self, text, history, system_prompt, screenshot=False):
         self.load_model(self.current_model_data)
         if not self.llm:
-            print("error: Model not loaded")
+            logger.error("error: Model not loaded")
             return
 
         response = None

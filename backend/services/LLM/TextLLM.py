@@ -1,3 +1,4 @@
+from services.lib.LAV_logger import logger
 import os
 from typing import Generator
 from llama_cpp import Llama
@@ -28,7 +29,7 @@ class TextLLM(BaseLLM):
         def count_tokens(msg_list):
             result = sum(len(self.llm.tokenize(
                 str.encode(msg['content']))) for msg in msg_list)
-            print(f"Tokens_in_context = {result}")
+            logger.debug(f"Tokens_in_context = {result}")
             return result
 
         while count_tokens(messages) > self.context_length and len(messages) > 1:
@@ -48,9 +49,9 @@ if __name__ == "__main__":
     import time
     startTime = time.time()
     text_LLM = TextLLM(model_path=os.path.join(current_module_directory,"Models", "aya-v0.2-q4_k_m.gguf"))
-    print("init time: ", time.time()-startTime)
+    logger.debug("init time: ", time.time()-startTime)
     startTime = time.time()
     completion_chunks = text_LLM.get_chat_completion("What do you think of Vtubers?")
     for completion_chunk in completion_chunks:
         print(completion_chunk, end="", flush=True)
-    print("Inference time: ", time.time()-startTime)
+    logger.debug("Inference time: ", time.time()-startTime)

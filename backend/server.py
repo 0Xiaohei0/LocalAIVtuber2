@@ -1,3 +1,4 @@
+from services.lib.LAV_logger import logger
 import os
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, FileResponse
