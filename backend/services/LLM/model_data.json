@@ -1,5 +1,11 @@
 [
     {
+        "displayName": "Mistral-7B-Instruct-v0.3",
+        "description": "medium size generirc LLM",
+        "fileName":"Mistral-7B-Instruct-v0.3.Q4_K_M.gguf",
+        "link":"https://huggingface.co/MaziyarPanahi/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mistral-7B-Instruct-v0.3.Q4_K_M.gguf?download=true",
+        "type": "text"
+    },{
         "displayName": "aya-v0.2",
         "description": "finetuned LLM with personality",
         "fileName": "aya-v0.2-q4_k_m.gguf",
@@ -11,13 +17,6 @@
         "description": "small generic LLM",
         "fileName":"SmolLM2-1.7B-Instruct-Q4_K_M.gguf",
         "link":"https://huggingface.co/lmstudio-community/SmolLM2-1.7B-Instruct-GGUF/resolve/main/SmolLM2-1.7B-Instruct-Q4_K_M.gguf?download=true",
-        "type": "text"
-    },
-    {
-        "displayName": "Mistral-7B-Instruct-v0.3",
-        "description": "medium size generirc LLM",
-        "fileName":"Mistral-7B-Instruct-v0.3.Q4_K_M.gguf",
-        "link":"https://huggingface.co/MaziyarPanahi/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mistral-7B-Instruct-v0.3.Q4_K_M.gguf?download=true",
         "type": "text"
     },
     {

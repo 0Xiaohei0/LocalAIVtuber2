@@ -13,23 +13,31 @@ const Chatbox: React.FC = () => {
     const [messages, setMessages] = useState<HistoryItem[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     const handleSend = async () => {
-        console.log('Sending message:', input);
         if (input.trim() === '') return;
+
+        // Abort the previous request if it exists
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
 
         const userMessage: HistoryItem = { role: 'user', content: input };
         setMessages([...messages, userMessage]);
         setInput('');
 
-        console.log(messages)
         const response = await fetch('/api/completion', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                  text: input,
                  history: messages
-                })
+                }),
+            signal: abortController.signal
         });
 
         const reader = response.body?.getReader();
@@ -37,24 +45,32 @@ const Chatbox: React.FC = () => {
         let aiMessage = '';
 
         if (!reader) return;
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            aiMessage += decoder.decode(value);
-            setMessages((prevMessages) => {
-                const lastMessage = prevMessages[prevMessages.length - 1];
-                if (lastMessage && lastMessage.role === 'assistant') {
-                    return [
-                        ...prevMessages.slice(0, -1),
-                        { ...lastMessage, content: aiMessage }
-                    ];
-                } else {
-                    return [
-                        ...prevMessages,
-                        { role: 'assistant', content: aiMessage }
-                    ];
-                }
-            });
+        try {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                aiMessage += decoder.decode(value);
+                setMessages((prevMessages) => {
+                    const lastMessage = prevMessages[prevMessages.length - 1];
+                    if (lastMessage && lastMessage.role === 'assistant') {
+                        return [
+                            ...prevMessages.slice(0, -1),
+                            { ...lastMessage, content: aiMessage }
+                        ];
+                    } else {
+                        return [
+                            ...prevMessages,
+                            { role: 'assistant', content: aiMessage }
+                        ];
+                    }
+                });
+            }
+        } catch (error) {
+            if ((error as Error).name === 'AbortError') {
+                console.log('Fetch aborted');
+            } else {
+                console.error('Fetch error:', error);
+            }
         }
     };
 
@@ -67,7 +83,7 @@ const Chatbox: React.FC = () => {
             <div className="flex flex-col space-y-4 mb-4 flex-grow">
                 {messages.map((msg, index) => (
                     <div
-                        className={`max-w-7/10 px-4 py-2 has-[>svg]:px-3 gap-2 rounded-md text-sm font-medium shadow-xs ${msg.role === 'user' ? 'bg-primary text-primary-foreground self-end' : 'bg-secondary text-secondary-foreground self-start'
+                        className={`break-words max-w-7/10 px-4 py-2 has-[>svg]:px-3 gap-2 rounded-md text-sm font-medium shadow-xs ${msg.role === 'user' ? 'bg-primary text-primary-foreground self-end' : 'bg-secondary text-secondary-foreground self-start'
                             }`}
                         key={index}
                     >
