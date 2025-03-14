@@ -20,9 +20,9 @@ class LLMRequest(BaseModel):
     systemPrompt: str = ""
     screenshot: bool = False
 
-# @app.get("/")
-# async def serve_webui():
-#     return FileResponse("../frontend/dist/index.html")
+@app.get("/")
+async def serve_webui():
+    return FileResponse("../frontend/dist/index.html")
 
 @app.post("/api/completion")
 async def get_completion(request: LLMRequest):

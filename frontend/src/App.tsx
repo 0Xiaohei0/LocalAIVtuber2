@@ -1,14 +1,12 @@
 import './App.css'
-import Chatbox from './components/chatbox'
 import { ThemeProvider } from "@/components/theme-provider"
-import { ModeToggle } from './components/mode-toggle'
+import Mainpage from './pages/mainpage'
 
 function App() {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <Chatbox></Chatbox>
-      <ModeToggle></ModeToggle>
+      <Mainpage />
     </ThemeProvider>
   )
 }
