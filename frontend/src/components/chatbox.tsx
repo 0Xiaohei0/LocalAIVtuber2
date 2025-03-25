@@ -3,35 +3,45 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send } from 'lucide-react';
 
-
 type HistoryItem = {
     role: "assistant" | "user" | "system";
     content: string;
 }
-
 const Chatbox: React.FC = () => {
     const [messages, setMessages] = useState<HistoryItem[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    const saveMemory = async (input: string, speaker: string) => {
+    const saveMemory = async (input: string, role: string, name: string) => {
         const mem_response = await fetch('/api/memory/insert', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                     text: input,
-                    speaker: speaker
+                    role:role,
+                    name:name
                 })
         });
         const data = await mem_response.json();
         console.log("memory saved, id: " + data)
     }
 
+    // const getMemory = async () => {
+    //     const mem_response = await fetch('/api/memory', {
+    //         method: 'POST',
+    //         headers: { 'Content-Type': 'application/json' },
+    //         body: JSON.stringify({})
+    //     });
+    //     const data = await mem_response.json();
+    //     // console.log("memory retrieved: " + JSON.stringify(data))
+    //     setMessages( data[0].map((data)=>{data.payload.document}) )
+    // }
+
     const handleSend = async () => {
         if (input.trim() === '') return;
 
-        saveMemory(input, "User")
+        saveMemory(input, "user", "Xiaohei")
 
         // Abort the previous request if it exists
         if (abortControllerRef.current) {
@@ -81,7 +91,7 @@ const Chatbox: React.FC = () => {
                 });
             }
 
-           saveMemory(aiMessage, "Aya")
+           saveMemory(aiMessage, "assistant", "Aya")
 
         } catch (error) {
             if ((error as Error).name === 'AbortError') {

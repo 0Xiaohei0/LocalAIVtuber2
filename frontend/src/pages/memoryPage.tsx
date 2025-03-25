@@ -1,7 +1,9 @@
+import MemoryList from "@/components/memory-list"
+
 function MemoryPage() {
     return (
         <div>
-            <h1>Memory Page</h1>
+            <MemoryList></MemoryList>
         </div>
     )
   }

@@ -51,11 +51,13 @@ async def query_memory(request: QueryMemoryRequest):
 
 class InsertMemoryRequest(BaseModel):
     text: str
-    speaker: str = ""
+    role: str = ""
+    name: str = ""
+    session_id: str = ""
 
 @app.post("/api/memory/insert")
 async def insert_memory(request: InsertMemoryRequest):
-    response = memory.insert(text=request.text, speaker = request.speaker)
+    response = memory.insert(text=request.text, role=request.role, name=request.name, session_id=request.session_id)
     logger.info(response)
     if response is None:
         return {"error": "No response from Memory service"}

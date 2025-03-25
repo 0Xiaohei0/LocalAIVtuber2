@@ -1,7 +1,11 @@
+import json
 import os
+import re
+import uuid
 from qdrant_client import QdrantClient
 import time
 from ..lib.LAV_logger import logger
+import datetime
 
 class Memory:
     COLLECTION_NAME = "memory_collection"
@@ -16,12 +20,20 @@ class Memory:
         self.client.set_model("sentence-transformers/all-MiniLM-L6-v2")
 
     
-    def insert(self, text, speaker = ""):
-        docs = [f"{speaker}: {text}"]
+    def insert(self, message:str, role="", name="", session_id=""):
+        time_str = '{:%Y-%m-%d %H:%M}'.format(datetime.datetime.now())
+        # match = re.match(r"\[(.*?)\]\[(.*?)\]: (.*)", text)
+        docs = [f"[{time_str}][{role}:{name}]: {message}"]
         metadata = [
-            {"speaker": speaker},
+            {
+                "session_id": session_id,
+                "time": time_str,
+                "role": role,
+                "name": name,
+                "message": message
+            }
         ]
-        ids = [int(time.time_ns())]
+        ids = [str(uuid.uuid4())]
         
         response = self.client.add(
             collection_name=self.COLLECTION_NAME,
@@ -29,7 +41,7 @@ class Memory:
             metadata=metadata,
             ids=ids
         )
-        logger.debug(f"Inserted document: {docs} with ids: {ids}")
+        logger.debug(f"Inserted document: {docs} with metadata: {metadata}")
         return response
 
     def query(self, text, limit = 3):
@@ -38,30 +50,33 @@ class Memory:
             query_text = text,
             limit = limit
         )
-        logger.debug(f"Search result: {search_result}")
+        # logger.debug(f"Search result: {search_result}")
+        result = []
         for s in search_result:
-            logger.debug(s.document)
+            result.append(s.metadata)
+        return result
 
     def get(self, limit = 50, offset = 0):
         return self.client.scroll(self.COLLECTION_NAME,
                            limit=limit, 
-                           offset=offset)
+                           offset=offset)[0]
 
 if __name__ == "__main__":
     current_module_directory = os.path.dirname(__file__)
     import time
     startTime = time.time()
-    memory = Memory(True)
+    memory = Memory(temp=True)
     logger.debug(f"init time: {time.time()-startTime}")
     startTime = time.time()
     
-    memory.insert("It's paris.", "xiaohei")
-    memory.insert("what's the capital of Canada?", "Aya")
-    memory.insert("dogs are better than cats", "Aya")
-    memory.insert("I do not like cats", "Aya")
-    memory.insert("I have a good amount of money", "Aya")
-    memory.insert("What should I buy with all this money?", "Aya")
-    memory.insert("cats are the worst", "Aya")
-    memory.insert("what's the capital of france?", "Aya")
-    memory.query("I need money")
+    memory.insert("It's paris.","assistant","Aya")
+    memory.insert("what's the capital of Canada?","user","Xiaohei")
+    memory.insert("dogs are better than cats","assistant","Aya")
+    memory.insert("I do not like cats","assistant","Aya")
+    memory.insert("I have a good amount of money","assistant","Aya")
+    memory.insert("What should I buy with all this money?","assistant","Aya")
+    memory.insert("cats are the worst","assistant","Aya")
+    memory.insert("what's the capital of france?","assistant","Aya")
+    result = memory.query("I need money",limit=1)
+    logger.info(f"result metadata: {result}")
     logger.debug(f"Inference time: {time.time()-startTime}")
