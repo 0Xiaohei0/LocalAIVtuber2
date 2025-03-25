@@ -1,4 +1,12 @@
 # React + TypeScript + Vite
+```
+cd frontend
+npm run dev
+
+cd backend
+python server.py
+```
+
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
