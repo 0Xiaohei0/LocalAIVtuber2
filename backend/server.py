@@ -28,10 +28,15 @@ async def serve_webui():
 
 @app.post("/api/completion")
 async def get_completion(request: LLMRequest):
-    response = llm.get_completion(request.text, request.history, request.systemPrompt, request.screenshot)
-    if response is None:
-        return {"error": "No response from LLM service"}
-    return StreamingResponse(response, media_type="text/plain")
+    try:
+        response = llm.get_completion(request.text, request.history, request.systemPrompt, request.screenshot)
+        if response is None:
+            return {"error": "No response from LLM service"}
+        return StreamingResponse(response, media_type="text/plain")
+    except Exception as e:
+        logger.error(f"Error during completion: {e}", exc_info=True)
+    finally:
+        llm.unload_model()
 
 class QueryMemoryRequest(BaseModel):
     text: str
@@ -51,6 +56,7 @@ class InsertMemoryRequest(BaseModel):
 @app.post("/api/memory/insert")
 async def insert_memory(request: InsertMemoryRequest):
     response = memory.insert(text=request.text, speaker = request.speaker)
+    logger.info(response)
     if response is None:
         return {"error": "No response from Memory service"}
     return response
