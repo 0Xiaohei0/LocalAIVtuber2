@@ -48,7 +48,7 @@ if __name__ == "__main__":
     current_module_directory = os.path.dirname(__file__)
     import time
     startTime = time.time()
-    text_LLM = TextLLM(model_path=os.path.join(current_module_directory,"Models", "aya-v0.2-q4_k_m.gguf"))
+    text_LLM = TextLLM(model_path=os.path.join(current_module_directory,"Models", "aya-v0.5-q4_k_m.gguf"))
     logger.debug("init time: ", time.time()-startTime)
     startTime = time.time()
     completion_chunks = text_LLM.get_chat_completion("What do you think of Vtubers?")

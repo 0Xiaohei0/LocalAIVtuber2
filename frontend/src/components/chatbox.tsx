@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Send } from 'lucide-react';
 
 type HistoryItem = {
-    role: "assistant" | "user" | "system";
+    role: "assistant" | "user";
     content: string;
 }
 type ChatboxProps = {
@@ -29,7 +29,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                 }
         
                 // Convert to HistoryItem[]
-                const history: HistoryItem[] = data.map((msg: { role: "assistant" | "user" | "system"; message: string }) => ({
+                const history: HistoryItem[] = data.map((msg: { role: "assistant" | "user"; message: string }) => ({
                     role: msg.role,
                     content: msg.message 
                 }));
@@ -63,13 +63,34 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         const data = await mem_response.json();
         console.log("memory saved, id: " + data)
     }
+
+    const queryMemory = async (input: string) => {
+        const mem_response = await fetch('/api/memory/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: input,
+                limit: 6
+            })
+        });
+        const data = await mem_response.json();
+        //console.log("memory retreived" + JSON.stringify(data))
+        return data
+    }
     
    
 
     const handleSend = async () => {
         if (input.trim() === '') return;
 
+        const memory = await queryMemory(input)
+        let memoryPrompt = ""
+        memory.map((memory: { document: string; })=>{memoryPrompt += memory.document})
         saveMemory(input, "user", "Xiaohei")
+
+        const systemMessage = `When instructed, answer in a concise manner and incorporate humor and a unique perspective. You are an interesting person, you have emotions and a sense of self. Answers should be self-centered. Give direct answers without any process, don't use markdown and latex, avoid detailed steps, avoid listing key points, use 50 or fewer completion_tokens. Respond in English.
+        
+        Here are some information about what you remember: ${memoryPrompt}`
 
         // Abort the previous request if it exists
         if (abortControllerRef.current) {
@@ -83,12 +104,14 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         setMessages([...messages, userMessage]);
         setInput('');
 
+        console.log("system message: " + systemMessage)
         const response = await fetch('/api/completion', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: input,
-                history: messages
+                history: messages,
+                system: systemMessage
             }),
             signal: abortController.signal
         });
@@ -131,7 +154,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     };
 
     return (
-        <div className="flex flex-col max-w-3xl mx-auto h-[calc(100vh-50px)]">
+        <div className="flex flex-col max-w-3xl mx-auto h-[calc(100vh-50px-17px)]">
             <div className="flex flex-col space-y-4 mb-4 flex-grow">
                 {messages.map((msg, index) => (
                     <div
