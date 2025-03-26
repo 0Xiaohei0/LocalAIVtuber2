@@ -17,7 +17,7 @@ import React from "react"
 type PageKey = keyof typeof pageMapping
 // Menu items.
 const testPipelineKeys: PageKey[] = ["input", "llm", "tts"]
-const otherSettingKeys: PageKey[] = ["memory", "pipeline-monitor"]
+// const otherSettingKeys: PageKey[] = ["memory", "pipeline-monitor"]
 
 
 
@@ -42,7 +42,7 @@ export function AppSidebar({ onItemClick }: { onItemClick: (key: PageKey) => voi
             </SidebarMenu>
           </SidebarGroupContent>
 
-          <SidebarGroupLabel>Other Settings</SidebarGroupLabel>
+          {/* <SidebarGroupLabel>Other Settings</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
             {otherSettingKeys.map((key) => (
@@ -56,7 +56,7 @@ export function AppSidebar({ onItemClick }: { onItemClick: (key: PageKey) => voi
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
-          </SidebarGroupContent>
+          </SidebarGroupContent> */}
         </SidebarGroup>
       </SidebarContent>
 
