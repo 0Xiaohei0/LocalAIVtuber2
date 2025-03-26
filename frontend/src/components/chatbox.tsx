@@ -131,7 +131,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     };
 
     return (
-        <div className="flex flex-col max-w-3xl mx-auto h-full">
+        <div className="flex flex-col max-w-3xl mx-auto h-[calc(100vh-50px)]">
             <div className="flex flex-col space-y-4 mb-4 flex-grow">
                 {messages.map((msg, index) => (
                     <div

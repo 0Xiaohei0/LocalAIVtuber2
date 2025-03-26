@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { MessageSquareText, ArrowLeftToLine, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { generateSessionId } from '@/lib/utils';
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export type SessionInfo = {
     title: string,
@@ -45,7 +46,7 @@ function LLMPage() {
     }
 
     return (
-        <div className="grid h-full"
+        <div className="grid h-screen"
             style={{
                 gridTemplateColumns: collapsed ? '1fr' : '200px 1fr',
                 gridTemplateRows: '50px 1fr',
@@ -68,9 +69,9 @@ function LLMPage() {
                 <div className="border-t-1">
                     <ChatSidebar onItemClick={setCurrentSession} sessions={sessionInfo} />
                 </div>}
-            <div className="border-t-1 border-l-1 h-full ">
+            <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pt-4">
                 <Chatbox sessionId={currentSession.id}/>
-            </div>
+            </ScrollArea>
         </div>
 
     )
