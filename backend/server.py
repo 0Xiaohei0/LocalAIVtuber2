@@ -1,7 +1,7 @@
 from services.Memory.Memory import Memory
 from services.lib.LAV_logger import logger
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -57,21 +57,46 @@ class InsertMemoryRequest(BaseModel):
 
 @app.post("/api/memory/insert")
 async def insert_memory(request: InsertMemoryRequest):
-    response = memory.insert(text=request.text, role=request.role, name=request.name, session_id=request.session_id)
+    response = memory.insert_message(message=request.text, role=request.role, name=request.name, session_id=request.session_id)
     logger.info(response)
     if response is None:
         return {"error": "No response from Memory service"}
     return response
 
-class GetMemoryRequest(BaseModel):
-    limit : int = 50
-    offset: int = 0
+# class GetMemoryRequest(BaseModel):
+#     limit : int = 50
+#     offset: int = 0
 
-@app.post("/api/memory")
-async def get_memory(request: GetMemoryRequest):
-    response = memory.get(request.limit, request.offset)
+# @app.post("/api/memory")
+# async def get_memory(request: GetMemoryRequest):
+#     response = memory.get(request.limit, request.offset)
+#     if response is None:
+#         return {"error": "No response from Memory service"}
+#     return response
+
+class NewSessionRequest(BaseModel):
+    session_id: str
+    title: str
+
+@app.post("/api/memory/session/new")
+async def create_new_session(request: NewSessionRequest):
+    response = memory.insert_session(session_id=request.session_id, title=request.title)
     if response is None:
-        return {"error": "No response from Memory service"}
+        return {"error": "Failed to create session"}
+    return {"status": "ok", "session_id": request.session_id}
+
+@app.get("/api/memory/session")
+async def get_memory_sessions():
+    response = memory.get_sessions()
+    if response is None:
+        return {"error": "No sessions found"}
+    return response
+
+@app.get("/api/memory/session/messages")
+async def get_session_messages(session_id: str = Query(...)):
+    response = memory.get_messages_by_session(session_id=session_id)
+    if response is None:
+        return {"error": "No messages found for session"}
     return response
     
 

@@ -7,36 +7,64 @@ type HistoryItem = {
     role: "assistant" | "user" | "system";
     content: string;
 }
-const Chatbox: React.FC = () => {
+type ChatboxProps = {
+    sessionId: string;
+};
+
+const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     const [messages, setMessages] = useState<HistoryItem[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
+
+    useEffect(() => {
+        const getMemory = async () => {
+            try {
+                const res = await fetch(`/api/memory/session/messages?session_id=${encodeURIComponent(sessionId)}`);
+                const data = await res.json();
+        
+                if (!res.ok) {
+                    console.error("Error fetching session memory:", data?.error);
+                    return;
+                }
+        
+                // Convert to HistoryItem[]
+                const history: HistoryItem[] = data.map((msg: { role: "assistant" | "user" | "system"; message: string }) => ({
+                    role: msg.role,
+                    content: msg.message 
+                }));
+        
+                setMessages(history);
+            } catch (error) {
+                console.error("Fetch error:", error);
+            }
+        }
+        if (sessionId) {
+            getMemory();
+        }
+    }, [sessionId]);
+    
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
 
     const saveMemory = async (input: string, role: string, name: string) => {
         const mem_response = await fetch('/api/memory/insert', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                    text: input,
-                    role:role,
-                    name:name
-                })
+                text: input,
+                role: role,
+                name: name,
+                session_id: sessionId
+            })
         });
         const data = await mem_response.json();
         console.log("memory saved, id: " + data)
     }
-
-    // const getMemory = async () => {
-    //     const mem_response = await fetch('/api/memory', {
-    //         method: 'POST',
-    //         headers: { 'Content-Type': 'application/json' },
-    //         body: JSON.stringify({})
-    //     });
-    //     const data = await mem_response.json();
-    //     // console.log("memory retrieved: " + JSON.stringify(data))
-    //     setMessages( data[0].map((data)=>{data.payload.document}) )
-    // }
+    
+   
 
     const handleSend = async () => {
         if (input.trim() === '') return;
@@ -59,9 +87,9 @@ const Chatbox: React.FC = () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                 text: input,
-                 history: messages
-                }),
+                text: input,
+                history: messages
+            }),
             signal: abortController.signal
         });
 
@@ -91,7 +119,7 @@ const Chatbox: React.FC = () => {
                 });
             }
 
-           saveMemory(aiMessage, "assistant", "Aya")
+            saveMemory(aiMessage, "assistant", "Aya")
 
         } catch (error) {
             if ((error as Error).name === 'AbortError') {
@@ -101,10 +129,6 @@ const Chatbox: React.FC = () => {
             }
         }
     };
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, [messages]);
 
     return (
         <div className="flex flex-col max-w-3xl mx-auto h-full">
