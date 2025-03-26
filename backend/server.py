@@ -80,9 +80,19 @@ class NewSessionRequest(BaseModel):
 
 @app.post("/api/memory/session/new")
 async def create_new_session(request: NewSessionRequest):
-    response = memory.insert_session(session_id=request.session_id, title=request.title)
+    response = memory.upsert_session(session_id=request.session_id, title=request.title)
     if response is None:
         return {"error": "Failed to create session"}
+    return {"status": "ok", "session_id": request.session_id}
+
+class DeleteSessionRequest(BaseModel):
+    session_id: str
+
+@app.post("/api/memory/session/delete")
+async def delete_session(request: DeleteSessionRequest):
+    response = memory.delete_session(session_id=request.session_id)
+    if response is None:
+        return {"error": "Failed to delete session"}
     return {"status": "ok", "session_id": request.session_id}
 
 @app.get("/api/memory/session")

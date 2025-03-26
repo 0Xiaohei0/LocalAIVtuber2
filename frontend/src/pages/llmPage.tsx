@@ -15,12 +15,12 @@ function LLMPage() {
     const [currentSession, setCurrentSession] = useState<SessionInfo>({ id: "", title: "" })
     const [collapsed, setCollapsed] = useState<boolean>(false)
     // const sessions:SessionInfo[] = [{id:"1234", title:"test"},{id:"12354", title:"test2"},{id:"12344", title:"test3"}]
-    const [sessionInfo, setSessionInfo] = useState<SessionInfo[]>([])
+    const [sessionInfoList, setSessionInfoList] = useState<SessionInfo[]>([])
 
     const updateSessions = async () => {
         const updatedList = await fetch('/api/memory/session').then(res => res.json());
         console.log("session list: " + updatedList)
-        setSessionInfo(updatedList);
+        setSessionInfoList(updatedList);
     };
 
     useEffect(() => {
@@ -40,8 +40,59 @@ function LLMPage() {
         const data = await res.json();
         if (data.session_id) {
             setCurrentSession({ id: session_id, title });
+            
             // Optionally, refresh session list
             updateSessions()
+        }
+    }
+
+    const deleteSession = async (session_info: SessionInfo) => {
+        const res = await fetch('/api/memory/session/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_id: session_info.id,
+            }),
+        });
+
+        const data = await res.json();
+        if (data.session_id) {
+            setCurrentSession({ id: "", title:"" });
+            // Optionally, refresh session list
+            updateSessions()
+        }
+    }
+
+    const onChangeTitle = async (session_info: SessionInfo) => {
+        try {
+            // Call backend to update session title
+            const res = await fetch('/api/memory/session/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: session_info.id,
+                    title: session_info.title,
+                }),
+            });
+    
+            if (!res.ok) {
+                console.error("Failed to update session title");
+                return;
+            }
+    
+            // Update local session state
+            setSessionInfoList(prev =>
+                prev.map(session =>
+                    session.id === session_info.id ? { ...session, title: session_info.title } : session
+                )
+            );
+    
+            // // Also update current session if it's the same one
+            if (currentSession.id === session_info.id) {
+                setCurrentSession(prev => ({ ...prev, title: session_info.title }));
+            }
+        } catch (err) {
+            console.error("Error updating session title:", err);
         }
     }
 
@@ -67,7 +118,7 @@ function LLMPage() {
                 {currentSession.title}</div>
             {!collapsed &&
                 <div className="border-t-1">
-                    <ChatSidebar onItemClick={setCurrentSession} sessions={sessionInfo} />
+                    <ChatSidebar onItemClick={setCurrentSession} onChangeTitle={onChangeTitle} sessions={sessionInfoList} onDeleteSession={deleteSession} />
                 </div>}
             <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pt-4">
                 <Chatbox sessionId={currentSession.id}/>

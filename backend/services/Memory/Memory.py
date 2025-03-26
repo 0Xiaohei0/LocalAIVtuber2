@@ -64,7 +64,7 @@ class Memory:
                            offset=offset)[0]
     
 
-    def insert_session(self, session_id: str, title: str):
+    def upsert_session(self, session_id: str, title: str):
         time_str = '{:%Y-%m-%d %H:%M}'.format(datetime.datetime.now())
         title_point = [f"[{time_str}][session-title]: {title}"]
         metadata = [{
@@ -72,15 +72,44 @@ class Memory:
             "time": time_str,
             "title": title
         }]
-        ids = [str(uuid.uuid4())]
+        filter_obj = Filter(
+                must=[
+                    FieldCondition(
+                        key="session_id",
+                        match=MatchValue(value=session_id)
+                    )
+                ]
+            )
         
+        
+        # Step 1: Try to find existing point with this session_id
+        existing_points = self.client.scroll(
+            collection_name=self.SESSION_COLLECTION_NAME,
+            scroll_filter=filter_obj,
+            limit=1
+        )
+
+        logger.info(f"existing_points: {existing_points}")
+        logger.info(f"existing_points[0]: {existing_points[0]}")
+        logger.info(f"existing_points[0][0].id: {existing_points[0][0].id}")
+        if existing_points and existing_points[0]:
+            existing_id = existing_points[0][0].id  # First point ID
+            ids = [existing_id]
+            logger.debug(f"Updating existing session with ID: {existing_id}")
+        else:
+            # No match found, insert new with a fresh UUID
+            ids = [str(uuid.uuid4())]
+            logger.debug(f"Inserting new session with session_id: {session_id}")
+
+        # Step 2: Add (insert or overwrite)
         response = self.client.add(
             collection_name=self.SESSION_COLLECTION_NAME,
             documents=title_point,
             metadata=metadata,
             ids=ids
         )
-        logger.debug(f"Inserted session title: {title_point} with metadata: {metadata}")
+
+        logger.debug(f"Upserted session title: {title_point} with metadata: {metadata}")
         return response
     
     def get_sessions(self, limit=100):
@@ -160,6 +189,30 @@ class Memory:
         messages.sort(key=lambda x: x["timestamp"])
         return messages
 
+    def delete_session(self, session_id: str):
+        filter_obj = Filter(
+                must=[
+                    FieldCondition(
+                        key="session_id",
+                        match=MatchValue(value=session_id)
+                    )
+                ]
+            )
+
+        self.client.delete(
+            collection_name=self.SESSION_COLLECTION_NAME,
+            points_selector=filter_obj
+        )
+
+        self.client.delete(
+            collection_name=self.MESSAGE_COLLECTION_NAME,
+            points_selector=filter_obj
+        )
+
+        return {
+            "status": "deleted",
+            "session_id": session_id,
+        }
 
 
 
