@@ -2,7 +2,7 @@ from services.TTS.TTS import TTS
 from services.Memory.Memory import Memory
 from services.lib.LAV_logger import logger
 import os
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Response
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -119,7 +119,7 @@ async def get_audio(request: TTSRequest):
     response = tts.syntheize(request.text)
     if response is None:
         return {"error": "TTS Error"}
-    return StreamingResponse(response, media_type="audio/wav")
+    return Response(response, media_type="audio/wav")
     
 
 if __name__ == "__main__":

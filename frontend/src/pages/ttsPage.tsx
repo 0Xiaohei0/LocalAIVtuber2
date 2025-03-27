@@ -1,3 +1,5 @@
+import AudioPlayer from "@/components/audio-player";
+import { Panel } from "@/components/panel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
@@ -28,11 +30,12 @@ function TTSPage() {
             if (!response.ok) {
                 throw new Error("Failed to fetch TTS audio");
             }
+
+            // Get the audio file as a blob
             const audioBlob = await response.blob();
             const audioObjectUrl = URL.createObjectURL(audioBlob);
             setAudioUrl(audioObjectUrl);
 
-            // Automatically play the audio
             const audio = new Audio(audioObjectUrl);
             audio.play();
         } catch (error) {
@@ -44,29 +47,38 @@ function TTSPage() {
     };
 
     return (
-        <div className="grid grid-cols-2 grid-rows-3 p-5 gap-5">
-            <Textarea 
-                className=""
-                rows={4}
-                placeholder="Enter text to synthesize..."
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-            />
-            <div>
+        <div className="grid grid-cols-2 grid-rows-1 p-5 gap-5">
+            <div  className="flex flex-col gap-4">
+                <Textarea 
+                    className=""
+                    rows={4}
+                    placeholder="Enter text to synthesize..."
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                />
+                <Button
+                    variant={"outline"}
+                    onClick={handleSubmit}
+                    disabled={isLoading}
+                >
+                    {isLoading ? "Generating..." : "Generate Audio"}
+                </Button>
+            </div>
+            
+            <div className="flex items-center justify-center w-full">
+                {!audioUrl && (
+                    <Panel className="h-full w-full flex text-center items-center justify-center">
+                        <p>No Audio to Preview</p>
+                    </Panel>
+                )}
                 {audioUrl && (
-                    <div className="mt-4">
-                        <audio controls src={audioUrl} className="" />
+                    <div className="w-full mx-10">
+                        <AudioPlayer audioUrl={audioUrl} />
                     </div>
                 )}
             </div>
             
-            <Button
-                variant={"outline"}
-                onClick={handleSubmit}
-                disabled={isLoading}
-            >
-                {isLoading ? "Generating..." : "Generate Audio"}
-            </Button>
+            
             
         </div>
     );
