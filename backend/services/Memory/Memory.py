@@ -89,9 +89,6 @@ class Memory:
             limit=1
         )
 
-        logger.info(f"existing_points: {existing_points}")
-        logger.info(f"existing_points[0]: {existing_points[0]}")
-        logger.info(f"existing_points[0][0].id: {existing_points[0][0].id}")
         if existing_points and existing_points[0]:
             existing_id = existing_points[0][0].id  # First point ID
             ids = [existing_id]

@@ -16,7 +16,7 @@ import React from "react"
 
 type PageKey = keyof typeof pageMapping
 // Menu items.
-const testPipelineKeys: PageKey[] = ["input", "llm", "tts"]
+const testPipelineKeys: PageKey[] = ["input", "llm", "tts", "pipeline-monitor"]
 // const otherSettingKeys: PageKey[] = ["memory", "pipeline-monitor"]
 
 

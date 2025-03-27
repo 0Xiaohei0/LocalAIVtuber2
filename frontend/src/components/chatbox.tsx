@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send } from 'lucide-react';
+import { pipelineManager } from "@/lib/pipelineManager";
+import { usePipelineSubscription } from "@/hooks/use-pipeline-subscriptions";
 
 type HistoryItem = {
     role: "assistant" | "user";
@@ -16,6 +18,15 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const { tasks } = usePipelineSubscription();
+
+    useEffect(() => {
+        const task = pipelineManager.getNextTaskForLLM();
+        if (!task) return;
+        const input = task.input!;
+        handleSend(input)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [tasks]);
 
     useEffect(() => {
         const getMemory = async () => {
@@ -60,8 +71,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                 session_id: sessionId
             })
         });
-        const data = await mem_response.json();
-        console.log("memory saved, id: " + data)
+        await mem_response.json();
     }
 
     const queryMemory = async (input: string) => {
@@ -74,13 +84,12 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
             })
         });
         const data = await mem_response.json();
-        //console.log("memory retreived" + JSON.stringify(data))
         return data
     }
     
    
 
-    const handleSend = async () => {
+    const handleSend = async (input:string) => {
         if (input.trim() === '') return;
 
         const memory = await queryMemory(input)
@@ -104,7 +113,6 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         setMessages([...messages, userMessage]);
         setInput('');
 
-        console.log("system message: " + systemMessage)
         const response = await fetch('/api/completion', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -119,13 +127,17 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
         let aiMessage = '';
-
+        let currentText = ''
         if (!reader) return;
+
+        let taskId: string | null = null;
+
         try {
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                aiMessage += decoder.decode(value);
+                const chunk = decoder.decode(value);
+                aiMessage += chunk;
                 setMessages((prevMessages) => {
                     const lastMessage = prevMessages[prevMessages.length - 1];
                     if (lastMessage && lastMessage.role === 'assistant') {
@@ -140,6 +152,33 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                         ];
                     }
                 });
+
+                
+                currentText += chunk
+                // Split into sentences or punctuation-level chunks
+                const sentenceMatches = currentText.match(/[^.!?]+[.!?]/g);
+                if (!sentenceMatches) continue;
+                for (const sentence of sentenceMatches) {
+                    const trimmed = sentence.trim();
+    
+                    if (trimmed.length > 0) {
+                        // Create task if this is the first sentence
+                        if (taskId === null) {
+                            taskId = pipelineManager.createTaskFromLLM(trimmed);
+                        } else {
+                            pipelineManager.addLLMResponse(taskId, trimmed);
+                        }
+                    }
+    
+                        // Remove all matched content from currentText
+                    const lastMatch = sentenceMatches[sentenceMatches.length - 1];
+                    const endOfLastMatch = currentText.indexOf(lastMatch) + lastMatch.length;
+                    currentText = currentText.slice(endOfLastMatch);
+                }
+            }
+
+            if (taskId !== null) {
+                pipelineManager.markLLMFinished(taskId);
             }
 
             saveMemory(aiMessage, "assistant", "Aya")
@@ -174,9 +213,9 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                         value={input}
                         placeholder="Type your message here."
                         onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                        onKeyDown={(e) => e.key === "Enter" && handleSend(input)}
                     />
-                    <Button onClick={handleSend}><Send></Send></Button>
+                    <Button onClick={()=>handleSend(input)}><Send></Send></Button>
                 </div>
             </div>
         </div>

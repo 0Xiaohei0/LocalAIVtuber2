@@ -19,7 +19,6 @@ function LLMPage() {
 
     const updateSessions = async () => {
         const updatedList = await fetch('/api/memory/session').then(res => res.json());
-        console.log("session list: " + updatedList)
         setSessionInfoList(updatedList);
     };
 
