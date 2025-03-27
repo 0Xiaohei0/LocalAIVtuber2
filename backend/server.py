@@ -1,3 +1,4 @@
+from services.TTS.TTS import TTS
 from services.Memory.Memory import Memory
 from services.lib.LAV_logger import logger
 import os
@@ -15,6 +16,7 @@ app.mount("/assets", StaticFiles(directory="../frontend/dist/assets"), name="ass
 # Initialize Services
 llm:LLM = LLM()
 memory:Memory = Memory()
+tts:TTS = TTS()
 
 class LLMRequest(BaseModel):
     text: str
@@ -108,6 +110,16 @@ async def get_session_messages(session_id: str = Query(...)):
     if response is None:
         return {"error": "No messages found for session"}
     return response
+
+class TTSRequest(BaseModel):
+    text: str
+
+@app.post("/api/tts")
+async def get_audio(request: TTSRequest):
+    response = tts.syntheize(request.text)
+    if response is None:
+        return {"error": "TTS Error"}
+    return StreamingResponse(response, media_type="audio/wav")
     
 
 if __name__ == "__main__":

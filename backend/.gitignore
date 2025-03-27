@@ -2,3 +2,4 @@ venv
 *.log
 *.png
 *__pycache__
+*.zip
