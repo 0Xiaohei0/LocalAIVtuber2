@@ -2,7 +2,7 @@ from services.TTS.TTS import TTS
 from services.Memory.Memory import Memory
 from services.lib.LAV_logger import logger
 import os
-from fastapi import FastAPI, Query, Response
+from fastapi import FastAPI, Query, Request, Response
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -29,16 +29,33 @@ async def serve_webui():
     return FileResponse("../frontend/dist/index.html")
 
 @app.post("/api/completion")
-async def get_completion(request: LLMRequest):
+async def get_completion(request: LLMRequest, fastapi_request: Request):
     try:
         response = llm.get_completion(request.text, request.history, request.systemPrompt, request.screenshot)
         if response is None:
             return {"error": "No response from LLM service"}
-        return StreamingResponse(response, media_type="text/plain")
+        
+        async def stream_response():
+            try:
+                # Wrap the generator in an asynchronous generator
+                async for chunk in async_generator_wrapper(response):
+                    # Check if the client has disconnected
+                    if await fastapi_request.is_disconnected():
+                        logger.info("Client disconnected, stopping response stream.")
+                        break
+                    yield chunk
+            finally:
+                llm.unload_model()  # Ensure the model is unloaded when the stream ends or is interrupted
+
+        return StreamingResponse(stream_response(), media_type="text/plain")
     except Exception as e:
         logger.error(f"Error during completion: {e}", exc_info=True)
-    finally:
-        llm.unload_model()
+        return {"error": "Internal server error"}
+
+# Utility function to wrap a regular generator as an async generator
+async def async_generator_wrapper(generator):
+    for item in generator:
+        yield item
 
 class QueryMemoryRequest(BaseModel):
     text: str

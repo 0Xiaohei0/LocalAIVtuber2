@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send } from 'lucide-react';
+import { Send, Square } from 'lucide-react';
 import { pipelineManager } from "@/lib/pipelineManager";
 import { usePipelineSubscription } from "@/hooks/use-pipeline-subscriptions";
 
@@ -17,6 +17,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     const [messages, setMessages] = useState<HistoryItem[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const isProcessingRef = useRef<boolean>(false);
     const abortControllerRef = useRef<AbortController | null>(null);
     const { tasks } = usePipelineSubscription();
 
@@ -25,26 +26,26 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         if (!task) return;
         const input = task.input!;
         handleSend(input)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [tasks]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tasks]);
 
     useEffect(() => {
         const getMemory = async () => {
             try {
                 const res = await fetch(`/api/memory/session/messages?session_id=${encodeURIComponent(sessionId)}`);
                 const data = await res.json();
-        
+
                 if (!res.ok) {
                     console.error("Error fetching session memory:", data?.error);
                     return;
                 }
-        
+
                 // Convert to HistoryItem[]
                 const history: HistoryItem[] = data.map((msg: { role: "assistant" | "user"; message: string }) => ({
                     role: msg.role,
-                    content: msg.message 
+                    content: msg.message
                 }));
-        
+
                 setMessages(history);
             } catch (error) {
                 console.error("Fetch error:", error);
@@ -54,7 +55,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
             getMemory();
         }
     }, [sessionId]);
-    
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
@@ -86,25 +87,34 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         const data = await mem_response.json();
         return data
     }
-    
-   
 
-    const handleSend = async (input:string) => {
+
+
+    const handleSend = async (input: string) => {
+        // Abort the previous request if it exists
+        if (isProcessingRef.current) {
+            console.log("aborting pipeline")
+            pipelineManager.cancelPipeline()
+            isProcessingRef.current = false
+            if (abortControllerRef.current){
+                console.log("aborting llm request")
+                abortControllerRef.current.abort();
+            }
+            return
+        }
         if (input.trim() === '') return;
+
+        isProcessingRef.current = true
 
         const memory = await queryMemory(input)
         let memoryPrompt = ""
-        memory.map((memory: { document: string; })=>{memoryPrompt += memory.document})
+        memory.map((memory: { document: string; }) => { memoryPrompt += memory.document })
         saveMemory(input, "user", "Xiaohei")
 
         const systemMessage = `When instructed, answer in a concise manner and incorporate humor and a unique perspective. You are an interesting person, you have emotions and a sense of self. Answers should be self-centered. Give direct answers without any process, don't use markdown and latex, avoid detailed steps, avoid listing key points, use 50 or fewer completion_tokens. Respond in English.
         
         Here are some information about what you remember: ${memoryPrompt}`
 
-        // Abort the previous request if it exists
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-        }
 
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
@@ -153,14 +163,14 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                     }
                 });
 
-                
+
                 currentText += chunk
                 // Split into sentences or punctuation-level chunks
                 const sentenceMatches = currentText.match(/[^.!?]+[.!?]/g);
                 if (!sentenceMatches) continue;
                 for (const sentence of sentenceMatches) {
                     const trimmed = sentence.trim();
-    
+
                     if (trimmed.length > 0) {
                         // Create task if this is the first sentence
                         if (taskId === null) {
@@ -169,8 +179,8 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                             pipelineManager.addLLMResponse(taskId, trimmed);
                         }
                     }
-    
-                        // Remove all matched content from currentText
+
+                    // Remove all matched content from currentText
                     const lastMatch = sentenceMatches[sentenceMatches.length - 1];
                     const endOfLastMatch = currentText.indexOf(lastMatch) + lastMatch.length;
                     currentText = currentText.slice(endOfLastMatch);
@@ -182,6 +192,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
             }
 
             saveMemory(aiMessage, "assistant", "Aya")
+            isProcessingRef.current = false
 
         } catch (error) {
             if ((error as Error).name === 'AbortError') {
@@ -210,12 +221,15 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
             <div className="sticky bottom-0 bg-background rounded-t-lg">
                 <div className='mb-4 flex w-full items-center space-x-2 bg-secondary rounded-lg px-4 py-6'>
                     <Input
+                        disabled={isProcessingRef.current}
                         value={input}
                         placeholder="Type your message here."
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSend(input)}
                     />
-                    <Button onClick={()=>handleSend(input)}><Send></Send></Button>
+                    <Button onClick={() => handleSend(input)}>
+                        {!isProcessingRef.current ? <Send></Send> : <Square></Square>}
+                    </Button>
                 </div>
             </div>
         </div>

@@ -12,6 +12,7 @@ import { Panel } from "./panel";
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { Task } from "@/constants/types";
+import { Badge } from "@/components/ui/badge"
 
 const PipelineDebugger: React.FC = () => {
     const { tasks } = usePipelineSubscription();
@@ -19,6 +20,7 @@ const PipelineDebugger: React.FC = () => {
     const [currentTask, setCurrentTask] = useState<Task>();
 
     useEffect(() => {
+        if (viewingTask) return
         let unfinishedTask = tasks.find(task => !task.task_finished);
         if (!unfinishedTask && tasks.length > 0) unfinishedTask = tasks[-1]
         setCurrentTask(unfinishedTask)
@@ -64,19 +66,21 @@ const PipelineDebugger: React.FC = () => {
                         <TableRow>
                             <TableHead className="w-[100px]">Input</TableHead>
                             <TableHead>Response</TableHead>
+                            <TableHead className="w-[100px]">Status</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {tasks.map((task) => (
-                            <TableRow key={task.id} onClick={() => { setViewingTask(true); setCurrentTask(task) }}>
+                            <TableRow key={task.id}onClick={() => { setViewingTask(true); setCurrentTask(task) }}>
                                 <TableCell className="font-medium">{task.input}</TableCell>
-                                <TableCell className="flex gap-1">{task.response.map((res, index) => (
+                                <TableCell className="flex gap-1 p-5">{task.response.map((res, index) => (
                                     <div key={`response-${task.id}-${index}`} className="flex">
                                         <div className={`w-4 h-2 rounded-l-full  ${res.text ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
                                         <div className={`w-4 h-2 ${res.audio ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
                                         <div className={`w-4 h-2 rounded-r-full  ${res.playback_finished ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
                                     </div>
                                 ))}</TableCell>
+                                <TableCell className="font-medium">{task.task_finished? <Badge variant="secondary">Finished</Badge> : <Badge variant="destructive">Aborted</Badge>}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
