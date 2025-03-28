@@ -1,71 +1,87 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { usePipelineSubscription } from "@/hooks/use-pipeline-subscriptions";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import { Panel } from "./panel";
+import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@radix-ui/react-scroll-area";
+import { Task } from "@/constants/types";
 
 const PipelineDebugger: React.FC = () => {
     const { tasks } = usePipelineSubscription();
+    const [viewingTask, setViewingTask] = useState<boolean>(false);
+    const [currentTask, setCurrentTask] = useState<Task>();
+
+    useEffect(() => {
+        let unfinishedTask = tasks.find(task => !task.task_finished);
+        if (!unfinishedTask && tasks.length > 0) unfinishedTask = tasks[-1]
+        setCurrentTask(unfinishedTask)
+    }, [tasks])
 
     return (
-        <div className="p-4 border rounded-md bg-input/50 shadow max-w-4xl mx-auto mt-6">
-            <h2 className="text-xl font-bold mb-4">🧪 Pipeline Debugger</h2>
-            {tasks.length === 0 ? (
-                <p className="text-gray-500">No tasks in queue.</p>
-            ) : (
-                <div className="space-y-4">
-                    {tasks.map((task) => (
-                        // <div
-                        //     key={taskIndex}
-                        //     className="border rounded-md p-3 bg-gray-50"
-                        // >
-                        //     <div className="mb-2">
-                        //         <span className="font-semibold">Task #{taskIndex + 1}</span>
-                        //     </div>
-                        //     {task.input && (
-                        //         <p className="text-sm text-gray-700">
-                        //             <strong>Input:</strong> {task.input}
-                        //         </p>
-                        //     )}
-                        //     <p className="text-sm text-gray-700">
-                        //         <strong>LLM Finished:</strong>{" "}
-                        //         {task.llm_finished ? "✅" : "❌"}
-                        //     </p>
-                        //     <p className="text-sm text-gray-700">
-                        //         <strong>Task Finished:</strong>{" "}
-                        //         {task.task_finished ? "✅" : "❌"}
-                        //     </p>
-                        //     <p className="text-sm text-gray-700">
-                        //         <strong>Cancelled:</strong>{" "}
-                        //         {task.cancelled ? "🛑" : "—"}
-                        //     </p>
-
-                        //     {task.response.length > 0 && (
-                        //         <div className="mt-2">
-                        //             <p className="text-sm font-medium mb-1">Responses:</p>
-                        //             <ul className="pl-4 list-disc space-y-1">
-                        //                 {task.response.map((res, resIndex) => (
-                        //                     <li key={resIndex} className="text-sm text-gray-600">
-                        //                         <strong>{res.text}</strong>
-                        //                         {res.audio && (
-                        //                             <span className="ml-2 text-green-600">
-                        //                                 🎧 audio
-                        //                             </span>
-                        //                         )}
-                        //                         {res.playback_finished && (
-                        //                             <span className="ml-2 text-blue-600">
-                        //                                 ✔ played
-                        //                             </span>
-                        //                         )}
-                        //                     </li>
-                        //                 ))}
-                        //             </ul>
-                        //         </div>
-                        //     )}
-                        // </div>
-                        <div key={task.id}>
-                            {JSON.stringify(task)}
-                        </div>
-                    ))}
+        <div>
+            <Panel className="max-w-4xl mx-auto">
+                <h2 className="text-xl font-bold mb-4">Current Task</h2>
+                <div className="grid grid-cols-2 gap-4"
+                    style={{
+                        gridTemplateColumns: '0.3fr 0.7fr',
+                    }}>
+                    <div className="flex flex-col gap-4">
+                        <Label>Input</Label>
+                        <ScrollArea>
+                            <Panel className="h-36">
+                                {currentTask?.input}
+                            </Panel>
+                        </ScrollArea>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                        <Label>Response</Label>
+                        <ScrollArea className="overflow-auto">
+                            <Panel className="h-36">
+                                {currentTask?.response.map((res, index) => (
+                                    <span key={`${index}`}
+                                        className=
+                                            {`${res.audio && !res.playback_finished ? "bg-yellow-800" : ""} 
+                                            ${res.playback_finished ? "bg-green-800" : ""}`}>
+                                        {res.text}
+                                    </span>
+                                ))}
+                            </Panel>
+                        </ScrollArea>
+                    </div>
                 </div>
-            )}
+            </Panel>
+            <div className="p-4 border rounded-md bg-input/50 shadow max-w-4xl mx-auto mt-6">
+                <h2 className="text-xl font-bold mb-4">Pipeline Status</h2>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[100px]">Input</TableHead>
+                            <TableHead>Response</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {tasks.map((task) => (
+                            <TableRow key={task.id} onClick={() => { setViewingTask(true); setCurrentTask(task) }}>
+                                <TableCell className="font-medium">{task.input}</TableCell>
+                                <TableCell className="flex gap-1">{task.response.map((res, index) => (
+                                    <div key={`response-${task.id}-${index}`} className="flex">
+                                        <div className={`w-4 h-2 rounded-l-full  ${res.text ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
+                                        <div className={`w-4 h-2 ${res.audio ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
+                                        <div className={`w-4 h-2 rounded-r-full  ${res.playback_finished ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
+                                    </div>
+                                ))}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     );
 };

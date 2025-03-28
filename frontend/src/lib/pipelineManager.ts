@@ -10,7 +10,6 @@ class PipelineManager {
 
   subscribe(listener: PipelineListener) {
     this.listeners.add(listener);
-    console.log("this.listeners.size: " + this.listeners.size)
     listener(this.tasks);
     return () => {this.listeners.delete(listener)};
   }
@@ -41,10 +40,11 @@ class PipelineManager {
     return id;
   }
 
-  createTaskFromLLM(initialResponse: string): string {
+  createTaskFromLLM(input: string, initialResponse: string): string {
     const id = uuidv4();
     const task: Task = {
       id,
+      input: input,
       response: [{ text: initialResponse }],
     };
     this.tasks.push(task);
@@ -88,7 +88,7 @@ class PipelineManager {
   }
 
   getNextTaskForLLM() {
-    return this.tasks.find(task => task.input && !task.llm_finished && !task.cancelled);
+    return this.tasks.find(task => task.input && !task.response && !task.llm_finished && !task.cancelled);
   }
 
   getNextTaskForTTS() {

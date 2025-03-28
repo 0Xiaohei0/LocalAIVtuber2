@@ -164,7 +164,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                     if (trimmed.length > 0) {
                         // Create task if this is the first sentence
                         if (taskId === null) {
-                            taskId = pipelineManager.createTaskFromLLM(trimmed);
+                            taskId = pipelineManager.createTaskFromLLM(input, trimmed);
                         } else {
                             pipelineManager.addLLMResponse(taskId, trimmed);
                         }

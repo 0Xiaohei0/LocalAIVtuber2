@@ -14,8 +14,6 @@ function TTSPage() {
     const isPlayingRef = useRef(false);
 
     useEffect(() => {
-        console.log("subscribing...");
-      
         const handlePipelineUpdate = () => {
           processNextTTS();
           processNextAudio();
