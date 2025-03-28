@@ -18,7 +18,8 @@ function LLMPage() {
     const [sessionInfoList, setSessionInfoList] = useState<SessionInfo[]>([])
 
     const updateSessions = async () => {
-        const updatedList = await fetch('/api/memory/session').then(res => res.json());
+        let updatedList = await fetch('/api/memory/session').then(res => res.json());
+        if (!Array.isArray(updatedList)) updatedList = [];
         setSessionInfoList(updatedList);
     };
 

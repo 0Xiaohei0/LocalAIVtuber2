@@ -3,3 +3,4 @@ venv
 *.png
 *__pycache__
 *.zip
+*.exe

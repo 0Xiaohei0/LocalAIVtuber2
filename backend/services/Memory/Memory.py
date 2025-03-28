@@ -46,7 +46,8 @@ class Memory:
         logger.debug(f"Inserted document: {docs} with metadata: {metadata}")
         return response
 
-    def query(self, text, limit = 3):
+    def query(self, text, limit = 3)  -> list:
+        if not self.collection_exists(): return []
         search_result = self.client.query(
             collection_name=self.MESSAGE_COLLECTION_NAME,
             query_text = text,
@@ -59,6 +60,8 @@ class Memory:
         return result
 
     def get(self, limit = 50, offset = 0):
+        if not self.collection_exists(): return
+        self.collection_exists(self.MESSAGE_COLLECTION_NAME)
         return self.client.scroll(self.MESSAGE_COLLECTION_NAME,
                            limit=limit, 
                            offset=offset)[0]
@@ -80,14 +83,14 @@ class Memory:
                     )
                 ]
             )
-        
-        
-        # Step 1: Try to find existing point with this session_id
-        existing_points = self.client.scroll(
-            collection_name=self.SESSION_COLLECTION_NAME,
-            scroll_filter=filter_obj,
-            limit=1
-        )
+        existing_points = None
+        if self.client.collection_exists(self.SESSION_COLLECTION_NAME):
+            # Step 1: Try to find existing point with this session_id
+            existing_points = self.client.scroll(
+                collection_name=self.SESSION_COLLECTION_NAME,
+                scroll_filter=filter_obj,
+                limit=1
+            )
 
         if existing_points and existing_points[0]:
             existing_id = existing_points[0][0].id  # First point ID
@@ -109,7 +112,9 @@ class Memory:
         logger.debug(f"Upserted session title: {title_point} with metadata: {metadata}")
         return response
     
-    def get_sessions(self, limit=100):
+    
+    def get_sessions(self, limit=100) -> list:
+        if not self.client.collection_exists(self.SESSION_COLLECTION_NAME): return []
         all_sessions = []
         offset = None
 
@@ -152,7 +157,8 @@ class Memory:
         sorted_sessions = sorted(session_data, key=lambda x: x["timestamp"], reverse=True)
         return sorted_sessions[:limit]
 
-    def get_messages_by_session(self, session_id: str, limit: int = 1000):
+    def get_messages_by_session(self, session_id: str, limit: int = 1000) -> list:
+        if not self.collection_exists(): return []
         try:
             filter_obj = Filter(
                 must=[
@@ -187,6 +193,7 @@ class Memory:
         return messages
 
     def delete_session(self, session_id: str):
+        if not self.collection_exists(): return
         filter_obj = Filter(
                 must=[
                     FieldCondition(
@@ -211,6 +218,8 @@ class Memory:
             "session_id": session_id,
         }
 
+    def collection_exists(self):
+        return self.client.collection_exists(self.MESSAGE_COLLECTION_NAME) and self.client.collection_exists(self.SESSION_COLLECTION_NAME)
 
 
 if __name__ == "__main__":

@@ -104,24 +104,24 @@ class TTS:
         text_split_method:str = req.get("text_split_method", "cut5")
 
         if ref_audio_path in [None, ""]:
-            return {"message": "ref_audio_path is required"}
+            logger.error( {"message": "ref_audio_path is required"}) 
         if text in [None, ""]:
-            return {"message": "text is required"}
+            logger.error( {"message": "text is required"}) 
         if (text_lang in [None, ""]) :
-            return {"message": "text_lang is required"}
+            logger.error( {"message": "text_lang is required"}) 
         elif text_lang.lower() not in self.tts_config.languages:
-            return {"message": f"text_lang: {text_lang} is not supported in version {self.tts_config.version}"}
+            logger.error( {"message": f"text_lang: {text_lang} is not supported in version {self.tts_config.version}"}) 
         if (prompt_lang in [None, ""]) :
-            return {"message": "prompt_lang is required"}
+            logger.error( {"message": "prompt_lang is required"}) 
         elif prompt_lang.lower() not in self.tts_config.languages:
-            return {"message": f"prompt_lang: {prompt_lang} is not supported in version {self.tts_config.version}"}
+            logger.error({"message": f"prompt_lang: {prompt_lang} is not supported in version {self.tts_config.version}"}) 
         if media_type not in ["wav", "raw", "ogg", "aac"]:
-            return {"message": f"media_type: {media_type} is not supported"}
+            logger.error( {"message": f"media_type: {media_type} is not supported"}) 
         elif media_type == "ogg" and  not streaming_mode:
-            return {"message": "ogg format is not supported in non-streaming mode"}
+            logger.error( {"message": "ogg format is not supported in non-streaming mode"}) 
         
         if text_split_method not in cut_method_names:
-            return {"message": f"text_split_method:{text_split_method} is not supported"}
+            logger.error( {"message": f"text_split_method:{text_split_method} is not supported"}) 
 
         return None
 

@@ -119,14 +119,14 @@ async def delete_session(request: DeleteSessionRequest):
 async def get_memory_sessions():
     response = memory.get_sessions()
     if response is None:
-        return {"error": "No sessions found"}
+        return []
     return response
 
 @app.get("/api/memory/session/messages")
 async def get_session_messages(session_id: str = Query(...)):
     response = memory.get_messages_by_session(session_id=session_id)
     if response is None:
-        return {"error": "No messages found for session"}
+        return {"error": "Failed to get messages."}
     return response
 
 class TTSRequest(BaseModel):

@@ -33,13 +33,16 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         const getMemory = async () => {
             try {
                 const res = await fetch(`/api/memory/session/messages?session_id=${encodeURIComponent(sessionId)}`);
-                const data = await res.json();
+                let data = await res.json();
 
                 if (!res.ok) {
                     console.error("Error fetching session memory:", data?.error);
                     return;
                 }
-
+                if (!Array.isArray(data)) {
+                    console.log(data);
+                    data = [];
+                }
                 // Convert to HistoryItem[]
                 const history: HistoryItem[] = data.map((msg: { role: "assistant" | "user"; message: string }) => ({
                     role: msg.role,
