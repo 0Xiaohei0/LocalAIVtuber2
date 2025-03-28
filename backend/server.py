@@ -45,7 +45,8 @@ async def get_completion(request: LLMRequest, fastapi_request: Request):
                         break
                     yield chunk
             finally:
-                llm.unload_model()  # Ensure the model is unloaded when the stream ends or is interrupted
+                pass
+                # llm.unload_model()  # Ensure the model is unloaded when the stream ends or is interrupted
 
         return StreamingResponse(stream_response(), media_type="text/plain")
     except Exception as e:
@@ -134,8 +135,6 @@ class TTSRequest(BaseModel):
 @app.post("/api/tts")
 async def get_audio(request: TTSRequest):
     response = tts.syntheize(request.text)
-    if response is None:
-        return {"error": "TTS Error"}
     return Response(response, media_type="audio/wav")
     
 

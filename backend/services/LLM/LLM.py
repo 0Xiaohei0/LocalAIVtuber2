@@ -8,7 +8,7 @@ from .VisionLLM import VisionLLM
 
 
 class LLM:
-    def __init__(self):
+    def __init__(self, gpu_layers=-1):
         self.current_module_directory = os.path.dirname(__file__)
         self.model_data_path = os.path.join(self.current_module_directory, "model_data.json")
 
@@ -21,8 +21,9 @@ class LLM:
                 self.all_model_data = json.load(f)
                 if self.all_model_data:
                     self.current_model_data = self.all_model_data[0]
+        self.load_model(self.current_model_data, gpu_layers)
         
-    def load_model(self, model_data: dict):
+    def load_model(self, model_data: dict, gpu_layers=-1):
         logger.debug(f"Loading model {model_data}...")
         self.current_model_data = model_data
         model_directory = os.path.join(self.current_module_directory, "Models")
@@ -35,9 +36,9 @@ class LLM:
         else:
             self.unload_model()
             if model_data.get("type") == "text":
-                self.llm = TextLLM(model_path=model_path, n_ctx=4096, n_gpu_layers=-1, seed=-1)
+                self.llm = TextLLM(model_path=model_path, n_ctx=4096, n_gpu_layers=gpu_layers, seed=-1)
             elif model_data.get("type") == "vision":
-                self.llm = VisionLLM(model_path=model_path, mmproj_path=model_data.get("mmproj_path"), n_ctx = 4096, n_gpu_layers=-1, seed=-1)
+                self.llm = VisionLLM(model_path=model_path, mmproj_path=model_data.get("mmproj_path"), n_ctx = 4096, n_gpu_layers=gpu_layers, seed=-1)
 
             logger.info(f"Model changed to {model_filename}.")
 
@@ -48,7 +49,7 @@ class LLM:
             logger.info("Model unloaded.")
 
     def get_completion(self, text, history, system_prompt, screenshot=False):
-        self.load_model(self.current_model_data)
+        # self.load_model(self.current_model_data)
         if not self.llm:
             logger.error("error: Model not loaded")
             return
@@ -60,5 +61,5 @@ class LLM:
         elif isinstance(self.llm, TextLLM):
             self.llm: TextLLM
             response = self.llm.get_chat_completion(text, history, system_prompt)
-        self.unload_model()
+        # self.unload_model()
         return response

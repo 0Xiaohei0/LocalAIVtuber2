@@ -6,7 +6,7 @@ from typing import Generator
 import wave
 import numpy as np
 import soundfile as sf
-
+from services.lib.LAV_logger import logger
 
 base_dir = os.path.dirname(__file__)
 
@@ -89,6 +89,7 @@ class TTS:
                 audio_data = pack_audio(BytesIO(), audio_data, sr, media_type).getvalue()
                 return audio_data
         except Exception as e:
+            logger.error(f"Error during completion: {e}", exc_info=True)
             return {"message": f"tts failed", "Exception": str(e)}
         
     

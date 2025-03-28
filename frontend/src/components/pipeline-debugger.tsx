@@ -73,14 +73,14 @@ const PipelineDebugger: React.FC = () => {
                         {tasks.map((task) => (
                             <TableRow key={task.id}onClick={() => { setViewingTask(true); setCurrentTask(task) }}>
                                 <TableCell className="font-medium">{task.input}</TableCell>
-                                <TableCell className="flex gap-1 p-5">{task.response.map((res, index) => (
+                                <TableCell className="flex gap-1 p-5 flex-wrap">{task.response.map((res, index) => (
                                     <div key={`response-${task.id}-${index}`} className="flex">
                                         <div className={`w-4 h-2 rounded-l-full  ${res.text ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
                                         <div className={`w-4 h-2 ${res.audio ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
                                         <div className={`w-4 h-2 rounded-r-full  ${res.playback_finished ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
                                     </div>
                                 ))}</TableCell>
-                                <TableCell className="font-medium">{task.task_finished? <Badge variant="secondary">Finished</Badge> : <Badge variant="destructive">Aborted</Badge>}</TableCell>
+                                <TableCell className="font-medium">{task.task_finished && <Badge variant="secondary">Finished</Badge>}{task.cancelled && <Badge variant="destructive">Aborted</Badge>}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
