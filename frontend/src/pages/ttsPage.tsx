@@ -4,6 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useRef, useState } from "react";
 import { pipelineManager } from "@/lib/pipelineManager";
+import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 function TTSPage() {
     const [text, setText] = useState("");
@@ -114,7 +122,7 @@ function TTSPage() {
         <div className="p-5">
             <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight pb-5">Text to speech</h3>
 
-            <div className="grid grid-cols-2 grid-rows-1 gap-5">
+            <div className="grid grid-cols-2 grid-rows-2 gap-5">
                 <div className="flex flex-col gap-4">
                     <Textarea
                         className=""
@@ -144,6 +152,23 @@ function TTSPage() {
                         </div>
                     )}
                 </div>
+
+                <Panel className=" flex flex-col gap-4">
+                    <h3>Settings</h3>
+                    <div className="flex items-center space-x-2">
+                        <div className="flex flex-col gap-2">
+                            <Label >Voice</Label>
+                            <Select>
+                                <SelectTrigger className="w-[280px]">
+                                    <SelectValue placeholder="Select a voice" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="leaf">Leaf</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </Panel>
             </div>
         </div>
     );
