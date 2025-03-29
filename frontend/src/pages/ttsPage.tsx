@@ -18,6 +18,9 @@ function TTSPage() {
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    const audioTaskIdRef = useRef<string | null>(null);
+    const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+
     const isProcessingRef = useRef(false);
     const isPlayingRef = useRef(false);
 
@@ -95,28 +98,39 @@ function TTSPage() {
     };
 
     const processNextAudio = async () => {
+        if (audioTaskIdRef.current && pipelineManager.getTaskById(audioTaskIdRef.current)?.status == "cancelled") {
+            // halt audio playback
+            if (currentAudioRef.current) {
+                currentAudioRef.current.pause();
+                currentAudioRef.current.currentTime = 0;
+                currentAudioRef.current = null;
+            }
+            audioTaskIdRef.current = null;
+            isPlayingRef.current = false;
+            return;
+        }
+
         if (isPlayingRef.current) return;
+
         const next = pipelineManager.getNextTaskForAudio()
         if (!next) return
+
         const { taskId, responseIndex, task } = next;
+        audioTaskIdRef.current = taskId;
+
         const audioUrl = task.response[responseIndex].audio;
-        // Optionally autoplay it here for preview/testing:
         isPlayingRef.current = true;
+
         const audio = new Audio(audioUrl!);
+        currentAudioRef.current = audio;
         audio.play();
 
         audio.onended = () => {
             isPlayingRef.current = false;
+            currentAudioRef.current = null;
             pipelineManager.markPlaybackFinished(taskId, responseIndex)
         };
     }
-
-    // useEffect(() => {
-    //     console.log("useEffect called with tasks: " + JSON.stringify(tasks))
-    //     processNextTTS();
-    //     processNextAudio();
-    // // eslint-disable-next-line react-hooks/exhaustive-deps
-    // }, [tasks]); 
 
     return (
         <div className="p-5">

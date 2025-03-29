@@ -1,5 +1,5 @@
 
-import {Task} from "../constants/types"
+import { Task } from "../constants/types"
 import { v4 as uuidv4 } from "uuid";
 
 type PipelineListener = (tasks: Task[]) => void;
@@ -11,7 +11,7 @@ class PipelineManager {
   subscribe(listener: PipelineListener) {
     this.listeners.add(listener);
     listener(this.tasks);
-    return () => {this.listeners.delete(listener)};
+    return () => { this.listeners.delete(listener) };
   }
 
   private notify() {
@@ -65,7 +65,7 @@ class PipelineManager {
     const task = this.getTaskById(taskId);
     if (task) {
       task.status = "llm_started";
-      this.checkTaskFinished(task);
+      this.updateTaskStatus(task);
       this.notify();
     }
   }
@@ -74,7 +74,7 @@ class PipelineManager {
     const task = this.getTaskById(taskId);
     if (task) {
       task.status = "llm_finished";
-      this.checkTaskFinished(task);
+      this.updateTaskStatus(task);
       this.notify();
     }
   }
@@ -85,7 +85,7 @@ class PipelineManager {
     if (!task || !response || task.status == "cancelled") return;
 
     response.audio = audioUrl;
-    this.checkTaskFinished(task);
+    this.updateTaskStatus(task);
     this.notify();
   }
 
@@ -93,8 +93,8 @@ class PipelineManager {
     const task = this.getTaskById(taskId);
     const response = task?.response?.[responseIndex];
     if (!task || !response) return;
-
     response.playback_finished = true;
+    this.updateTaskStatus(task);
     this.notify();
   }
 
@@ -136,27 +136,44 @@ class PipelineManager {
     return undefined;
   }
 
-  private checkTaskFinished(task: Task) {
+  private updateTaskStatus(task: Task) {
+    if (task.status == "cancelled") return
+    const llmFinish = task.status == "llm_finished";
+    const ttsFinish = task.status == "tts_finished";
     const allAudio = task.response.every(r => r.audio);
-    if (task.status == "llm_finished" && allAudio) {
+    const allPlayback = task.response.every(r => r.playback_finished);
+    // console.log("llmFinish " + llmFinish)
+    // console.log("ttsFinish " + ttsFinish)
+    // console.log("allAudio " + allAudio)
+    // console.log("allPlayback " + allPlayback)
+    if (llmFinish && allAudio) {
+        task.status = "tts_finished";
+    }
+    if (ttsFinish && allPlayback) {
       task.status = "task_finished";
     }
   }
 
   cancelPipeline() {
-    this.tasks.forEach(t => {
-      if (t.status != "task_finished") t.status = "cancelled"
-    });
+    const currentTask = this.getCurrentTask()
+    if (currentTask && currentTask.status != "cancelled"){
+      currentTask.status = "cancelled"
+    }
     this.notify();
   }
 
   removeFinishedTasks(maxCount: number = 20) {
-    const active = this.tasks.filter(t => !(t.status=="task_finished"));
+    const active = this.tasks.filter(t => !(t.status == "task_finished"));
     const recentFinished = this.tasks
-      .filter(t => t.status=="task_finished")
+      .filter(t => t.status == "task_finished")
       .slice(-maxCount);
     this.tasks = [...recentFinished, ...active];
     this.notify();
+  }
+
+  getCurrentTask(): Task | undefined {
+    // Find the first task that is not finished or cancelled
+    return this.tasks.find(task => task.status !== "task_finished" && task.status !== "cancelled");
   }
 
   reset() {

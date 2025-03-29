@@ -20,6 +20,7 @@ export default function VoiceStreamer() {
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    stopRecording()
     const socket = new WebSocket(
       `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host
       }/ws/audio`
@@ -27,9 +28,11 @@ export default function VoiceStreamer() {
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === "probability") {
+        if (data.probability >= 0.3 && pipelineManager.getCurrentTask()){
+          pipelineManager.cancelPipeline()
+        }
         setProbability(data.probability);
       } else if (data.type === "transcription") {
-        pipelineManager.cancelPipeline()
         pipelineManager.addInputTask(data.text);
         setTranscriptions((prev) => [...prev, data.text]);
       }

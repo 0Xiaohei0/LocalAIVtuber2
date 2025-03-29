@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/collapsible"
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "./ui/button";
+import { pipelineManager } from "@/lib/pipelineManager";
 
 const PipelineDebugger: React.FC = () => {
     const { tasks } = usePipelineSubscription();
@@ -29,15 +30,15 @@ const PipelineDebugger: React.FC = () => {
 
     useEffect(() => {
         if (viewingTask) return
-        let unfinishedTask = tasks.find(task => !(task.status == "task_finished"));
-        if (!unfinishedTask && tasks.length > 0) unfinishedTask = tasks[-1]
-        setCurrentTask(unfinishedTask)
-    }, [tasks])
+        const currentTask = pipelineManager.getCurrentTask();
+        // if (!currentTask && tasks.length > 0) currentTask = tasks[-1]
+        setCurrentTask(currentTask)
+    }, [tasks, viewingTask])
 
     return (
         <div>
             <Panel className="max-w-4xl mx-auto">
-                <h2 className="text-xl font-bold mb-4">Current Task</h2>
+                <h2 className="text-xl font-bold mb-4">{viewingTask ?  "Selected Task" : "Current Task"}</h2>
                 <div className="grid grid-cols-2 gap-4"
                     style={{
                         gridTemplateColumns: '0.3fr 0.7fr',
@@ -85,7 +86,7 @@ const PipelineDebugger: React.FC = () => {
                     </div>
                     <CollapsibleContent className="space-y-2">
                         <div className="font-mono text-sm shadow-sm">
-                            {JSON.stringify(currentTask)}
+                            {JSON.stringify(currentTask, null, 2)}
                         </div>
                     </CollapsibleContent>
                 </Collapsible>
@@ -102,8 +103,17 @@ const PipelineDebugger: React.FC = () => {
                     </TableHeader>
                     <TableBody>
                         {tasks.map((task) => (
-                            <TableRow key={task.id} onClick={() => { setViewingTask(true); setCurrentTask(task) }}>
-                                <TableCell className="font-medium">{task.input}</TableCell>
+                            <TableRow key={task.id} className={`${(currentTask && task.id == currentTask.id) && "bg-input/50 hover:bg-input/50"}`}
+                             onClick={() => {
+                                if (viewingTask && currentTask && task.id == currentTask.id) {
+                                    setViewingTask(false); 
+                                    setCurrentTask(pipelineManager.getCurrentTask())
+                                } else {
+                                    setViewingTask(true); 
+                                    setCurrentTask(task) ;
+                                }
+                                }}>
+                                <TableCell className="font-medium max-w-[100px] overflow-hidden">{task.input}</TableCell>
                                 <TableCell className="flex gap-1 p-5 flex-wrap">{task.response.map((res, index) => (
                                     <div key={`response-${task.id}-${index}`} className="flex">
                                         <div className={`w-4 h-2 rounded-l-full  ${res.text ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
@@ -111,7 +121,14 @@ const PipelineDebugger: React.FC = () => {
                                         <div className={`w-4 h-2 rounded-r-full  ${res.playback_finished ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
                                     </div>
                                 ))}</TableCell>
-                                <TableCell className="font-medium">{task.status == "task_finished" && <Badge variant="secondary">Finished</Badge>}{task.status == "cancelled" && <Badge variant="destructive">Aborted</Badge>}</TableCell>
+                                <TableCell className="font-medium">
+                                    {task.status == "created" && <Badge variant="default">Waiting</Badge>}
+                                    {task.status == "llm_started" && <Badge variant="secondary">Process</Badge>}
+                                    {task.status == "llm_finished" && <Badge variant="secondary">LLM finish</Badge>}
+                                    {task.status == "tts_finished" && <Badge variant="secondary">TTS finish</Badge>}
+                                    {task.status == "task_finished" && <Badge variant="secondary">Finished</Badge>}
+                                    {task.status == "cancelled" && <Badge variant="destructive">Aborted</Badge>}
+                                    </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
