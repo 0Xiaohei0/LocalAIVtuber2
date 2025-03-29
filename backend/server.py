@@ -1,8 +1,10 @@
+import asyncio
+from services.Input.Input import VoiceInput
 from services.TTS.TTS import TTS
 from services.Memory.Memory import Memory
 from services.lib.LAV_logger import logger
 import os
-from fastapi import FastAPI, Query, Request, Response
+from fastapi import FastAPI, Query, Request, Response, WebSocket
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -14,19 +16,62 @@ static_files_path = os.path.abspath("../frontend/dist")
 app.mount("/assets", StaticFiles(directory="../frontend/dist/assets"), name="assets")
 
 # Initialize Services
+voice_input:VoiceInput = VoiceInput()
 llm:LLM = LLM()
 memory:Memory = Memory()
 tts:TTS = TTS()
+
+clients = set()
+
+
+# *******************************
+# WebUI
+# *******************************
+
+@app.get("/")
+async def serve_webui():
+    return FileResponse("../frontend/dist/index.html")
+
+# *******************************
+# Input
+# *******************************
+
+@app.post("/api/record/start")
+async def start_recording():
+    asyncio.create_task(voice_input.start_streaming(clients))
+    return Response(status_code=200)
+
+@app.post("/api/record/stop")
+async def stop_recording():
+    voice_input.stop_streaming()
+    return Response(status_code=200)
+
+@app.websocket("/ws/audio")
+async def websocket_audio(websocket: WebSocket):
+    await websocket.accept()
+    clients.add(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except Exception:
+        pass
+    finally:
+        clients.remove(websocket)
+        try:
+            await websocket.close()
+        except RuntimeError:
+            pass  # Already closed
+
+
+# *******************************
+# LLM
+# *******************************
 
 class LLMRequest(BaseModel):
     text: str
     history: list | None = None
     systemPrompt: str = ""
     screenshot: bool = False
-
-@app.get("/")
-async def serve_webui():
-    return FileResponse("../frontend/dist/index.html")
 
 @app.post("/api/completion")
 async def get_completion(request: LLMRequest, fastapi_request: Request):
@@ -58,6 +103,11 @@ async def async_generator_wrapper(generator):
     for item in generator:
         yield item
 
+
+# *******************************
+# Memory - Messages
+# *******************************
+
 class QueryMemoryRequest(BaseModel):
     text: str
     limit: int = 3
@@ -83,20 +133,14 @@ async def insert_memory(request: InsertMemoryRequest):
         return {"error": "No response from Memory service"}
     return response
 
-# class GetMemoryRequest(BaseModel):
-#     limit : int = 50
-#     offset: int = 0
-
-# @app.post("/api/memory")
-# async def get_memory(request: GetMemoryRequest):
-#     response = memory.get(request.limit, request.offset)
-#     if response is None:
-#         return {"error": "No response from Memory service"}
-#     return response
-
 class NewSessionRequest(BaseModel):
     session_id: str
     title: str
+
+
+# *******************************
+# Memory - Session
+# *******************************
 
 @app.post("/api/memory/session/new")
 async def create_new_session(request: NewSessionRequest):
@@ -131,6 +175,11 @@ async def get_session_messages(session_id: str = Query(...)):
 
 class TTSRequest(BaseModel):
     text: str
+
+
+# *******************************
+# TTS
+# *******************************
 
 @app.post("/api/tts")
 async def get_audio(request: TTSRequest):

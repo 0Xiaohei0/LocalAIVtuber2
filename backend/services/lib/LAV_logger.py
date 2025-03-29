@@ -18,7 +18,7 @@ class CustomFormatter(logging.Formatter):
         return f"{levelname}:     {record.getMessage()}"
 
 logger = logging.getLogger("LAV_logger")
-logger.setLevel(logging.INFO) 
+logger.setLevel(logging.DEBUG) 
 
 # Ensure the logger is configured only once
 if not logger.hasHandlers():
@@ -26,3 +26,5 @@ if not logger.hasHandlers():
     console_handler.setLevel(logging.DEBUG)
     console_handler.setFormatter(CustomFormatter())
     logger.addHandler(console_handler)
+
+logger.propagate = False

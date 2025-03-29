@@ -400,7 +400,7 @@ class TTS:
 
 
     def init_cnhuhbert_weights(self, base_path: str):
-        print(f"Loading CNHuBERT weights from {base_path}")
+        # print(f"Loading CNHuBERT weights from {base_path}")
         self.cnhuhbert_model = CNHubert(base_path)
         self.cnhuhbert_model=self.cnhuhbert_model.eval()
         self.cnhuhbert_model = self.cnhuhbert_model.to(self.configs.device)
@@ -410,7 +410,7 @@ class TTS:
 
 
     def init_bert_weights(self, base_path: str):
-        print(f"Loading BERT weights from {base_path}")
+        # print(f"Loading BERT weights from {base_path}")
         self.bert_tokenizer = AutoTokenizer.from_pretrained(base_path)
         self.bert_model = AutoModelForMaskedLM.from_pretrained(base_path)
         self.bert_model=self.bert_model.eval()
@@ -477,9 +477,10 @@ class TTS:
             
 
         if if_lora_v3==False:
-            print(f"Loading VITS weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}")
+            pass
+            #print(f"Loading VITS weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}")
         else:
-            print(f"Loading VITS pretrained weights from {weights_path}. {vits_model.load_state_dict(load_sovits_new(path_sovits_v3)['weight'], strict=False)}")
+            #print(f"Loading VITS pretrained weights from {weights_path}. {vits_model.load_state_dict(load_sovits_new(path_sovits_v3)['weight'], strict=False)}")
             lora_rank=dict_s2["lora_rank"]
             lora_config = LoraConfig(
                 target_modules=["to_k", "to_q", "to_v", "to_out.0"],
@@ -488,7 +489,7 @@ class TTS:
                 init_lora_weights=True,
             )
             vits_model.cfm = get_peft_model(vits_model.cfm, lora_config)
-            print(f"Loading LoRA weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}")
+            #print(f"Loading LoRA weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}")
             
             vits_model.cfm = vits_model.cfm.merge_and_unload()
 
@@ -502,7 +503,7 @@ class TTS:
 
 
     def init_t2s_weights(self, weights_path: str):
-        print(f"Loading Text2Semantic weights from {weights_path}")
+        #print(f"Loading Text2Semantic weights from {weights_path}")
         self.configs.t2s_weights_path = weights_path
         self.configs.save_configs()
         self.configs.hz = 50
