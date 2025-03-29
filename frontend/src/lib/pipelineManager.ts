@@ -34,6 +34,7 @@ class PipelineManager {
       id,
       input,
       response: [],
+      status: "created"
     };
     this.tasks.push(task);
     this.notify();
@@ -46,6 +47,7 @@ class PipelineManager {
       id,
       input: input,
       response: [{ text: initialResponse }],
+      status: "llm_started"
     };
     this.tasks.push(task);
     this.notify();
@@ -54,15 +56,24 @@ class PipelineManager {
 
   addLLMResponse(taskId: string, text: string) {
     const task = this.getTaskById(taskId);
-    if (!task || task.cancelled) return;
+    if (!task || task.status == "cancelled") return;
     task.response.push({ text });
     this.notify();
+  }
+
+  markLLMStarted(taskId: string) {
+    const task = this.getTaskById(taskId);
+    if (task) {
+      task.status = "llm_started";
+      this.checkTaskFinished(task);
+      this.notify();
+    }
   }
 
   markLLMFinished(taskId: string) {
     const task = this.getTaskById(taskId);
     if (task) {
-      task.llm_finished = true;
+      task.status = "llm_finished";
       this.checkTaskFinished(task);
       this.notify();
     }
@@ -71,7 +82,7 @@ class PipelineManager {
   addTTSAudio(taskId: string, responseIndex: number, audioUrl: string) {
     const task = this.getTaskById(taskId);
     const response = task?.response?.[responseIndex];
-    if (!task || !response || task.cancelled) return;
+    if (!task || !response || task.status == "cancelled") return;
 
     response.audio = audioUrl;
     this.checkTaskFinished(task);
@@ -88,12 +99,12 @@ class PipelineManager {
   }
 
   getNextTaskForLLM() {
-    return this.tasks.find(task => task.input && !task.response && !task.llm_finished && !task.cancelled);
+    return this.tasks.find(task => task.input && (task.status == "created"));
   }
 
   getNextTaskForTTS() {
     for (const task of this.tasks) {
-      if (task.cancelled) continue;
+      if (task.status == "cancelled") continue;
       for (let j = 0; j < task.response.length; j++) {
         const res = task.response[j];
         if (res.text && !res.audio) {
@@ -110,7 +121,7 @@ class PipelineManager {
 
   getNextTaskForAudio() {
     for (const task of this.tasks) {
-      if (task.cancelled) continue;
+      if (task.status == "cancelled") continue;
       for (let j = 0; j < task.response.length; j++) {
         const res = task.response[j];
         if (res.text && res.audio && !res.playback_finished) {
@@ -127,20 +138,22 @@ class PipelineManager {
 
   private checkTaskFinished(task: Task) {
     const allAudio = task.response.every(r => r.audio);
-    if (task.llm_finished && allAudio) {
-      task.task_finished = true;
+    if (task.status == "llm_finished" && allAudio) {
+      task.status = "task_finished";
     }
   }
 
   cancelPipeline() {
-    this.tasks.forEach(t => (t.cancelled = true));
+    this.tasks.forEach(t => {
+      if (t.status != "task_finished") t.status = "cancelled"
+    });
     this.notify();
   }
 
   removeFinishedTasks(maxCount: number = 20) {
-    const active = this.tasks.filter(t => !t.task_finished);
+    const active = this.tasks.filter(t => !(t.status=="task_finished"));
     const recentFinished = this.tasks
-      .filter(t => t.task_finished)
+      .filter(t => t.status=="task_finished")
       .slice(-maxCount);
     this.tasks = [...recentFinished, ...active];
     this.notify();

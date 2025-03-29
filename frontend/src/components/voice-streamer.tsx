@@ -11,6 +11,8 @@ import {
 import { Panel } from "./panel";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 
+import { pipelineManager } from "@/lib/pipelineManager";
+
 export default function VoiceStreamer() {
   const [isRecording, setIsRecording] = useState(false);
   const [probability, setProbability] = useState<number | null>(null);
@@ -27,6 +29,8 @@ export default function VoiceStreamer() {
       if (data.type === "probability") {
         setProbability(data.probability);
       } else if (data.type === "transcription") {
+        pipelineManager.cancelPipeline()
+        pipelineManager.addInputTask(data.text);
         setTranscriptions((prev) => [...prev, data.text]);
       }
     };

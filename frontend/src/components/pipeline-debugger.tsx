@@ -13,15 +13,23 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { Task } from "@/constants/types";
 import { Badge } from "@/components/ui/badge"
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "./ui/button";
 
 const PipelineDebugger: React.FC = () => {
     const { tasks } = usePipelineSubscription();
     const [viewingTask, setViewingTask] = useState<boolean>(false);
     const [currentTask, setCurrentTask] = useState<Task>();
+    const [isOpen, setIsOpen] = React.useState(false)
 
     useEffect(() => {
         if (viewingTask) return
-        let unfinishedTask = tasks.find(task => !task.task_finished);
+        let unfinishedTask = tasks.find(task => !(task.status == "task_finished"));
         if (!unfinishedTask && tasks.length > 0) unfinishedTask = tasks[-1]
         setCurrentTask(unfinishedTask)
     }, [tasks])
@@ -36,28 +44,51 @@ const PipelineDebugger: React.FC = () => {
                     }}>
                     <div className="flex flex-col gap-4">
                         <Label>Input</Label>
-                        <ScrollArea>
-                            <Panel className="h-36">
+                        <Panel className="h-36">
+                            <ScrollArea className="overflow-auto h-full">
                                 {currentTask?.input}
-                            </Panel>
-                        </ScrollArea>
+                            </ScrollArea>
+                        </Panel>
                     </div>
                     <div className="flex flex-col gap-4">
                         <Label>Response</Label>
-                        <ScrollArea className="overflow-auto">
-                            <Panel className="h-36">
+                        <Panel className="h-36">
+                            <ScrollArea className="overflow-auto h-full">
                                 {currentTask?.response.map((res, index) => (
                                     <span key={`${index}`}
                                         className=
-                                            {`${res.audio && !res.playback_finished ? "bg-yellow-800" : ""} 
-                                            ${res.playback_finished ? "bg-green-800" : ""}`}>
+                                        {`${res.audio && !res.playback_finished ? "bg-yellow-800" : ""} 
+                                                ${res.playback_finished ? "bg-green-800" : ""}`}>
                                         {res.text}
                                     </span>
                                 ))}
-                            </Panel>
-                        </ScrollArea>
+                            </ScrollArea>
+                        </Panel>
                     </div>
                 </div>
+
+                <Collapsible
+                    open={isOpen}
+                    onOpenChange={setIsOpen}
+                    className="w-full space-y-2 mt-4"
+                >
+                    <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-semibold">
+                            raw data
+                        </h4>
+                        <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4"></ChevronUp>}
+                                <span className="sr-only">Toggle</span>
+                            </Button>
+                        </CollapsibleTrigger>
+                    </div>
+                    <CollapsibleContent className="space-y-2">
+                        <div className="font-mono text-sm shadow-sm">
+                            {JSON.stringify(currentTask)}
+                        </div>
+                    </CollapsibleContent>
+                </Collapsible>
             </Panel>
             <div className="p-4 border rounded-md bg-input/50 shadow max-w-4xl mx-auto mt-6">
                 <h2 className="text-xl font-bold mb-4">Pipeline Status</h2>
@@ -71,7 +102,7 @@ const PipelineDebugger: React.FC = () => {
                     </TableHeader>
                     <TableBody>
                         {tasks.map((task) => (
-                            <TableRow key={task.id}onClick={() => { setViewingTask(true); setCurrentTask(task) }}>
+                            <TableRow key={task.id} onClick={() => { setViewingTask(true); setCurrentTask(task) }}>
                                 <TableCell className="font-medium">{task.input}</TableCell>
                                 <TableCell className="flex gap-1 p-5 flex-wrap">{task.response.map((res, index) => (
                                     <div key={`response-${task.id}-${index}`} className="flex">
@@ -80,7 +111,7 @@ const PipelineDebugger: React.FC = () => {
                                         <div className={`w-4 h-2 rounded-r-full  ${res.playback_finished ? "bg-accent-foreground" : "bg-gray-500"}`}></div>
                                     </div>
                                 ))}</TableCell>
-                                <TableCell className="font-medium">{task.task_finished && <Badge variant="secondary">Finished</Badge>}{task.cancelled && <Badge variant="destructive">Aborted</Badge>}</TableCell>
+                                <TableCell className="font-medium">{task.status == "task_finished" && <Badge variant="secondary">Finished</Badge>}{task.status == "cancelled" && <Badge variant="destructive">Aborted</Badge>}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

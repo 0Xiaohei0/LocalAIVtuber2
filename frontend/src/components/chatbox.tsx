@@ -25,7 +25,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         const task = pipelineManager.getNextTaskForLLM();
         if (!task) return;
         const input = task.input!;
-        handleSend(input)
+        handleSend(input, task.id)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tasks]);
 
@@ -93,19 +93,29 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
 
 
 
-    const handleSend = async (input: string) => {
-        // Abort the previous request if it exists
-        if (isProcessingRef.current) {
-            console.log("aborting pipeline")
-            pipelineManager.cancelPipeline()
-            isProcessingRef.current = false
-            if (abortControllerRef.current){
-                console.log("aborting llm request")
-                abortControllerRef.current.abort();
+    const handleSend = async (input: string, taskId?: string | null) => {
+        console.log("handle send called: " + isProcessingRef.current)
+        if (!isProcessingRef.current) {
+            // if receiving task from up stream, need to create task
+            if (!taskId){
+                taskId = pipelineManager.addInputTask(input)
             }
+            pipelineManager.markLLMStarted(taskId)
+        } else {
             return
         }
+        // if (isProcessingRef.current) {
+        //     // console.log("aborting pipeline")
+        //     // pipelineManager.cancelPipeline()
+        //     isProcessingRef.current = false
+        //     if (abortControllerRef.current){
+        //         console.log("aborting llm request")
+        //         abortControllerRef.current.abort();
+        //     }
+        //     return
+        // }
         if (input.trim() === '') return;
+        if (!taskId) taskId = null
 
         isProcessingRef.current = true
 
@@ -142,8 +152,6 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         let aiMessage = '';
         let currentText = ''
         if (!reader) return;
-
-        let taskId: string | null = null;
 
         try {
             while (true) {
