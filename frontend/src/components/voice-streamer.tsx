@@ -28,8 +28,8 @@ export default function VoiceStreamer() {
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === "probability") {
-        if (data.probability >= 0.3 && pipelineManager.getCurrentTask()){
-          pipelineManager.cancelPipeline()
+        if (data.probability >= 0.3 && pipelineManager.getCurrentTask()?.status != "pending_interruption"){
+          pipelineManager.interruptCurrentTask()
         }
         setProbability(data.probability);
       } else if (data.type === "transcription") {

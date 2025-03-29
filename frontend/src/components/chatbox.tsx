@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Square } from 'lucide-react';
 import { pipelineManager } from "@/lib/pipelineManager";
-import { usePipelineSubscription } from "@/hooks/use-pipeline-subscriptions";
 
 type HistoryItem = {
     role: "assistant" | "user";
@@ -19,15 +18,23 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const isProcessingRef = useRef<boolean>(false);
     const abortControllerRef = useRef<AbortController | null>(null);
-    const { tasks } = usePipelineSubscription();
+
 
     useEffect(() => {
-        const task = pipelineManager.getNextTaskForLLM();
-        if (!task) return;
-        const input = task.input!;
-        handleSend(input, task.id)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tasks]);
+        const handlePipelineUpdate = () => {
+            handleInterrupt();
+            const task = pipelineManager.getNextTaskForLLM();
+            if (!task) return;
+            const input = task.input!;
+            handleSend(input, task.id)
+        };
+
+        const unsubscribe = pipelineManager.subscribe(handlePipelineUpdate);
+
+        return () => {
+            unsubscribe();
+        };
+    }, []);
 
     useEffect(() => {
         const getMemory = async () => {
@@ -91,29 +98,30 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         return data
     }
 
-
+    const handleInterrupt = () => {
+        const currentTask = pipelineManager.getCurrentTask()
+        if (currentTask?.status == "pending_interruption"&& !currentTask.interruptionState?.llm) {
+            // console.log("interrupting llm...")
+            isProcessingRef.current = false
+            if (abortControllerRef.current){
+                abortControllerRef.current.abort();
+            }
+            pipelineManager.markInterruptionState("llm");
+            // console.log("llm interrupted.")
+            return;
+        }
+    }
 
     const handleSend = async (input: string, taskId?: string | null) => {
-        console.log("handle send called: " + isProcessingRef.current)
-        if (!isProcessingRef.current) {
+        if (isProcessingRef.current) return
+        else {
             // if receiving task from up stream, need to create task
             if (!taskId){
                 taskId = pipelineManager.addInputTask(input)
             }
             pipelineManager.markLLMStarted(taskId)
-        } else {
-            return
         }
-        // if (isProcessingRef.current) {
-        //     // console.log("aborting pipeline")
-        //     // pipelineManager.cancelPipeline()
-        //     isProcessingRef.current = false
-        //     if (abortControllerRef.current){
-        //         console.log("aborting llm request")
-        //         abortControllerRef.current.abort();
-        //     }
-        //     return
-        // }
+
         if (input.trim() === '') return;
         if (!taskId) taskId = null
 
@@ -125,7 +133,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         saveMemory(input, "user", "Xiaohei")
 
         const systemMessage = `When instructed, answer in a concise manner and incorporate humor and a unique perspective. You are an interesting person, you have emotions and a sense of self. Answers should be self-centered. Give direct answers without any process, don't use markdown and latex, avoid detailed steps, avoid listing key points, use 50 or fewer completion_tokens. Respond in English.
-        
+
         Here are some information about what you remember: ${memoryPrompt}`
 
 

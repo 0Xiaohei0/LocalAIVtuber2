@@ -29,6 +29,7 @@ class PipelineManager {
   }
 
   addInputTask(input: string): string {
+    this.interruptCurrentTask()
     const id = uuidv4();
     const task: Task = {
       id,
@@ -42,6 +43,7 @@ class PipelineManager {
   }
 
   createTaskFromLLM(input: string, initialResponse: string): string {
+    this.interruptCurrentTask()
     const id = uuidv4();
     const task: Task = {
       id,
@@ -99,12 +101,18 @@ class PipelineManager {
   }
 
   getNextTaskForLLM() {
-    return this.tasks.find(task => task.input && (task.status == "created"));
+    const task = this.getCurrentTask()
+    if (task && task.status !== "pending_interruption") {
+      if (task.input && (task.status == "created")){
+        return task;
+      }
+    }
+    return undefined;
   }
 
   getNextTaskForTTS() {
-    for (const task of this.tasks) {
-      if (task.status == "cancelled") continue;
+    const task = this.getCurrentTask()
+    if (task && task.status !== "pending_interruption") {
       for (let j = 0; j < task.response.length; j++) {
         const res = task.response[j];
         if (res.text && !res.audio) {
@@ -120,8 +128,8 @@ class PipelineManager {
   }
 
   getNextTaskForAudio() {
-    for (const task of this.tasks) {
-      if (task.status == "cancelled") continue;
+    const task = this.getCurrentTask()
+    if (task && task.status !== "pending_interruption") {
       for (let j = 0; j < task.response.length; j++) {
         const res = task.response[j];
         if (res.text && res.audio && !res.playback_finished) {
@@ -138,6 +146,17 @@ class PipelineManager {
 
   private updateTaskStatus(task: Task) {
     if (task.status == "cancelled") return
+    if (
+      task &&
+      task.status === "pending_interruption" &&
+      task.interruptionState &&
+      task.interruptionState.tts &&
+      task.interruptionState.llm &&
+      task.interruptionState.audio
+    ) {
+      task.status = "cancelled";
+    }
+
     const llmFinish = task.status == "llm_finished";
     const ttsFinish = task.status == "tts_finished";
     const allAudio = task.response.every(r => r.audio);
@@ -147,19 +166,44 @@ class PipelineManager {
     // console.log("allAudio " + allAudio)
     // console.log("allPlayback " + allPlayback)
     if (llmFinish && allAudio) {
-        task.status = "tts_finished";
+      task.status = "tts_finished";
     }
     if (ttsFinish && allPlayback) {
       task.status = "task_finished";
     }
   }
 
-  cancelPipeline() {
-    const currentTask = this.getCurrentTask()
-    if (currentTask && currentTask.status != "cancelled"){
-      currentTask.status = "cancelled"
+  // cancelPipeline() {
+  //   const currentTask = this.getCurrentTask()
+  //   if (currentTask && currentTask.status != "cancelled"){
+  //     currentTask.status = "cancelled"
+  //   }
+  //   this.notify();
+  // }
+
+  interruptCurrentTask() {
+    const task = this.getCurrentTask();
+    if (task) {
+      console.log("interrupting")
+      task.status = "pending_interruption";
+      task.interruptionState = { tts: false, llm: false, audio: false };
+      this.notify();
     }
-    this.notify();
+  }
+
+  markInterruptionState(type: "llm" | "tts" | "audio") {
+    const task = this.getCurrentTask();
+    if (
+      task &&
+      task.status === "pending_interruption" &&
+      task.interruptionState
+    ) {
+      if (type == "llm") task.interruptionState.llm = true;
+      if (type == "tts") task.interruptionState.tts = true;
+      if (type == "audio") task.interruptionState.audio = true;
+      this.updateTaskStatus(task)
+      this.notify();
+    }
   }
 
   removeFinishedTasks(maxCount: number = 20) {

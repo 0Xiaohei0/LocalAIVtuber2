@@ -18,7 +18,7 @@ function TTSPage() {
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const audioTaskIdRef = useRef<string | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
     const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
     const isProcessingRef = useRef(false);
@@ -38,10 +38,14 @@ function TTSPage() {
     }, []);
 
     const generateAudioFromText = async (text: string): Promise<string> => {
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+
         const response = await fetch("/api/tts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ text }),
+            signal: abortController.signal
         });
 
         if (!response.ok) {
@@ -75,11 +79,22 @@ function TTSPage() {
         }
     };
     const processNextTTS = async () => {
-        //console.log("isProcessingRef.current: " + isProcessingRef.current)
+        // handle interruption
+        const currentTask = pipelineManager.getCurrentTask()
+        if (currentTask?.status == "pending_interruption" && !currentTask.interruptionState?.tts) {
+            // console.log("interrupting tts...")
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            isProcessingRef.current = false
+            pipelineManager.markInterruptionState("tts");
+            // console.log("tts interrupted.")
+            return;
+        }
+        
         if (isProcessingRef.current) return;
 
         const next = pipelineManager.getNextTaskForTTS();
-        //console.log("pipelineManager.getNextTaskForTTS(): " + pipelineManager.getNextTaskForTTS())
         if (!next) return;
 
         const { taskId, responseIndex, task } = next;
@@ -98,15 +113,18 @@ function TTSPage() {
     };
 
     const processNextAudio = async () => {
-        if (audioTaskIdRef.current && pipelineManager.getTaskById(audioTaskIdRef.current)?.status == "cancelled") {
-            // halt audio playback
+        // handle interruption
+        const currentTask = pipelineManager.getCurrentTask()
+        if (currentTask?.status == "pending_interruption" && !currentTask.interruptionState?.audio) {
+            // console.log("interrupting Audio...")
             if (currentAudioRef.current) {
                 currentAudioRef.current.pause();
                 currentAudioRef.current.currentTime = 0;
                 currentAudioRef.current = null;
             }
-            audioTaskIdRef.current = null;
             isPlayingRef.current = false;
+            pipelineManager.markInterruptionState("audio");
+            // console.log("Audio interrupted.")
             return;
         }
 
@@ -116,7 +134,6 @@ function TTSPage() {
         if (!next) return
 
         const { taskId, responseIndex, task } = next;
-        audioTaskIdRef.current = taskId;
 
         const audioUrl = task.response[responseIndex].audio;
         isPlayingRef.current = true;

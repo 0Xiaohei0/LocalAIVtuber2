@@ -127,6 +127,7 @@ const PipelineDebugger: React.FC = () => {
                                     {task.status == "llm_finished" && <Badge variant="secondary">LLM finish</Badge>}
                                     {task.status == "tts_finished" && <Badge variant="secondary">TTS finish</Badge>}
                                     {task.status == "task_finished" && <Badge variant="secondary">Finished</Badge>}
+                                    {task.status == "pending_interruption" && <Badge variant="secondary">interrupting</Badge>}
                                     {task.status == "cancelled" && <Badge variant="destructive">Aborted</Badge>}
                                     </TableCell>
                             </TableRow>
