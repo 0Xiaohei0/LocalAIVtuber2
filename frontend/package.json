@@ -25,6 +25,8 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.479.0",
     "nanoid": "^5.1.5",
+    "pixi-live2d-display": "^0.4.0",
+    "pixi.js": "^6.5.10",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.0.2",
