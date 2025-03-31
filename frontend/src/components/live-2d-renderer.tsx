@@ -37,8 +37,8 @@ const Live2DCanvas: React.FC<Live2DCanvasProps> = ({ modelPath }) => {
             model.x = window.innerWidth / 2;
             model.y = window.innerHeight;
             model.scale.set(0.3, 0.3);
-            model.anchor.set(0.5, 0.3);
-
+            model.anchor.set(0.5, 0.5);
+            model.focus(0.5, 0.5);
             app.stage.addChild(model);
         });
 

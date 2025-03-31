@@ -32,7 +32,7 @@ export function CharacterRender() {
             {/* <Live2DCanvas modelPath="src/assets/live2D/models/haru/haru_greeter_t03.model3.json" /> */}
             {/* <Live2DCanvas modelPath="src/assets/live2D/models/huohuo/huohuo.model3.json" /> */}
             {/* <Live2DCanvas modelPath="src/assets/live2D/models/ariu/ariu.model3.json" /> */}
-            {is2DRenderer ? <Live2DCanvas modelPath="src/assets/live2D/models/ariu/ariu.model3.json" /> : <VRM3dCanvas />}
+            {is2DRenderer ? <Live2DCanvas modelPath="src/assets/live2D/models/ariu/ariu.model3.json"/> : <VRM3dCanvas />}
 
 
 

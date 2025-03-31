@@ -11,24 +11,28 @@ function Mainpage() {
         
   
     return (
-        <SidebarProvider open={false}>
-        <AppSidebar onItemClick={setCurrentPage} />
-        <div className="flex flex-col w-full h-screen">
-            <main className="flex-1 relative">
+      <SidebarProvider open={false}>
+      <AppSidebar onItemClick={setCurrentPage} />
+      <div className="flex flex-col w-full h-screen">
+          <main className="flex-1 relative">
               {Object.entries(pageMapping).map(([key, { page: PageComponent }]) => (
-                <div
-                  key={key}
-                  style={{
-                    display: currentPage === key ? 'block' : 'none',
-                  }}
-                  className="absolute inset-0"
-                >
-                  <PageComponent />
-                </div>
+                  <div
+                      key={key}
+                      style={{ // workaround for live2d broken when setting display: none
+                          width: currentPage === key ? "100%" : "1px", 
+                          height: currentPage === key ? "100%" : "1px", 
+                          position: currentPage === key ? "absolute" : "absolute", 
+                          overflow: currentPage === key ? "visible" : "hidden",
+                          pointerEvents: currentPage === key ? "auto" : "none",
+                      }}
+                      
+                  >
+                      <PageComponent />
+                  </div>
               ))}
-            </main>
-        </div>
-      </SidebarProvider>
+          </main>
+      </div>
+  </SidebarProvider>
     )
   }
   
