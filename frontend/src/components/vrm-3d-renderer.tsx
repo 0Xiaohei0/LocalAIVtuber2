@@ -6,8 +6,9 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { createVRMAnimationClip, VRMAnimationLoaderPlugin, VRMLookAtQuaternionProxy } from '@pixiv/three-vrm-animation';
 import { VRM } from '@pixiv/three-vrm';
 
-const CHARACTER_MODEL_PATH = "src/assets/VRM3D/models/生駒ミル_私服.vrm"
+// const CHARACTER_MODEL_PATH = "src/assets/VRM3D/models/生駒ミル_私服.vrm"
 
+const CHARACTER_MODEL_PATH = "src/assets/VRM3D/models/春日部つむぎハイパー.vrm"
 const ANIMATIONS = {
     DEFAULT: { idle: "src/assets/VRM3D/animations/idle.vrma", gestures: [] },
 }
@@ -72,7 +73,6 @@ const VRM3dCanvas = () => {
 
   // Initialization
   useEffect(() => {
-    setIsSpeaking(false)
     const scene = new THREE.Scene();
     const mountNode = mountRef.current; // Copy the ref value to a local variable
 
@@ -134,11 +134,13 @@ const VRM3dCanvas = () => {
 
     const initVRMScene = async () => {
       const gltfVrm = await gltfLoaderRef.current.loadAsync(CHARACTER_MODEL_PATH);
-      const vrm = gltfVrm.userData.vrm;
+      const vrm: VRM = gltfVrm.userData.vrm;
+      console.log(vrm)
       vrmRef.current = vrm; // Store the VRM for future reference
       VRMUtils.rotateVRM0(vrm);
       VRMUtils.removeUnnecessaryVertices(vrm.scene);
       vrm.scene.traverse((obj: THREE.Object3D) => obj.frustumCulled = false);
+      if (!vrm.lookAt) return
       const lookAtQuatProxy = new VRMLookAtQuaternionProxy(vrm.lookAt);
       lookAtQuatProxy.name = 'lookAtQuaternionProxy';
       vrm.scene.add(lookAtQuatProxy);
@@ -150,22 +152,40 @@ const VRM3dCanvas = () => {
       clockRef.current = new THREE.Clock();
 
       vrm.scene.position.set(0, 0, 0);
+      vrm.springBoneManager?.reset();
 
       loadAndPlayAnimation({ filename: ANIMATIONS.DEFAULT.idle, animationType: AnimationType.Idle, fadeDuration: 0, override: true });
 
       //setup speak animation
-      const speak_interval = 0
+      if (!vrm.expressionManager) {
+        console.error("vrm.expressionManager is null");
+        return;
+      }
+      const speakExpressionTrackName = vrm.expressionManager.getExpressionTrackName('aa');
+      if (!speakExpressionTrackName) {
+        console.error("Expression track name for 'aa' is null");
+        return;
+      }
       const speakTrack = new THREE.NumberKeyframeTrack(
-        vrm.expressionManager.getExpressionTrackName('aa'), // name
-        [0.0, 0.2, 0.4, speak_interval], // times
-        [0.0, 0.3, 0.0, 0.0] // values
+        speakExpressionTrackName, // name
+        [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.9], // times
+        [0.0, 0.3, 0.0, 0.3, 0.1, 0.1, 0.3, 0.1, 0.1, 0.2] // values
       );
-      let clip = new THREE.AnimationClip('Animation', 0.4 + speak_interval, [speakTrack]);
+      let clip = new THREE.AnimationClip('Animation', 1.9, [speakTrack]);
       speakAnimationRef.current = mixerRef.current?.clipAction(clip)
-
+      setIsSpeaking(true);
       const blinkInterval = 2
+      if (!vrm.expressionManager) {
+        console.error("vrm.expressionManager is null");
+        return;
+      }
+      const blinkExpressionTrackName = vrm.expressionManager.getExpressionTrackName('blink');
+      if (!blinkExpressionTrackName) {
+        console.error("Expression track name for 'blink' is null");
+        return;
+      }
       const blinkTrack = new THREE.NumberKeyframeTrack(
-        vrm.expressionManager.getExpressionTrackName('blink'), // name
+        blinkExpressionTrackName, // name
         [0.0, 0.05, 0.1, blinkInterval], // times
         [0.0, 1.0, 0.0, 0] // values
       );
