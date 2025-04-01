@@ -15,16 +15,21 @@ class LLM:
         self.current_model_data = None
         self.llm: BaseLLM | None = None
         self.all_model_data = None
+        self.keep_model_loaded = False
 
         if os.path.exists(self.model_data_path):
             with open(self.model_data_path, 'r') as f:
                 self.all_model_data = json.load(f)
                 if self.all_model_data:
                     self.current_model_data = self.all_model_data[0]
-        self.load_model(self.current_model_data, gpu_layers)
+        if self.keep_model_loaded:
+            self.load_model(self.current_model_data, gpu_layers)
         
     def load_model(self, model_data: dict, gpu_layers=-1):
-        logger.debug(f"Loading model {model_data}...")
+        logger.info(f"Loading model {model_data}...")
+        if (self.llm and self.current_model_data.get('fileName') == model_data.get('fileName')):
+            logger.info(f"Same model already loaded, load cancelled...")
+            return
         self.current_model_data = model_data
         model_directory = os.path.join(self.current_module_directory, "Models")
         model_filename = model_data.get("fileName")
@@ -48,11 +53,17 @@ class LLM:
             self.llm = None
             logger.info("Model unloaded.")
 
+    def set_keep_model_loaded(self, value):
+        self.keep_model_loaded = value
+        if value == True:
+            self.load_model(self.current_model_data)
+        else:
+            self.unload_model()
+        
+
     def get_completion(self, text, history, system_prompt, screenshot=False):
-        # self.load_model(self.current_model_data)
         if not self.llm:
-            logger.error("error: Model not loaded")
-            return
+            self.load_model(self.current_model_data)
 
         response = None
         if isinstance(self.llm, VisionLLM):
@@ -61,5 +72,6 @@ class LLM:
         elif isinstance(self.llm, TextLLM):
             self.llm: TextLLM
             response = self.llm.get_chat_completion(text, history, system_prompt)
-        # self.unload_model()
+        if not self.keep_model_loaded:
+            self.unload_model()
         return response

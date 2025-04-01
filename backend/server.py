@@ -187,5 +187,28 @@ async def get_audio(request: TTSRequest):
     return Response(response, media_type="audio/wav")
     
 
+# *******************************
+# Settings
+# *******************************
+
+class UpdateSettingsRequest(BaseModel):
+    settings: dict
+
+@app.post("/api/settings/update")
+async def update_settings(request: UpdateSettingsRequest):
+    try:
+        updated_settings = request.settings
+
+        # Example: Apply settings to LLM
+        if "llm" in updated_settings:
+            llm_settings = updated_settings["llm"]
+            if "keep_model_loaded" in llm_settings:
+                llm.set_keep_model_loaded(llm_settings["keep_model_loaded"])
+
+        return {"status": "ok", "message": "Settings updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating settings: {e}", exc_info=True)
+        return {"error": "Failed to update settings"}
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

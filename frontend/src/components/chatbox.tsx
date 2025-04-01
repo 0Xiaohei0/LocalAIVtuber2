@@ -16,7 +16,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     const [messages, setMessages] = useState<HistoryItem[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const isProcessingRef = useRef<boolean>(false);
+    const [isProcessing, setIsProcessing] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
 
 
@@ -102,7 +102,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         const currentTask = pipelineManager.getCurrentTask()
         if (currentTask?.status == "pending_interruption"&& !currentTask.interruptionState?.llm) {
             // console.log("interrupting llm...")
-            isProcessingRef.current = false
+            setIsProcessing(false); // Update state
             if (abortControllerRef.current){
                 abortControllerRef.current.abort();
             }
@@ -113,28 +113,17 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     }
 
     const handleSend = async (input: string, taskId?: string | null) => {
-        if (isProcessingRef.current) return
-        else {
-            // if receiving task from up stream, need to create task
-            if (!taskId){
-                taskId = pipelineManager.addInputTask(input)
-            }
-            pipelineManager.markLLMStarted(taskId)
-        }
-
         if (input.trim() === '') return;
         if (!taskId) taskId = null
 
-        isProcessingRef.current = true
+        setIsProcessing(true); // Update state
 
-        const memory = await queryMemory(input)
-        let memoryPrompt = ""
-        memory.map((memory: { document: string; }) => { memoryPrompt += memory.document })
+        // const memory = await queryMemory(input)
+        // let memoryPrompt = ""
+        // memory.map((memory: { document: string; }) => { memoryPrompt += memory.document })
         saveMemory(input, "user", "Xiaohei")
 
-        const systemMessage = `When instructed, answer in a concise manner and incorporate humor and a unique perspective. You are an interesting person, you have emotions and a sense of self. Answers should be self-centered. Give direct answers without any process, don't use markdown and latex, avoid detailed steps, avoid listing key points, use 50 or fewer completion_tokens. Respond in English.
-
-        Here are some information about what you remember: ${memoryPrompt}`
+        const systemMessage = ``
 
 
         const abortController = new AbortController();
@@ -211,7 +200,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
             }
 
             saveMemory(aiMessage, "assistant", "Aya")
-            isProcessingRef.current = false
+            setIsProcessing(false); // Reset state
 
         } catch (error) {
             if ((error as Error).name === 'AbortError') {
@@ -240,14 +229,14 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
             <div className="sticky bottom-0 bg-background rounded-t-lg">
                 <div className='mb-4 flex w-full items-center space-x-2 bg-secondary rounded-lg px-4 py-6'>
                     <Input
-                        disabled={isProcessingRef.current}
+                        disabled={isProcessing}
                         value={input}
                         placeholder="Type your message here."
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSend(input)}
                     />
                     <Button onClick={() => handleSend(input)}>
-                        {!isProcessingRef.current ? <Send></Send> : <Square></Square>}
+                        {!isProcessing ? <Send></Send> : <Square></Square>}
                     </Button>
                 </div>
             </div>

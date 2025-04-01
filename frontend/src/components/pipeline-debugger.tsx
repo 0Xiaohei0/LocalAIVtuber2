@@ -38,7 +38,14 @@ const PipelineDebugger: React.FC = () => {
     return (
         <div>
             <Panel className="max-w-4xl mx-auto">
-                <h2 className="text-xl font-bold mb-4">{viewingTask ?  "Selected Task" : "Current Task"}</h2>
+                <div className="flex gap-4 ">
+                    <h2 className="text-xl font-bold mb-4">{viewingTask ? "Selected Task" : "Current Task"}</h2>
+                    {(!viewingTask && pipelineManager.getCurrentTask() && pipelineManager.getCurrentTask()?.status != "pending_interruption") ? <Button variant="destructive" size="sm" onClick={() => {
+                        pipelineManager.interruptCurrentTask()
+                    }}>
+                        Abort
+                    </Button> : <></>}
+                </div>
                 <div className="grid grid-cols-2 gap-4"
                     style={{
                         gridTemplateColumns: '0.3fr 0.7fr',
@@ -104,14 +111,14 @@ const PipelineDebugger: React.FC = () => {
                     <TableBody>
                         {tasks.map((task) => (
                             <TableRow key={task.id} className={`${(currentTask && task.id == currentTask.id) && "bg-input/50 hover:bg-input/50"}`}
-                             onClick={() => {
-                                if (viewingTask && currentTask && task.id == currentTask.id) {
-                                    setViewingTask(false); 
-                                    setCurrentTask(pipelineManager.getCurrentTask())
-                                } else {
-                                    setViewingTask(true); 
-                                    setCurrentTask(task) ;
-                                }
+                                onClick={() => {
+                                    if (viewingTask && currentTask && task.id == currentTask.id) {
+                                        setViewingTask(false);
+                                        setCurrentTask(pipelineManager.getCurrentTask())
+                                    } else {
+                                        setViewingTask(true);
+                                        setCurrentTask(task);
+                                    }
                                 }}>
                                 <TableCell className="font-medium max-w-[100px] overflow-hidden">{task.input}</TableCell>
                                 <TableCell className="flex gap-1 p-5 flex-wrap">{task.response.map((res, index) => (
@@ -129,7 +136,7 @@ const PipelineDebugger: React.FC = () => {
                                     {task.status == "task_finished" && <Badge variant="secondary">Finished</Badge>}
                                     {task.status == "pending_interruption" && <Badge variant="secondary">interrupting</Badge>}
                                     {task.status == "cancelled" && <Badge variant="destructive">Aborted</Badge>}
-                                    </TableCell>
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
