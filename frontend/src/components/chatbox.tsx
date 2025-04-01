@@ -10,15 +10,24 @@ type HistoryItem = {
 }
 type ChatboxProps = {
     sessionId: string;
+    onCreateSession: () => void;
 };
 
-const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
+const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
     const [messages, setMessages] = useState<HistoryItem[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const [pendingInput, setPendingInput] = useState<string | null>(null); // Track input waiting for sessionId
 
+    useEffect(() => {
+        if (pendingInput && sessionId) {
+            handleSend(pendingInput); // Retry sending the message once sessionId is available
+            setPendingInput(null); // Clear pending input
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionId, pendingInput]);
 
     useEffect(() => {
         const handlePipelineUpdate = () => {
@@ -37,30 +46,6 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     }, []);
 
     useEffect(() => {
-        const getMemory = async () => {
-            try {
-                const res = await fetch(`/api/memory/session/messages?session_id=${encodeURIComponent(sessionId)}`);
-                let data = await res.json();
-
-                if (!res.ok) {
-                    console.error("Error fetching session memory:", data?.error);
-                    return;
-                }
-                if (!Array.isArray(data)) {
-                    console.log(data);
-                    data = [];
-                }
-                // Convert to HistoryItem[]
-                const history: HistoryItem[] = data.map((msg: { role: "assistant" | "user"; message: string }) => ({
-                    role: msg.role,
-                    content: msg.message
-                }));
-
-                setMessages(history);
-            } catch (error) {
-                console.error("Fetch error:", error);
-            }
-        }
         if (sessionId) {
             getMemory();
         }
@@ -70,32 +55,72 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    const getMemory = async () => {
+        try {
+            const res = await fetch(`/api/memory/session/messages?session_id=${encodeURIComponent(sessionId)}`);
+            const data = await res.json();
+
+            if (!res.ok) {
+                console.error("Error fetching session memory:", data?.error);
+                return;
+            }
+            if (!data.response) {
+                console.error("Unexpected response format:", data);
+                return;
+            }
+            // Convert to HistoryItem[]
+            const history: HistoryItem[] = data.response.map((msg: { role: "assistant" | "user"; message: string }) => ({
+                role: msg.role,
+                content: msg.message
+            }));
+
+            setMessages(history);
+        } catch (error) {
+            console.error("Fetch error:", error);
+        }
+    };
 
     const saveMemory = async (input: string, role: string, name: string) => {
-        const mem_response = await fetch('/api/memory/insert', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                text: input,
-                role: role,
-                name: name,
-                session_id: sessionId
-            })
-        });
-        await mem_response.json();
-    }
+        try {
+            const mem_response = await fetch('/api/memory/insert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: input,
+                    role: role,
+                    name: name,
+                    session_id: sessionId
+                })
+            });
+            const data = await mem_response.json();
+            if (!mem_response.ok) {
+                console.error("Error saving memory:", data?.error);
+            }
+        } catch (error) {
+            console.error("Fetch error:", error);
+        }
+    };
 
     const queryMemory = async (input: string) => {
-        const mem_response = await fetch('/api/memory/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                text: input,
-                limit: 6
-            })
-        });
-        const data = await mem_response.json();
-        return data
+        try {
+            const mem_response = await fetch('/api/memory/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: input,
+                    limit: 6
+                })
+            });
+            const data = await mem_response.json();
+            if (!mem_response.ok) {
+                console.error("Error querying memory:", data?.error);
+                return [];
+            }
+            return data.response || [];
+        } catch (error) {
+            console.error("Fetch error:", error);
+            return [];
+        }
     }
 
     const handleInterrupt = () => {
@@ -114,17 +139,18 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
 
     const handleSend = async (input: string, taskId?: string | null) => {
         if (input.trim() === '') return;
-        if (!taskId) taskId = null
+        if (!taskId) taskId = null;
 
+        
         setIsProcessing(true); // Update state
+        if (!sessionId) {
+            setPendingInput(input); // Save input and wait for sessionId
+            onCreateSession();
+            return;
+        }
+        saveMemory(input, "user", "Xiaohei");
 
-        // const memory = await queryMemory(input)
-        // let memoryPrompt = ""
-        // memory.map((memory: { document: string; }) => { memoryPrompt += memory.document })
-        saveMemory(input, "user", "Xiaohei")
-
-        const systemMessage = ``
-
+        const systemMessage = ``;
 
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
@@ -133,24 +159,31 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         setMessages([...messages, userMessage]);
         setInput('');
 
-        const response = await fetch('/api/completion', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                text: input,
-                history: messages,
-                system: systemMessage
-            }),
-            signal: abortController.signal
-        });
-
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        let aiMessage = '';
-        let currentText = ''
-        if (!reader) return;
-
         try {
+            const response = await fetch('/api/completion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: input,
+                    history: messages,
+                    systemPrompt: systemMessage
+                }),
+                signal: abortController.signal
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Error during completion:", errorData?.error);
+                setIsProcessing(false);
+                return;
+            }
+
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            let aiMessage = '';
+            let currentText = '';
+            if (!reader) return;
+
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -171,16 +204,13 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                     }
                 });
 
-
-                currentText += chunk
-                // Split into sentences or punctuation-level chunks
+                currentText += chunk;
                 const sentenceMatches = currentText.match(/[^.!?]+[.!?]/g);
                 if (!sentenceMatches) continue;
                 for (const sentence of sentenceMatches) {
                     const trimmed = sentence.trim();
 
                     if (trimmed.length > 0) {
-                        // Create task if this is the first sentence
                         if (taskId === null) {
                             taskId = pipelineManager.createTaskFromLLM(input, trimmed);
                         } else {
@@ -188,7 +218,6 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                         }
                     }
 
-                    // Remove all matched content from currentText
                     const lastMatch = sentenceMatches[sentenceMatches.length - 1];
                     const endOfLastMatch = currentText.indexOf(lastMatch) + lastMatch.length;
                     currentText = currentText.slice(endOfLastMatch);
@@ -199,7 +228,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                 pipelineManager.markLLMFinished(taskId);
             }
 
-            saveMemory(aiMessage, "assistant", "Aya")
+            saveMemory(aiMessage, "assistant", "Aya");
             setIsProcessing(false); // Reset state
 
         } catch (error) {

@@ -43,7 +43,6 @@ class PipelineManager {
   }
 
   createTaskFromLLM(input: string, initialResponse: string): string {
-    this.interruptCurrentTask()
     const id = uuidv4();
     const task: Task = {
       id,

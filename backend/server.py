@@ -5,7 +5,7 @@ from services.Memory.Memory import Memory
 from services.lib.LAV_logger import logger
 import os
 from fastapi import FastAPI, Query, Request, Response, WebSocket
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 from services.LLM.LLM import LLM
@@ -116,8 +116,8 @@ class QueryMemoryRequest(BaseModel):
 async def query_memory(request: QueryMemoryRequest):
     response = memory.query(text=request.text, limit = request.limit)
     if response is None:
-        return {"error": "No response from Memory service"}
-    return response
+        return JSONResponse(status_code=400, content={"error": "session_id must not be empty"})
+    return JSONResponse(status_code=200, content=response)
 
 class InsertMemoryRequest(BaseModel):
     text: str
@@ -127,11 +127,13 @@ class InsertMemoryRequest(BaseModel):
 
 @app.post("/api/memory/insert")
 async def insert_memory(request: InsertMemoryRequest):
+    if (not request.session_id):
+        return JSONResponse(status_code=400, content={"error": "session_id must not be empty"})
     response = memory.insert_message(message=request.text, role=request.role, name=request.name, session_id=request.session_id)
     logger.info(response)
     if response is None:
-        return {"error": "No response from Memory service"}
-    return response
+        return JSONResponse(status_code=400, content={"error": "No response from Memory service"})
+    return JSONResponse(status_code=200, content={"message": "Memory inserted.", "response": response})
 
 class NewSessionRequest(BaseModel):
     session_id: str
@@ -146,8 +148,8 @@ class NewSessionRequest(BaseModel):
 async def create_new_session(request: NewSessionRequest):
     response = memory.upsert_session(session_id=request.session_id, title=request.title)
     if response is None:
-        return {"error": "Failed to create session"}
-    return {"status": "ok", "session_id": request.session_id}
+        return JSONResponse(status_code=400, content={"error": "Failed to create session"})
+    return JSONResponse(status_code=200, content={"message": "Session created.", "response": response})
 
 class DeleteSessionRequest(BaseModel):
     session_id: str
@@ -156,8 +158,8 @@ class DeleteSessionRequest(BaseModel):
 async def delete_session(request: DeleteSessionRequest):
     response = memory.delete_session(session_id=request.session_id)
     if response is None:
-        return {"error": "Failed to delete session"}
-    return {"status": "ok", "session_id": request.session_id}
+        return JSONResponse(status_code=400, content={"error": "Failed to create session"})
+    return JSONResponse(status_code=200, content={"message": "Session deleted.", "response": response})
 
 @app.get("/api/memory/session")
 async def get_memory_sessions():
@@ -170,8 +172,8 @@ async def get_memory_sessions():
 async def get_session_messages(session_id: str = Query(...)):
     response = memory.get_messages_by_session(session_id=session_id)
     if response is None:
-        return {"error": "Failed to get messages."}
-    return response
+        return JSONResponse(status_code=400, content={"error": "Failed to get messages."})
+    return JSONResponse(status_code=200, content={"message": "Message retrieved.", "response": response})
 
 class TTSRequest(BaseModel):
     text: str
@@ -205,10 +207,10 @@ async def update_settings(request: UpdateSettingsRequest):
             if "keep_model_loaded" in llm_settings:
                 llm.set_keep_model_loaded(llm_settings["keep_model_loaded"])
 
-        return {"status": "ok", "message": "Settings updated successfully"}
+        return JSONResponse(content={"status": "ok", "message": "Settings updated successfully"})
     except Exception as e:
         logger.error(f"Error updating settings: {e}", exc_info=True)
-        return {"error": "Failed to update settings"}
+        return JSONResponse(status_code=500, content={"error": "Failed to update settings"})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -19,8 +19,12 @@ function LLMPage() {
     const [collapsed, setCollapsed] = useState<boolean>(false)
     // const sessions:SessionInfo[] = [{id:"1234", title:"test"},{id:"12354", title:"test2"},{id:"12344", title:"test3"}]
     const [sessionInfoList, setSessionInfoList] = useState<SessionInfo[]>([])
-
     const [keepLLMLoaded, setKeepLLMLoaded] = useState(false)
+
+
+    useEffect(() => {
+        updateSessions();
+    }, []);
 
     const toggleKeepLLMLoaded = async () => {
         try {
@@ -30,12 +34,12 @@ function LLMPage() {
                 body: JSON.stringify({
                     settings: {
                         llm: {
-                            keep_model_loaded: !keepLLMLoaded // Toggle this value as needed
+                            keep_model_loaded: !keepLLMLoaded
                         }
                     }
                 }),
             });
-    
+
             const data = await response.json();
             if (response.ok) {
                 console.log("Settings updated successfully:", data.message);
@@ -49,54 +53,82 @@ function LLMPage() {
     };
 
     const updateSessions = async () => {
-        let updatedList = await fetch('/api/memory/session').then(res => res.json());
-        if (!Array.isArray(updatedList)) updatedList = [];
-        setSessionInfoList(updatedList);
-    };
+        try {
+            const res = await fetch('/api/memory/session');
+            const data = await res.json();
 
-    useEffect(() => {
-        updateSessions();
-    }, []);
+            if (!res.ok) {
+                console.error("Error fetching sessions:", data?.error);
+                setSessionInfoList([]);
+                return;
+            }
+
+            if (!Array.isArray(data)) {
+                console.error("Unexpected response format:", data);
+                setSessionInfoList([]);
+                return;
+            }
+
+            setSessionInfoList(data);
+        } catch (error) {
+            console.error("Fetch error:", error);
+            setSessionInfoList([]);
+        }
+    };
 
     const createSession = async () => {
         const session_id = generateSessionId();
         const title = "New Chat";
 
-        const res = await fetch('/api/memory/session/new', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session_id, title }),
-        });
+        try {
+            const res = await fetch('/api/memory/session/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id, title }),
+            });
 
-        const data = await res.json();
-        if (data.session_id) {
+            const data = await res.json();
+            if (!res.ok) {
+                console.error("Error creating session:", data?.error);
+                return;
+            }
+
             setCurrentSession({ id: session_id, title });
 
             // Optionally, refresh session list
-            updateSessions()
+            updateSessions();
+        } catch (error) {
+            console.error("Fetch error:", error);
         }
-    }
+    };
 
     const deleteSession = async (session_info: SessionInfo) => {
-        const res = await fetch('/api/memory/session/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                session_id: session_info.id,
-            }),
-        });
+        try {
+            const res = await fetch('/api/memory/session/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    session_id: session_info.id,
+                }),
+            });
 
-        const data = await res.json();
-        if (data.session_id) {
+            const data = await res.json();
+            if (!res.ok) {
+                console.error("Error deleting session:", data?.error);
+                return;
+            }
+
             setCurrentSession({ id: "", title: "" });
+
             // Optionally, refresh session list
-            updateSessions()
+            updateSessions();
+        } catch (error) {
+            console.error("Fetch error:", error);
         }
-    }
+    };
 
     const onChangeTitle = async (session_info: SessionInfo) => {
         try {
-            // Call backend to update session title
             const res = await fetch('/api/memory/session/new', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -106,8 +138,9 @@ function LLMPage() {
                 }),
             });
 
+            const data = await res.json();
             if (!res.ok) {
-                console.error("Failed to update session title");
+                console.error("Error updating session title:", data?.error);
                 return;
             }
 
@@ -118,12 +151,12 @@ function LLMPage() {
                 )
             );
 
-            // // Also update current session if it's the same one
+            // Also update current session if it's the same one
             if (currentSession.id === session_info.id) {
                 setCurrentSession(prev => ({ ...prev, title: session_info.title }));
             }
-        } catch (err) {
-            console.error("Error updating session title:", err);
+        } catch (error) {
+            console.error("Fetch error:", error);
         }
     }
 
@@ -147,13 +180,15 @@ function LLMPage() {
                             <Button variant="outline" onClick={() => createSession()}><Plus></Plus></Button>
                         </>
                     }
-                    {currentSession.title}</div>
+                    {currentSession.title + ' (' + currentSession.id + ')'}</div>
                 {!collapsed &&
                     <div className="border-t-1">
-                        <ChatSidebar onItemClick={setCurrentSession} onChangeTitle={onChangeTitle} sessions={sessionInfoList} onDeleteSession={deleteSession} />
+                        <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pt-4">
+                            <ChatSidebar onItemClick={setCurrentSession} onChangeTitle={onChangeTitle} sessions={sessionInfoList} onDeleteSession={deleteSession} />
+                        </ScrollArea>
                     </div>}
                 <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pt-4">
-                    <Chatbox sessionId={currentSession.id} />
+                    <Chatbox sessionId={currentSession.id} onCreateSession={createSession} />
                 </ScrollArea>
                 <SidePanel className="">
                     <div className="flex justify-center items-center space-x-2">
