@@ -20,6 +20,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
     const [pendingInput, setPendingInput] = useState<string | null>(null); // Track input waiting for sessionId
+    const inputRef = useRef<HTMLInputElement>(null); // Add ref for the input element
 
     useEffect(() => {
         if (pendingInput && sessionId) {
@@ -52,6 +53,10 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
     }, [sessionId]);
 
     useEffect(() => {
+        inputRef.current?.focus();
+    }, [isProcessing]);
+
+    useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
@@ -69,6 +74,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
                 return;
             }
             // Convert to HistoryItem[]
+            console.log(data.response)
             const history: HistoryItem[] = data.response.map((msg: { role: "assistant" | "user"; message: string }) => ({
                 role: msg.role,
                 content: msg.message
@@ -230,6 +236,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
 
             saveMemory(aiMessage, "assistant", "Aya");
             setIsProcessing(false); // Reset state
+            inputRef.current?.focus(); // Autofocus the input textbox
 
         } catch (error) {
             if ((error as Error).name === 'AbortError') {
@@ -258,6 +265,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
             <div className="sticky bottom-0 bg-background rounded-t-lg">
                 <div className='mb-4 flex w-full items-center space-x-2 bg-secondary rounded-lg px-4 py-6'>
                     <Input
+                        ref={inputRef} // Attach the ref to the input element
                         disabled={isProcessing}
                         value={input}
                         placeholder="Type your message here."

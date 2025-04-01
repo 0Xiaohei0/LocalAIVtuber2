@@ -23,7 +23,7 @@ class Memory:
 
     
     def insert_message(self, message:str, role="", name="", session_id=""):
-        time_str = '{:%Y-%m-%d %H:%M}'.format(datetime.datetime.now())
+        time_str = '{:%Y-%m-%d %H:%M:%S.%f}'.format(datetime.datetime.now())
         # match = re.match(r"\[(.*?)\]\[(.*?)\]: (.*)", text)
         docs = [f"[{time_str}][{role}:{name}]: {message}"]
         metadata = [
@@ -68,7 +68,7 @@ class Memory:
     
 
     def upsert_session(self, session_id: str, title: str):
-        time_str = '{:%Y-%m-%d %H:%M}'.format(datetime.datetime.now())
+        time_str = '{:%Y-%m-%d %H:%M:%S.%f}'.format(datetime.datetime.now())
         title_point = [f"[{time_str}][session-title]: {title}"]
         metadata = [{
             "session_id": session_id,
@@ -143,7 +143,7 @@ class Memory:
                 continue
 
             try:
-                timestamp = datetime.datetime.strptime(time_str, "%Y-%m-%d %H:%M")
+                timestamp = datetime.datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S.%f")
             except:
                 continue
 
