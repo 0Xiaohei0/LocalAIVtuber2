@@ -27,7 +27,7 @@ export function SidePanel({ children, className }: SidePanelProps) {
                     {isSidePanelOpen ? <ArrowRightFromLine /> : <ArrowLeftFromLine />}
                 </button> 
                 }
-                <Panel className="h-full">
+                <Panel className="h-full w-2xs flex flex-col gap-2 items-start">
                     {children}
                 </Panel>
             </div>

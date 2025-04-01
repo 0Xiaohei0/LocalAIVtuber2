@@ -29,7 +29,6 @@ class PipelineManager {
   }
 
   addInputTask(input: string): string {
-    this.interruptCurrentTask()
     const id = uuidv4();
     const task: Task = {
       id,

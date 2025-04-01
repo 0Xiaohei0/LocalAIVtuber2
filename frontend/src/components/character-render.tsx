@@ -7,9 +7,14 @@ import { SidePanel } from "./side-panel"
 
 export function CharacterRender() {
     const [is2DRenderer, setIs2DRenderer] = useState(false)
+    const [renderModel, setRenderModel] = useState(false)
 
     const toggleRenderer = () => {
         setIs2DRenderer((prev) => (!prev));
+    }
+
+    const toggleRenderModel = () => {
+        setRenderModel((prev) => (!prev));
     }
 
 
@@ -18,9 +23,12 @@ export function CharacterRender() {
 
             <SidePanel>
                 <div className="flex justify-center items-center space-x-2">
-                    <Label>{"3D (VRM)"}</Label>
                     <Switch onClick={toggleRenderer} />
-                    <Label>{"2D (live2D)"}</Label>
+                    <Label>{"3D / 2D switch"}</Label>
+                </div>
+                <div className="flex justify-center items-center space-x-2">
+                    <Switch onClick={toggleRenderModel} />
+                    <Label>{"Render model"}</Label>
                 </div>
             </SidePanel>
 
@@ -28,9 +36,22 @@ export function CharacterRender() {
             {/* <Live2DCanvas modelPath="src/assets/live2D/models/haru/haru_greeter_t03.model3.json" /> */}
             {/* <Live2DCanvas modelPath="src/assets/live2D/models/huohuo/huohuo.model3.json" /> */}
             {/* <Live2DCanvas modelPath="src/assets/live2D/models/ariu/ariu.model3.json" /> */}
-            {/* {is2DRenderer ? <Live2DCanvas modelPath="src/assets/live2D/models/ariu/ariu.model3.json" /> : <VRM3dCanvas />} */}
 
-
+            {renderModel ? (
+                <div>
+                    {is2DRenderer ? (
+                        <Live2DCanvas modelPath="src/assets/live2D/models/ariu/ariu.model3.json" />
+                    ) : (
+                        <VRM3dCanvas />
+                    )}
+                </div>
+            ) : (
+                <div className="flex items-center h-full w-full justify-center">
+                    <h2 className="mt-10 scroll-m-20 pb-2 text-3xl font-semibold tracking-tight transition-colors first:mt-0">
+                        Render Model turned off
+                    </h2>
+                </div>
+            )}
 
         </div>
     )

@@ -34,6 +34,7 @@ class VoiceInput:
 
     def __init__(self):
         self._reset_buffers()
+        self.last_transcription = None
 
     def _reset_buffers(self):
         self.sentence_audio_buffer = []
@@ -98,10 +99,12 @@ class VoiceInput:
 
                 transcribed_text = self.process_speech(np.array(self.sentence_audio_buffer))
                 if transcribed_text and transcribed_text not in self.whisper_filter_list:
-                    await asyncio.gather(*[
-                        client.send_json({"type": "transcription", "text": transcribed_text})
-                        for client in clients
-                    ])
+                    if transcribed_text != self.last_transcription:
+                        self.last_transcription = transcribed_text  
+                        await asyncio.gather(*[
+                            client.send_json({"type": "transcription", "text": transcribed_text})
+                            for client in clients
+                        ])
 
                 self.vad_iterator.reset_states()
                 self._reset_buffers()

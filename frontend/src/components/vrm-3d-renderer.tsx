@@ -86,6 +86,7 @@ const VRM3dCanvas = () => {
     });
 
     function updateBackground(): void {
+      if (!backgroundTextureRef.current?.image) return; // Add null check
       // When factor larger than 1, that means texture 'wilder' than target。 
       // we should scale texture height to target height and then 'map' the center  of texture to target， and vice versa.
       const targetAspect = window.innerWidth / window.innerHeight;
@@ -253,9 +254,44 @@ const VRM3dCanvas = () => {
 
     initVRMScene();
     return () => {
-      mountNode?.removeChild(renderer.domElement);
-      console.log("removing child")
-      window.removeEventListener('click', onMouseClick, false);
+        // Cleanup renderer
+        renderer.dispose();
+
+        // Cleanup AnimationMixer
+        mixerRef.current?.stopAllAction();
+        mixerRef.current = null;
+
+        // Cleanup Clock
+        clockRef.current = null;
+
+        // Cleanup scene objects
+        scene.traverse((object) => {
+            if (object instanceof THREE.Mesh) {
+                object.geometry.dispose();
+                if (Array.isArray(object.material)) {
+                    object.material.forEach((material) => material.dispose());
+                } else {
+                    object.material.dispose();
+                }
+            }
+        });
+
+        // Cleanup textures
+        backgroundTextureRef.current?.dispose();
+
+        // Cleanup controls
+        controls.dispose();
+
+        // Remove event listeners
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('click', onMouseClick);
+
+        // Remove renderer DOM element
+        if (mountNode && renderer.domElement) {
+            mountNode.removeChild(renderer.domElement);
+        }
+
+        console.log("VRM3dCanvas resources cleaned up");
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

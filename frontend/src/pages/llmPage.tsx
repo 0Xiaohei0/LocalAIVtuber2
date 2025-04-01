@@ -161,7 +161,7 @@ function LLMPage() {
     }
 
     return (
-        <div className="relative h-screen overflow-hidden">
+        <div className="relative h-screen w-full overflow-hidden">
             <div className="grid h-screen"
                 style={{
                     gridTemplateColumns: collapsed ? '1fr' : '200px 1fr',
@@ -180,7 +180,7 @@ function LLMPage() {
                             <Button variant="outline" onClick={() => createSession()}><Plus></Plus></Button>
                         </>
                     }
-                    {currentSession.title + ' (' + currentSession.id + ')'}</div>
+                    {currentSession.title}</div>
                 {!collapsed &&
                     <div className="border-t-1">
                         <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pt-4">
@@ -190,7 +190,7 @@ function LLMPage() {
                 <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pt-4">
                     <Chatbox sessionId={currentSession.id} onCreateSession={createSession} />
                 </ScrollArea>
-                <SidePanel className="">
+                <SidePanel>
                     <div className="flex justify-center items-center space-x-2">
                         <Switch onClick={toggleKeepLLMLoaded} />
                         <Label>{"Keep LLM loaded"}</Label>
