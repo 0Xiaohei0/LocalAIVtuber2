@@ -12,12 +12,11 @@ type HistoryItem = {
 }
 type ChatboxProps = {
     sessionId: string;
-    onCreateSession: () => void;
 };
 type MemoryQuery = { message: string; name: string; role: string; time: string }
 
-const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
-    const [messages, setMessages] = useState<HistoryItem[]>([]);
+const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
+    const [displayedMessages, setDisplayedMessages] = useState<HistoryItem[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -25,14 +24,19 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
     const [pendingInput, setPendingInput] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const [memoryUsed, setMemoryUsed] = useState<MemoryQuery[] | null>(null);
+    const messagesRef = useRef<HistoryItem[]>([]);
+
+    // useEffect(() => {
+    //     if (pendingInput && sessionId) {
+    //         handleSend(pendingInput); // Retry sending the message once sessionId is available
+    //         setPendingInput(null); // Clear pending input
+    //     }
+    //     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // }, [sessionId, pendingInput]);
 
     useEffect(() => {
-        if (pendingInput && sessionId) {
-            handleSend(pendingInput); // Retry sending the message once sessionId is available
-            setPendingInput(null); // Clear pending input
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sessionId, pendingInput]);
+        messagesRef.current = displayedMessages;
+    }, [displayedMessages]);
 
     useEffect(() => {
         const handlePipelineUpdate = () => {
@@ -62,7 +66,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    }, [displayedMessages]);
 
     const getMemory = async () => {
         try {
@@ -83,7 +87,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
                 content: msg.message
             }));
 
-            setMessages(history);
+            setDisplayedMessages(history);
         } catch (error) {
             console.error("Fetch error:", error);
         }
@@ -148,23 +152,24 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
     }
 
     const handleSend = async (input: string, taskId?: string | null) => {
+        console.log("handle send called")
         if (input.trim() === '') return;
         if (!taskId) taskId = null;
-
+        else pipelineManager.markLLMStarted(taskId);
 
         setIsProcessing(true); // Update state
-        if (!sessionId) {
-            setPendingInput(input); // Save input and wait for sessionId
-            onCreateSession();
-            return;
-        }
+        // if (!sessionId) {
+        //     setPendingInput(input); // Save input and wait for sessionId
+        //     onCreateSession();
+        //     return;
+        // }
 
-        const memory = await queryMemory(input)
-        let memoryPrompt = ""
-        memory.map((memory: MemoryQuery) => { memoryPrompt += `At ${memory.time}, ${memory.name} said: ${memory.message} \n` })
-        setMemoryUsed(memory)
+        //const memory = await queryMemory(input)
+        // let memoryPrompt = ""
+        // memory.map((memory: MemoryQuery) => { memoryPrompt += `At ${memory.time}, ${memory.name} said: ${memory.message} \n` })
+        //setMemoryUsed(memory)
 
-        saveMemory(input, "user", "Xiaohei");
+        //saveMemory(input, "user", "Xiaohei");
 
         //const systemMessage = `You remember some past conversations: ${memoryPrompt}`;
         const systemMessage = ``;
@@ -172,12 +177,13 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
         abortControllerRef.current = abortController;
 
         const userMessage: HistoryItem = { role: 'user', content: input };
-        setMessages([...messages, userMessage]);
+        const history: HistoryItem[] = messagesRef.current;
+        setDisplayedMessages((prev) => [...prev, userMessage]);
         setInput('');
 
         console.log("sending completion:" + JSON.stringify({
             text: input,
-            history: messages,
+            history: history,
             systemPrompt: systemMessage
         }))
         try {
@@ -186,7 +192,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     text: input,
-                    history: messages,
+                    history: history,
                     systemPrompt: systemMessage
                 }),
                 signal: abortController.signal
@@ -210,7 +216,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
                 if (done) break;
                 const chunk = decoder.decode(value);
                 aiMessage += chunk;
-                setMessages((prevMessages) => {
+                setDisplayedMessages((prevMessages) => {
                     const lastMessage = prevMessages[prevMessages.length - 1];
                     if (lastMessage && lastMessage.role === 'assistant') {
                         return [
@@ -249,7 +255,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
                 pipelineManager.markLLMFinished(taskId);
             }
 
-            saveMemory(aiMessage, "assistant", "Aya");
+            //saveMemory(aiMessage, "assistant", "Aya");
             setIsProcessing(false); // Reset state
             inputRef.current?.focus(); // Autofocus the input textbox
 
@@ -265,7 +271,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
     return (
         <div className="flex flex-col max-w-3xl mx-auto h-[calc(100vh-50px-17px)]">
             <div className="flex flex-col space-y-4 mb-4 flex-grow">
-                {messages.map((msg, index) => (
+                {displayedMessages.map((msg, index) => (
                     <React.Fragment key={index}>
                         <div
                             className={`break-words max-w-7/10 px-4 py-2 has-[>svg]:px-3 gap-2 rounded-md text-sm font-medium shadow-xs ${msg.role === 'user' ? 'bg-primary text-primary-foreground self-end' : 'bg-secondary text-secondary-foreground self-start'
@@ -277,7 +283,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId, onCreateSession }) => {
                     </React.Fragment>
                 ))}
                 <div>
-                    {(memoryUsed && messages && messages.length > 0 && messages[messages.length - 1].role == "assistant") &&
+                    {(memoryUsed && displayedMessages && displayedMessages.length > 0 && displayedMessages[displayedMessages.length - 1].role == "assistant") &&
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger>

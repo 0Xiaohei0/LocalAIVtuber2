@@ -254,6 +254,9 @@ class en_G2p(G2p):
         self.cmu = get_dict()
         self.namedict = get_namedict()
 
+        # Add custom pronunciation for "Aya"
+        self.namedict["aya"] = [['AY1', 'AH0']]
+
         # 剔除读音错误的几个缩写
         for word in ["AE", "AI", "AR", "IOS", "HUD", "OS"]:
             del self.cmu[word.lower()]

@@ -188,7 +188,7 @@ function LLMPage() {
                         </ScrollArea>
                     </div>}
                 <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pt-4">
-                    <Chatbox sessionId={currentSession.id} onCreateSession={createSession} />
+                    <Chatbox sessionId={"test2"} />
                 </ScrollArea>
                 <SidePanel>
                     <div className="flex justify-center items-center space-x-2">
