@@ -7,12 +7,12 @@ type SongData = {
 
 export const songDataList:SongData[] = [
     {
-        fileName: "/assets/Songs/EverlastingSummer.wav",
+        fileName: "/resource/Songs/EverlastingSummer.wav",
         songName: "Everlasting Summer",
         artist: "Seycara"
     },
     {
-        fileName: "/assets/Songs/RenaiCirculation.wav",
+        fileName: "/resource/Songs/RenaiCirculation.wav",
         songName: "Renai Circulation",
         artist: "Kana Hanazawa"
     }

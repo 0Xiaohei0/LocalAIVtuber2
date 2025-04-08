@@ -14,6 +14,7 @@ from pydantic import BaseModel
 app = FastAPI()
 static_files_path = os.path.abspath("../frontend/dist")
 app.mount("/assets", StaticFiles(directory="../frontend/dist/assets"), name="assets")
+app.mount("/resource", StaticFiles(directory="../frontend/dist/resource"), name="resource")
 
 # Initialize Services
 voice_input:VoiceInput = VoiceInput()

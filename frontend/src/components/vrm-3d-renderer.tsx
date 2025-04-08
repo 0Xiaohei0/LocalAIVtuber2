@@ -8,12 +8,12 @@ import { VRM } from '@pixiv/three-vrm';
 
 // const CHARACTER_MODEL_PATH = "src/assets/VRM3D/models/生駒ミル_私服.vrm"
 
-const CHARACTER_MODEL_PATH = "src/assets/VRM3D/models/春日部つむぎハイパー.vrm"
+const CHARACTER_MODEL_PATH = "/resource/VRM3D/models/春日部つむぎハイパー.vrm"
 const ANIMATIONS = {
-    DEFAULT: { idle: "src/assets/VRM3D/animations/idle.vrma", gestures: [] },
+    DEFAULT: { idle: "/resource/VRM3D/animations/idle.vrma", gestures: [] },
 }
 
-const BACKGROUND_IMAGE = "src/assets/black.png" 
+const BACKGROUND_IMAGE = "/black.png" 
 
 const VRM3dCanvas = () => {
   const mountRef = useRef<HTMLDivElement>(null);
