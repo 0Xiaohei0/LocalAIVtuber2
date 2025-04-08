@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Lightbulb, Send, Square } from 'lucide-react';
+import { Send, Square } from 'lucide-react';
 import { pipelineManager } from "@/lib/pipelineManager";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { ScrollArea } from './ui/scroll-area';
 
 type HistoryItem = {
     role: "assistant" | "user";
@@ -13,7 +11,6 @@ type HistoryItem = {
 type ChatboxProps = {
     sessionId: string;
 };
-type MemoryQuery = { message: string; name: string; role: string; time: string }
 
 const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     const [displayedMessages, setDisplayedMessages] = useState<HistoryItem[]>([]);
@@ -21,9 +18,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const abortControllerRef = useRef<AbortController | null>(null);
-    const [pendingInput, setPendingInput] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const [memoryUsed, setMemoryUsed] = useState<MemoryQuery[] | null>(null);
     const messagesRef = useRef<HistoryItem[]>([]);
 
     // useEffect(() => {
@@ -93,49 +88,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         }
     };
 
-    const saveMemory = async (input: string, role: string, name: string) => {
-        try {
-            const mem_response = await fetch('/api/memory/insert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: input,
-                    role: role,
-                    name: name,
-                    session_id: sessionId
-                })
-            });
-            const data = await mem_response.json();
-            if (!mem_response.ok) {
-                console.error("Error saving memory:", data?.error);
-            }
-        } catch (error) {
-            console.error("Fetch error:", error);
-        }
-    };
-
-    const queryMemory = async (input: string) => {
-        try {
-            const mem_response = await fetch('/api/memory/query', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: input,
-                    limit: 3
-                })
-            });
-            const data = await mem_response.json();
-            console.log("Query Memory Response:", data); // Log the full response
-            if (!mem_response.ok) {
-                console.error("Error querying memory:", data?.error);
-                return [];
-            }
-            return data || [];
-        } catch (error) {
-            console.error("Fetch error:", error);
-            return [];
-        }
-    }
+    
 
     const handleInterrupt = () => {
         const currentTask = pipelineManager.getCurrentTask()
@@ -283,29 +236,7 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                     </React.Fragment>
                 ))}
                 <div>
-                    {(memoryUsed && displayedMessages && displayedMessages.length > 0 && displayedMessages[displayedMessages.length - 1].role == "assistant") &&
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <Lightbulb className='w-4 h-4'></Lightbulb>
-                                </TooltipTrigger>
-                                <TooltipContent side={"right"} >
-                                    <ScrollArea className="overflow-auto h-full">
-                                        <div className="h-30 w-100 space-y-2">
-                                            <p className="font-bold">Memory Retrieved:</p>
-                                            <ul className="list-disc pl-4">
-                                                {memoryUsed.map((memory, index) => (
-                                                    <li key={index}>
-                                                        <span className="font-semibold">{memory.time}</span>: {memory.name} said, "{memory.message}"
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    </ScrollArea>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    }
+                   
                 </div>
                 {/* Invisible div to scroll into view */}
                 <div ref={messagesEndRef}></div>
