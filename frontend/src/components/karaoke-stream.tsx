@@ -1,0 +1,140 @@
+import { ArrowDownFromLine, ArrowUpFromLine, Plus, X } from "lucide-react";
+import { Panel } from "./panel";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "./ui/button";
+import { useState } from "react";
+import { songDataList } from "@/constants/songData";
+
+export function KaraokeStream() {
+    const [selectedSongs, setSelectedSongs] = useState<string[]>([]);
+    const [setlist, setSetlist] = useState<string[]>([]);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const toggleSongSelection = (songName: string) => {
+        setSelectedSongs((prev) =>
+            prev.includes(songName)
+                ? prev.filter((name) => name !== songName)
+                : [...prev, songName]
+        );
+    };
+
+    const addToSetlist = () => {
+        setSetlist((prev) => [...prev, ...selectedSongs]);
+        setSelectedSongs([]); // Clear selected songs after adding
+        setIsDialogOpen(false); // Close the dialog
+    };
+
+    const removeFromSetlist = (index: number) => {
+        setSetlist((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const moveSongInSetlist = (index: number, direction: "up" | "down") => {
+        setSetlist((prev) => {
+            const newSetlist = [...prev];
+            const targetIndex = direction === "up" ? index - 1 : index + 1;
+
+            // Ensure target index is within bounds
+            if (targetIndex >= 0 && targetIndex < newSetlist.length) {
+                // Swap songs
+                [newSetlist[index], newSetlist[targetIndex]] = [
+                    newSetlist[targetIndex],
+                    newSetlist[index],
+                ];
+            }
+
+            return newSetlist;
+        });
+    };
+
+    return (
+        <div className="grid grid-cols-4 gap-10">
+            <div>
+                <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">Chat log</h3>
+                <Panel></Panel>
+            </div>
+            <div>
+                <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">Set list</h3>
+                <Panel className="flex flex-col gap-4">
+                    {setlist.map((song, index) => (
+                        <div key={index} className="flex items-center gap-2 w-full">
+                            <Panel className="flex w-full py-0 px-0">
+                                <div className="flex w-full my-4 ml-4 mr-0">
+                                    <p>{song}</p>
+                                    <div className="flex flex-col justify-between ml-auto">
+                                        <Button
+                                            className="size-1"
+                                            variant="ghost"
+                                            onClick={() => moveSongInSetlist(index, "up")}
+                                            disabled={index === 0}
+                                        >
+                                            <ArrowUpFromLine></ArrowUpFromLine>
+                                        </Button>
+                                        <Button
+                                            className="size-1"
+                                            variant="ghost"
+                                            onClick={() => moveSongInSetlist(index, "down")}
+                                            disabled={index === setlist.length - 1}
+                                        >
+                                            <ArrowDownFromLine></ArrowDownFromLine>
+                                        </Button>
+                                    </div>
+                                </div>
+                                <Button className="size-1 mr-1 mt-1" variant="ghost" onClick={() => removeFromSetlist(index)}>
+                                    <X></X>
+                                </Button>
+                            </Panel>
+                        </div>
+                    ))}
+
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                        <DialogTrigger>
+                            <Panel className="flex justify-center">
+                                <Plus></Plus>
+                            </Panel>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Add Songs</DialogTitle>
+                                <DialogDescription>
+                                    Select songs from the list below:
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="flex flex-col gap-2">
+                                {songDataList.map((song, index) => (
+                                    <Button
+                                        key={index}
+                                        variant={selectedSongs.includes(song.songName) ? "default" : "outline"}
+                                        onClick={() => toggleSongSelection(song.songName)}
+                                    >
+                                        {song.songName} - {song.artist}
+                                    </Button>
+                                ))}
+                            </div>
+                            <DialogFooter>
+                                <Button onClick={addToSetlist} disabled={selectedSongs.length === 0}>
+                                    Add to Setlist
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </Panel>
+            </div>
+            <div>
+                <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">Filter</h3>
+                <Panel></Panel>
+            </div>
+            <div>
+                <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">Status</h3>
+                <Panel></Panel>
+            </div>
+        </div>
+    );
+}

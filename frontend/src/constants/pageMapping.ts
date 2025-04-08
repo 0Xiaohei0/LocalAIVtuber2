@@ -4,7 +4,8 @@ import PipelineMonitorPage from "@/pages/pipelineMonitorPage"
 import SettingsPage from "@/pages/settingsPage"
 import TTSPage from "@/pages/ttsPage"
 import CharacterPage from "@/pages/characterPage"
-import { MessageCircleCode, Mic, Speech, SquareActivity, Settings, User } from "lucide-react"
+import { MessageCircleCode, Mic, Speech, SquareActivity, Settings, User, Airplay } from "lucide-react"
+import StreamPage from "@/pages/streamPage"
 
 
 const pageMapping = {
@@ -37,6 +38,11 @@ const pageMapping = {
         page: SettingsPage,
         icon: Settings,
         title: "Settings"
+    },
+    "stream": {
+        page: StreamPage,
+        icon: Airplay,
+        title: "stream"
     },
   }
 
