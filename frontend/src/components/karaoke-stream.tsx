@@ -12,11 +12,13 @@ import {
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { songDataList } from "@/constants/songData";
+import { useSettings } from "@/context/SettingsContext";
 
 export function KaraokeStream() {
+    const { settings, updateSetting, loading } = useSettings();
     const [streamRunning, setStreamRunning] = useState(false);
     const [selectedSongs, setSelectedSongs] = useState<string[]>([]);
-    const [setlist, setSetlist] = useState<string[]>([]);
+    const setlist:string[] = settings["frontend.stream.karaoke_stream.setlist"] || [];
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const toggleSongSelection = (songName: string) => {
@@ -27,33 +29,36 @@ export function KaraokeStream() {
         );
     };
 
-    const addToSetlist = () => {
-        setSetlist((prev) => [...prev, ...selectedSongs]);
+    const addToSetlist = async () => {
+        const updatedSetlist = [...setlist, ...selectedSongs];
+        await updateSetting("frontend.stream.karaoke_stream.setlist", updatedSetlist);
         setSelectedSongs([]); // Clear selected songs after adding
         setIsDialogOpen(false); // Close the dialog
     };
 
-    const removeFromSetlist = (index: number) => {
-        setSetlist((prev) => prev.filter((_, i) => i !== index));
+    const removeFromSetlist = async (index: number) => {
+        const updatedSetlist = setlist.filter((_, i) => i !== index);
+        await updateSetting("frontend.stream.karaoke_stream.setlist", updatedSetlist);
     };
 
-    const moveSongInSetlist = (index: number, direction: "up" | "down") => {
-        setSetlist((prev) => {
-            const newSetlist = [...prev];
-            const targetIndex = direction === "up" ? index - 1 : index + 1;
+    const moveSongInSetlist = async (index: number, direction: "up" | "down") => {
+        const targetIndex = direction === "up" ? index - 1 : index + 1;
 
-            // Ensure target index is within bounds
-            if (targetIndex >= 0 && targetIndex < newSetlist.length) {
-                // Swap songs
-                [newSetlist[index], newSetlist[targetIndex]] = [
-                    newSetlist[targetIndex],
-                    newSetlist[index],
-                ];
-            }
-
-            return newSetlist;
-        });
+        // Ensure target index is within bounds
+        if (targetIndex >= 0 && targetIndex < setlist.length) {
+            const updatedSetlist = [...setlist];
+            // Swap songs
+            [updatedSetlist[index], updatedSetlist[targetIndex]] = [
+                updatedSetlist[targetIndex],
+                updatedSetlist[index],
+            ];
+            await updateSetting("frontend.stream.karaoke_stream.setlist", updatedSetlist);
+        }
     };
+
+    const handleStartStream = () => {
+        setStreamRunning((prev) => !prev)
+    }
 
     return (
         <div className="grid grid-cols-4 gap-10">
@@ -64,6 +69,7 @@ export function KaraokeStream() {
             <div>
                 <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">Set list</h3>
                 <Panel className="flex flex-col gap-4">
+                    {loading && <div>Loading setlist...</div>}
                     {setlist.map((song, index) => (
                         <div key={index} className="flex items-center gap-2 w-full">
                             <Panel className="flex w-full py-0 px-0">
@@ -137,7 +143,7 @@ export function KaraokeStream() {
                     <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">Controls</h3>
                     <Panel>
                         <div className="flex">
-                            <Button onClick={() => setStreamRunning((prev) => !prev)} variant={streamRunning ?  "destructive" : "default"}>{streamRunning ?  "Stop Stream" : "Start Stream"}</Button>
+                            <Button onClick={handleStartStream} variant={streamRunning ?  "destructive" : "default"}>{streamRunning ?  "Stop Stream" : "Start Stream"}</Button>
                         </div>
                     </Panel>
                 </div>

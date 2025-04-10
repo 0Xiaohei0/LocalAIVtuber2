@@ -25,6 +25,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 }
             } catch (error) {
                 console.error("Error fetching settings:", error);
+            }finally {
+                setLoading(false);
             }
         };
 
