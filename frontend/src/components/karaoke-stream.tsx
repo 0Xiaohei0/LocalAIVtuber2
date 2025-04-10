@@ -14,6 +14,7 @@ import { useState } from "react";
 import { songDataList } from "@/constants/songData";
 
 export function KaraokeStream() {
+    const [streamRunning, setStreamRunning] = useState(false);
     const [selectedSongs, setSelectedSongs] = useState<string[]>([]);
     const [setlist, setSetlist] = useState<string[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -128,9 +129,21 @@ export function KaraokeStream() {
                 </Panel>
             </div>
             <div>
-                <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">Filter</h3>
-                <Panel></Panel>
+                <div>
+                    <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">Filter</h3>
+                    <Panel></Panel>
+                </div>
+                <div>
+                    <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">Controls</h3>
+                    <Panel>
+                        <div className="flex">
+                            <Button onClick={() => setStreamRunning((prev) => !prev)} variant={streamRunning ?  "destructive" : "default"}>{streamRunning ?  "Stop Stream" : "Start Stream"}</Button>
+                        </div>
+                    </Panel>
+                </div>
+
             </div>
+
             <div>
                 <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight mb-2">Status</h3>
                 <Panel></Panel>

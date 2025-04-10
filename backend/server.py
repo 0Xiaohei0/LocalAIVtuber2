@@ -194,24 +194,104 @@ async def get_audio(request: TTSRequest):
 # Settings
 # *******************************
 
+import json
+import os
+from typing import Any, Dict
+
+settings_schema = {
+    "llm.load_llm_on_cpu": {
+        "default": False,
+        "type": bool,
+        "description": "For Reducing load on lower end graphics cards, latency will be increased.",
+    },
+    "llm.keep_model_loaded": {
+        "default": False,
+        "type": bool,
+        "description": "Keep the LLM model loaded in memory",
+    },
+    "general.disable_pipeline": {
+        "default": False,
+        "type": bool,
+        "description": "For testing individual pipeline stages without triggering the entire pipeline.",
+    },
+    "frontend.stream.karaoke_stream.setlist": {
+        "default": [],
+        "type": list,
+        "description": "",
+    }
+}
+
+class SettingsManager:
+    def __init__(self, settings_file: str):
+        self.settings_file = settings_file
+        self.settings = self.load_settings()
+
+    def load_settings(self) -> Dict[str, Any]:
+        if not os.path.exists(self.settings_file):
+            default_settings = {key: value["default"] for key, value in settings_schema.items()}
+            self.save_settings(default_settings)
+            return default_settings
+        with open(self.settings_file, "r") as file:
+            return json.load(file)
+
+    def save_settings(self, settings: Dict[str, Any]):
+        with open(self.settings_file, "w") as file:
+            json.dump(settings, file, indent=4)
+
+    def validate_settings(self, settings: Dict[str, Any]):
+        for key, value in settings.items():
+            if key not in settings_schema:
+                raise ValueError(f"Unknown setting: {key}")
+            expected_type = settings_schema[key]["type"]
+            if not isinstance(value, expected_type):
+                raise ValueError(f"Invalid type for {key}: expected {expected_type.__name__}, got {type(value).__name__}")
+        return True
+
+    def apply_settings(self):
+        for key, value in self.settings.items():
+            if key == "llm.keep_model_loaded":
+                llm.set_keep_model_loaded(value)
+
+    def update_settings(self, updated_settings: Dict[str, Any]):
+        self.validate_settings(updated_settings)
+        self.settings.update(updated_settings)
+        self.save_settings(self.settings)
+        self.apply_settings()
+
+# Initialize the SettingsManager
+SETTINGS_FILE = "settings.json"
+settings_manager = SettingsManager(SETTINGS_FILE)
+
+# Apply settings on startup
+settings_manager.apply_settings()
+
+# *******************************
+# Settings API
+# *******************************
+
 class UpdateSettingsRequest(BaseModel):
-    settings: dict
+    settings: Dict[str, Any]
 
 @app.post("/api/settings/update")
 async def update_settings(request: UpdateSettingsRequest):
     try:
-        updated_settings = request.settings
-
-        # Example: Apply settings to LLM
-        if "llm" in updated_settings:
-            llm_settings = updated_settings["llm"]
-            if "keep_model_loaded" in llm_settings:
-                llm.set_keep_model_loaded(llm_settings["keep_model_loaded"])
-
+        settings_manager.update_settings(request.settings)
         return JSONResponse(content={"status": "ok", "message": "Settings updated successfully"})
+    except ValueError as ve:
+        logger.error(f"Validation error: {ve}")
+        return JSONResponse(status_code=400, content={"error": str(ve)})
     except Exception as e:
         logger.error(f"Error updating settings: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": "Failed to update settings"})
 
+@app.get("/api/settings")
+async def get_settings():
+    schema_plain = {
+        key: {**value, "type": value["type"].__name__} for key, value in settings_schema.items()
+    }
+    return JSONResponse(content={
+        "settings": settings_manager.settings,
+        "schema": schema_plain,
+    })
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

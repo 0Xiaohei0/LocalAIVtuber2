@@ -5,9 +5,6 @@ import { MessageSquareText, ArrowLeftToLine, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { generateSessionId } from '@/lib/utils';
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { SidePanel } from "@/components/side-panel"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 
 export type SessionInfo = {
     title: string,
@@ -19,38 +16,13 @@ function LLMPage() {
     const [collapsed, setCollapsed] = useState<boolean>(false)
     // const sessions:SessionInfo[] = [{id:"1234", title:"test"},{id:"12354", title:"test2"},{id:"12344", title:"test3"}]
     const [sessionInfoList, setSessionInfoList] = useState<SessionInfo[]>([])
-    const [keepLLMLoaded, setKeepLLMLoaded] = useState(false)
 
 
     useEffect(() => {
         updateSessions();
     }, []);
 
-    const toggleKeepLLMLoaded = async () => {
-        try {
-            const response = await fetch('/api/settings/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    settings: {
-                        llm: {
-                            keep_model_loaded: !keepLLMLoaded
-                        }
-                    }
-                }),
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-                console.log("Settings updated successfully:", data.message);
-                setKeepLLMLoaded((prev) => (!prev))
-            } else {
-                console.error("Failed to update settings:", data.error);
-            }
-        } catch (error) {
-            console.error("Error updating settings:", error);
-        }
-    };
+    
 
     const updateSessions = async () => {
         try {
@@ -190,12 +162,6 @@ function LLMPage() {
                 <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pt-4">
                     <Chatbox sessionId={"test2"} />
                 </ScrollArea>
-                <SidePanel>
-                    <div className="flex justify-center items-center space-x-2">
-                        <Switch onClick={toggleKeepLLMLoaded} />
-                        <Label>{"Keep LLM loaded"}</Label>
-                    </div>
-                </SidePanel>
             </div>
         </div>
     )

@@ -1,0 +1,6 @@
+{
+    "llm.load_llm_on_cpu": false,
+    "general.disable_pipeline": false,
+    "llm.keep_model_loaded": false,
+    "frontend.stream.karaoke_stream.setlist": false
+}
