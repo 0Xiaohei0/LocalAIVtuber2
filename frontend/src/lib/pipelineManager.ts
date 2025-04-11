@@ -41,6 +41,21 @@ class PipelineManager {
     return id;
   }
 
+  async waitForTaskCompletion(taskId: string): Promise<string> {
+    return new Promise((resolve) => {
+      const unsubscribe = this.subscribe((tasks) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (task?.status === "task_finished") {
+          unsubscribe();
+          resolve(task.response.map(r => r.text).join("\n"));
+        } else if (task?.status === "cancelled") {
+          unsubscribe();
+          resolve("");
+        }
+      });
+    });
+  }
+
   createTaskFromLLM(input: string, initialResponse: string): string {
     const id = uuidv4();
     const task: Task = {

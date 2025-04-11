@@ -1,7 +1,7 @@
 {
     "llm.load_llm_on_cpu": false,
     "general.disable_pipeline": false,
-    "llm.keep_model_loaded": false,
+    "llm.keep_model_loaded": true,
     "frontend.stream.karaoke_stream.setlist": [
         "Everlasting Summer",
         "Renai Circulation"
@@ -17,21 +17,15 @@
             "nodeType": "chat",
             "settings": {
                 "duration": 1,
-                "chatSource": "stream"
+                "chatSource": "microphone"
             }
         },
         {
             "nodeType": "promptedResponse",
             "settings": {
-                "prompt": ""
-            }
-        },
-        {
-            "nodeType": "chat",
-            "settings": {
-                "duration": 60,
-                "chatSource": "stream"
+                "prompt": "Conclude the stream with a final remark."
             }
         }
-    ]
+    ],
+    "frontend.stream.yt.videoid": "zHXP2PZ7A0M"
 }

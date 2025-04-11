@@ -12,6 +12,7 @@ interface Props {
 }
 
 export function NodeSettingsEditor({ item, onChange }: Props) {
+  if (!item) return null
   const nodeDef = getNodeDefinition(item.nodeType)
   if (!nodeDef) return null
 
@@ -58,22 +59,7 @@ export function NodeSettingsEditor({ item, onChange }: Props) {
         <div key={fieldKey} className="flex flex-col gap-2">
           <Label>{fieldKey}</Label>
           {(() => {
-            if (fieldKey === "chatSource") {
-              return (
-                <Select
-                  onValueChange={(value) => updateField(fieldKey, value)}
-                  defaultValue={String(item.settings[fieldKey] ?? 'microphone')}
-                >
-                  <SelectTrigger className="w-[280px]">
-                    <SelectValue placeholder="Select a chat source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="stream">Stream</SelectItem>
-                    <SelectItem value="microphone">Microphone</SelectItem>
-                  </SelectContent>
-                </Select>
-              );
-            } else if (typeof item.settings[fieldKey] === "string") {
+            if (typeof item.settings[fieldKey] === "string") {
               return (
                 <Textarea
                   value={String(item.settings[fieldKey] ?? '')}

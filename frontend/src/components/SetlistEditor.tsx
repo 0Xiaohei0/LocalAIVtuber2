@@ -41,22 +41,28 @@ export function SetlistEditor() {
 
 
   function selectNode(index: number) {
-    setSelectedIndex(index)
+    if (selectedIndex == index) {
+      setSelectedIndex(null)
+    }
+    else {
+      setSelectedIndex(index)
+    }
+    
   }
 
   async function onRun() {
     await executeSetlist(setlist)
-    alert('Setlist execution finished!')
   }
 
   return (
     <div className='flex gap-4 w-full'>
 
-      <Panel className="flex flex-col gap-4 w-xl">
+      <Panel className="flex flex-col gap-4 w-l">
         <Label>Set list</Label>
         {setlist.map((item, index) => (
           <div key={index} className="flex items-center gap-2 w-full" onClick={() => selectNode(index)}>
-            <Panel className="flex w-full py-0 px-0">
+            
+            <Panel className={`flex w-full py-0 px-0 ${selectedIndex === index ? 'border dark:border-primary' : ''}`}>
               <div className="flex w-full my-4 ml-4 mr-0">
                 <p>{getNodeDefinition(item.nodeType)?.name || item.nodeType}</p>
               </div>
@@ -92,6 +98,7 @@ export function SetlistEditor() {
         <Button onClick={onRun}>Run Setlist</Button>
       </Panel>
       <Panel className="flex flex-col gap-4 w-xl">
+      {selectedIndex === null && <Label>Select from setlist</Label>}
         {selectedIndex !== null && (
           <NodeSettingsEditor
             item={setlist[selectedIndex]}

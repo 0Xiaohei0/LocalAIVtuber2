@@ -1,4 +1,5 @@
 import { NodeDefinition } from './nodeDefinition'
+import { pipelineManager } from '../pipelineManager';
 
 export const PromptedResponseNode: NodeDefinition = {
   type: 'promptedResponse',
@@ -15,8 +16,11 @@ export const PromptedResponseNode: NodeDefinition = {
     }
   },
   async execute(settings) {
-    const promptValue = settings.prompt as string || ''
-    const result = `Pretend we invoked some AI with prompt: ${promptValue}`
-    return result
+    const promptValue = settings.prompt as string || '';
+    
+    const taskId = pipelineManager.addInputTask(promptValue);
+    const result = await pipelineManager.waitForTaskCompletion(taskId);
+
+    return `Prompted Response node finished with result ${result}.`
   }
-}
+};

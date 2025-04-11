@@ -1,4 +1,5 @@
 import asyncio
+from services.ChatFetch.Chatfetch import ChatFetch
 from services.Input.Input import VoiceInput
 from services.TTS.TTS import TTS
 from services.Memory.Memory import Memory
@@ -24,6 +25,9 @@ tts:TTS = TTS()
 
 clients = set()
 
+# Initialize ChatFetch service
+chat_fetch = ChatFetch()
+chat_clients = set()
 
 # *******************************
 # WebUI
@@ -62,6 +66,41 @@ async def websocket_audio(websocket: WebSocket):
             await websocket.close()
         except RuntimeError:
             pass  # Already closed
+
+# *******************************
+# StreamChat
+# *******************************
+
+@app.websocket("/ws/streamChat")
+async def websocket_chat(websocket: WebSocket):
+    await websocket.accept()
+    chat_clients.add(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except Exception:
+        pass
+    finally:
+        chat_clients.remove(websocket)
+        try:
+            await websocket.close()
+        except RuntimeError:
+            pass 
+
+@app.post("/api/streamChat/yt/start")
+async def start_fetch_youtube(request: Request):
+    body = await request.json()
+    video_id = body.get("video_id")
+    if not video_id:
+        return JSONResponse(status_code=400, content={"error": "video_id is required"})
+    
+    asyncio.create_task(chat_fetch.start_fetching(video_id, chat_clients))
+    return JSONResponse(status_code=200, content={"message": "Chat fetch started"})
+
+@app.post("/api/streamChat/yt/stop")
+async def stop_fetch_youtube():
+    chat_fetch.stop_fetching()
+    return JSONResponse(status_code=200, content={"message": "Chat fetch stopped"})
 
 
 # *******************************
@@ -217,6 +256,11 @@ settings_schema = {
     "frontend.stream.setlist": {
         "default": [],
         "type": list,
+        "description": "",
+    },
+    "frontend.stream.yt.videoid": {
+        "default": [],
+        "type": str,
         "description": "",
     }
 }
