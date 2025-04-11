@@ -8,16 +8,21 @@
     ],
     "frontend.stream.setlist": [
         {
+            "nodeType": "sing",
+            "settings": {
+                "songName": "Everlasting Summer"
+            }
+        },
+        {
             "nodeType": "promptedResponse",
             "settings": {
                 "prompt": "Introduce the stream in a friendly manner."
             }
         },
         {
-            "nodeType": "chat",
+            "nodeType": "sing",
             "settings": {
-                "duration": 1,
-                "chatSource": "microphone"
+                "songName": "Renai Circulation"
             }
         },
         {
@@ -27,5 +32,5 @@
             }
         }
     ],
-    "frontend.stream.yt.videoid": "zHXP2PZ7A0M"
+    "frontend.stream.yt.videoid": ""
 }

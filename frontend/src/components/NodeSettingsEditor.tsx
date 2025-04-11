@@ -55,22 +55,23 @@ export function NodeSettingsEditor({ item, onChange }: Props) {
         </>
       )}
 
-      {Object.entries(nodeDef.defaultSettings).map(([fieldKey]) => (
+      {Object.entries(nodeDef.defaultSettings).map(([fieldKey, defaultValue]) => (
         <div key={fieldKey} className="flex flex-col gap-2">
           <Label>{fieldKey}</Label>
           {(() => {
-            if (typeof item.settings[fieldKey] === "string") {
+            const value = item.settings[fieldKey] ?? defaultValue; // Fallback to default value
+            if (typeof value === "string") {
               return (
                 <Textarea
-                  value={String(item.settings[fieldKey] ?? '')}
+                  value={String(value)}
                   onChange={(e) => updateField(fieldKey, e.target.value)}
                 />
               );
-            } else if (typeof item.settings[fieldKey] === "number") {
+            } else if (typeof value === "number") {
               return (
                 <Input
                   type="number"
-                  value={item.settings[fieldKey]}
+                  value={value}
                   onChange={(e) => updateField(fieldKey, Number(e.target.value))}
                 />
               );

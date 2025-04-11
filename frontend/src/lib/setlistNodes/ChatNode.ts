@@ -1,13 +1,14 @@
 import { pipelineManager } from '../pipelineManager';
+import { StreamChatManager } from '../streamChatManager';
 import { NodeDefinition } from './nodeDefinition'
-
-export type ChatSource = "stream" | "microphone"
 
 export const ChatNode: NodeDefinition = {
   type: 'chat',
   name: 'Chat',
   defaultSettings: {
+    InitialPrompt: 'You are looking through stream chat, restate the chat message before commenting on them.',
     duration: 60, // in minutes
+    video_id: ''
   },
   presets: {
     shortChat: {
@@ -18,16 +19,41 @@ export const ChatNode: NodeDefinition = {
     }
   },
   async execute(settings) {
-    const duration = settings.duration as number
-    const chatSource = settings.chatSource as string
-
+    const duration = settings.duration as number;
+    const videoId = settings.video_id as string;
     const endTime = new Date(Date.now() + duration * 60 * 1000);
-    console.log("chatSource " + chatSource)
+    const messages: string[] = [];
+    const streamChatManager = new StreamChatManager(videoId, (message) => {
+      messages.push(message);
+    });
 
-    while (new Date() < endTime) {
-      const taskId = pipelineManager.addInputTask("Tell me a random thought you have.");
-      const result = await pipelineManager.waitForTaskCompletion(taskId);
-      return `Chat node finished with result ${result}.`;
+    try {
+      // Start fetching stream chat
+      await streamChatManager.startChatFetch();
+
+      async function delay(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+      
+      while (Date.now() < endTime.getTime()) {
+        if (messages.length > 0) {
+          const userMessage = messages[messages.length - 1];
+          if (userMessage) {
+            const taskId = pipelineManager.addInputTask(userMessage);
+            await pipelineManager.waitForTaskCompletion(taskId);
+          }
+        }
+        await delay(100);
+      }
+    } catch (error) {
+      console.error("Error running Chat Node:", error);
     }
+    finally {
+      // Stop fetching stream chat
+      await streamChatManager.stopChatFetch();
+      streamChatManager.closeSocket();
+    }
+
+    return 'Chat node finished without any results.';
   }
 };

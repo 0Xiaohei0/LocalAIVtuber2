@@ -55,9 +55,9 @@ export function SetlistEditor() {
   }
 
   return (
-    <div className='flex gap-4 w-full'>
+    <div className='flex gap-4 w-screen'>
 
-      <Panel className="flex flex-col gap-4 w-l">
+      <Panel className="flex flex-col gap-4 w-sm">
         <Label>Set list</Label>
         {setlist.map((item, index) => (
           <div key={index} className="flex items-center gap-2 w-full" onClick={() => selectNode(index)}>

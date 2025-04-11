@@ -1,0 +1,66 @@
+export class StreamChatManager {
+    private socket: WebSocket | null = null;
+    private isFetching: boolean = false;
+
+    constructor(private videoId: string, private onMessage: (message: string) => void) {}
+
+    async startChatFetch(): Promise<void> {
+        try {
+            const response = await fetch("/api/streamChat/yt/start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ video_id: this.videoId }),
+            });
+
+            if (response.ok) {
+                this.socket = new WebSocket(`ws://${window.location.host}/ws/streamChat`);
+                this.isFetching = true;
+
+                this.socket.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    this.onMessage(`${message.author}: ${message.message}`);
+                };
+
+                this.socket.onerror = (error) => console.error("WebSocket error:", error);
+            } else {
+                const errorData = await response.json();
+                console.error(`Error: ${errorData.error}`);
+            }
+        } catch (error) {
+            console.error("Failed to start chat fetch:", error);
+        }
+    }
+
+    async stopChatFetch(): Promise<void> {
+        try {
+            const response = await fetch("/api/streamChat/yt/stop", {
+                method: "POST",
+            });
+
+            if (response.ok && this.socket) {
+                this.isFetching = false;
+                this.socket.close();
+                this.socket = null;
+            } else {
+                console.error("Failed to stop chat fetch.");
+            }
+        } catch (error) {
+            console.error("Failed to stop chat fetch:", error);
+        }
+    }
+
+    closeSocket(): void {
+        if (this.socket) {
+            this.socket.close();
+            this.socket = null;
+        }
+    }
+
+    isChatFetching(): boolean {
+        return this.isFetching;
+    }
+
+    updateVideoId(videoId: string): void {
+        this.videoId = videoId;
+    }
+}

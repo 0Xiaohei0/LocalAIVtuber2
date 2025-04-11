@@ -1,10 +1,12 @@
 import { PromptedResponseNode } from './PromptedResponseNode'
 import { ChatNode } from './ChatNode'
 import { NodeDefinition } from './nodeDefinition'
+import { SingNode } from './SingNode'
 
 const nodeRegistry: NodeDefinition[] = [
   PromptedResponseNode,
-  ChatNode
+  ChatNode,
+  SingNode
 ]
 
 export function getNodeDefinition(type: string) {
