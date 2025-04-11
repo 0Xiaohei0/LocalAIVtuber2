@@ -5,5 +5,33 @@
     "frontend.stream.karaoke_stream.setlist": [
         "Everlasting Summer",
         "Renai Circulation"
+    ],
+    "frontend.stream.setlist": [
+        {
+            "nodeType": "promptedResponse",
+            "settings": {
+                "prompt": "Introduce the stream in a friendly manner."
+            }
+        },
+        {
+            "nodeType": "chat",
+            "settings": {
+                "duration": 1,
+                "chatSource": "stream"
+            }
+        },
+        {
+            "nodeType": "promptedResponse",
+            "settings": {
+                "prompt": ""
+            }
+        },
+        {
+            "nodeType": "chat",
+            "settings": {
+                "duration": 60,
+                "chatSource": "stream"
+            }
+        }
     ]
 }

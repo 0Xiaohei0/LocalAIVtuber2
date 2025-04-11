@@ -214,7 +214,7 @@ settings_schema = {
         "type": bool,
         "description": "For testing individual pipeline stages without triggering the entire pipeline.",
     },
-    "frontend.stream.karaoke_stream.setlist": {
+    "frontend.stream.setlist": {
         "default": [],
         "type": list,
         "description": "",

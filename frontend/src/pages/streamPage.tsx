@@ -1,11 +1,12 @@
-import { KaraokeStream } from "@/components/karaoke-stream"
+
+import { Stream } from "@/components/Stream"
 
 function StreamPage() {
 
 
     return (
         <div className="p-5">
-            <KaraokeStream></KaraokeStream>
+            <Stream></Stream>
         </div>
     )
   }
