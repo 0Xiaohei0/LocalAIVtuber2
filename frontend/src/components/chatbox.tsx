@@ -8,11 +8,8 @@ type HistoryItem = {
     role: "assistant" | "user";
     content: string;
 }
-type ChatboxProps = {
-    sessionId: string;
-};
 
-const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
+const Chatbox = () => {
     const [displayedMessages, setDisplayedMessages] = useState<HistoryItem[]>([]);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -20,14 +17,6 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     const abortControllerRef = useRef<AbortController | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const messagesRef = useRef<HistoryItem[]>([]);
-
-    // useEffect(() => {
-    //     if (pendingInput && sessionId) {
-    //         handleSend(pendingInput); // Retry sending the message once sessionId is available
-    //         setPendingInput(null); // Clear pending input
-    //     }
-    //     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // }, [sessionId, pendingInput]);
 
     useEffect(() => {
         messagesRef.current = displayedMessages;
@@ -50,12 +39,6 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
     }, []);
 
     useEffect(() => {
-        if (sessionId) {
-            getMemory();
-        }
-    }, [sessionId]);
-
-    useEffect(() => {
         inputRef.current?.focus();
     }, [isProcessing]);
 
@@ -63,43 +46,17 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [displayedMessages]);
 
-    const getMemory = async () => {
-        try {
-            const res = await fetch(`/api/memory/session/messages?session_id=${encodeURIComponent(sessionId)}`);
-            const data = await res.json();
-
-            if (!res.ok) {
-                console.error("Error fetching session memory:", data?.error);
-                return;
-            }
-            if (!data.response) {
-                console.error("Unexpected response format:", data);
-                return;
-            }
-            // Convert to HistoryItem[]
-            const history: HistoryItem[] = data.response.map((msg: { role: "assistant" | "user"; message: string }) => ({
-                role: msg.role,
-                content: msg.message
-            }));
-
-            setDisplayedMessages(history);
-        } catch (error) {
-            console.error("Fetch error:", error);
-        }
-    };
 
     
 
     const handleInterrupt = () => {
         const currentTask = pipelineManager.getCurrentTask()
         if (currentTask?.status == "pending_interruption" && !currentTask.interruptionState?.llm) {
-            // console.log("interrupting llm...")
             setIsProcessing(false); // Update state
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort();
             }
             pipelineManager.markInterruptionState("llm");
-            // console.log("llm interrupted.")
             return;
         }
     }
@@ -111,20 +68,6 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
         else pipelineManager.markLLMStarted(taskId);
 
         setIsProcessing(true); // Update state
-        // if (!sessionId) {
-        //     setPendingInput(input); // Save input and wait for sessionId
-        //     onCreateSession();
-        //     return;
-        // }
-
-        //const memory = await queryMemory(input)
-        // let memoryPrompt = ""
-        // memory.map((memory: MemoryQuery) => { memoryPrompt += `At ${memory.time}, ${memory.name} said: ${memory.message} \n` })
-        //setMemoryUsed(memory)
-
-        //saveMemory(input, "user", "Xiaohei");
-
-        //const systemMessage = `You remember some past conversations: ${memoryPrompt}`;
         const systemMessage = ``;
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
@@ -208,7 +151,6 @@ const Chatbox: React.FC<ChatboxProps> = ({ sessionId }) => {
                 pipelineManager.markLLMFinished(taskId);
             }
 
-            //saveMemory(aiMessage, "assistant", "Aya");
             setIsProcessing(false); // Reset state
             inputRef.current?.focus(); // Autofocus the input textbox
 
