@@ -73,15 +73,10 @@ const Chatbox = () => {
         abortControllerRef.current = abortController;
 
         const userMessage: HistoryItem = { role: 'user', content: input };
-        const history: HistoryItem[] = messagesRef.current;
+        const history: HistoryItem[] = messagesRef.current.slice(-30);
         setDisplayedMessages((prev) => [...prev, userMessage]);
         setInput('');
 
-        console.log("sending completion:" + JSON.stringify({
-            text: input,
-            history: history,
-            systemPrompt: systemMessage
-        }))
         try {
             const response = await fetch('/api/completion', {
                 method: 'POST',

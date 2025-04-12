@@ -36,6 +36,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const updateSetting = async (key: string, value: any) => {
         try {
             setLoading(true)
+            setSettings((prev) => ({
+                ...prev,
+                [key]: value,
+            }));
             const response = await fetch('/api/settings/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -49,10 +53,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             const data = await response.json();
             if (response.ok) {
                 console.log("Settings updated successfully:", data.message);
-                setSettings((prev) => ({
-                    ...prev,
-                    [key]: value,
-                }));
             } else {
                 console.error("Failed to update settings:", data.error);
             }

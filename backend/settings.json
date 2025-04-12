@@ -8,25 +8,15 @@
     ],
     "frontend.stream.setlist": [
         {
-            "nodeType": "promptedResponse",
+            "nodeType": "chat",
             "settings": {
-                "prompt": "Introduce yourself to your viewers."
-            }
-        },
-        {
-            "nodeType": "promptedResponse",
-            "settings": {
-                "prompt": "State that you will sing the next song."
-            }
-        },
-        {
-            "nodeType": "sing",
-            "settings": {
-                "songName": "Everlasting Summer"
+                "InitialPrompt": "You are looking through stream chat. repeat the chat message. Then commentate on it.",
+                "duration": 60,
+                "video_id": "6MkQ-Ay4kD0"
             }
         }
     ],
     "frontend.stream.yt.videoid": "",
     "frontend.character.renderModel": true,
-    "frontend.character.3d2dSwitch": false
+    "frontend.character.3d2dSwitch": true
 }
