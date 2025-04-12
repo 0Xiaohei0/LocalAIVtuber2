@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 import { createVRMAnimationClip, VRMAnimationLoaderPlugin, VRMLookAtQuaternionProxy } from '@pixiv/three-vrm-animation';
 import { VRM } from '@pixiv/three-vrm';
+import { globalStateManager } from '@/lib/globalStateManager';
 
 // const CHARACTER_MODEL_PATH = "src/assets/VRM3D/models/生駒ミル_私服.vrm"
 
@@ -174,7 +175,6 @@ const VRM3dCanvas = () => {
       );
       let clip = new THREE.AnimationClip('Animation', 1.9, [speakTrack]);
       speakAnimationRef.current = mixerRef.current?.clipAction(clip)
-      setIsSpeaking(true);
       const blinkInterval = 2
       if (!vrm.expressionManager) {
         console.error("vrm.expressionManager is null");
@@ -200,6 +200,8 @@ const VRM3dCanvas = () => {
           mixerRef.current?.update(deltaTime);
           vrm.update(deltaTime);
         }
+        
+        setIsSpeaking(globalStateManager.getState("ttsLiveVolume")> 0.1);
         controls.update();
         renderer.render(scene, camera);
       };

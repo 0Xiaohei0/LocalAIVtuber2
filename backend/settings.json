@@ -28,5 +28,5 @@
     ],
     "frontend.stream.yt.videoid": "",
     "frontend.character.renderModel": true,
-    "frontend.character.3d2dSwitch": true
+    "frontend.character.3d2dSwitch": false
 }
