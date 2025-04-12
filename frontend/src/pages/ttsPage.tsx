@@ -12,6 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { globalStateManager } from "@/lib/globalStateManager";
 
 function TTSPage() {
     const [text, setText] = useState("");
@@ -23,7 +24,30 @@ function TTSPage() {
 
     const isProcessingRef = useRef(false);
     const isPlayingRef = useRef(false);
+    
 
+    const analyzeAudio = (audio: HTMLAudioElement) => {
+        const audioContext = new AudioContext();
+        const source = audioContext.createMediaElementSource(audio);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+
+        const updateVolume = () => {
+            analyser.getByteFrequencyData(dataArray);
+            const avgVolume = dataArray.reduce((a, b) => a + b, 0);
+            const normalizedVolume = avgVolume / 15096;
+            globalStateManager.updateState("ttsLiveVolume", normalizedVolume);
+            if (!audio.paused) {
+              requestAnimationFrame(updateVolume);
+            }
+          };
+
+        updateVolume();
+    };
     useEffect(() => {
         const handlePipelineUpdate = () => {
             processNextTTS();
@@ -141,6 +165,7 @@ function TTSPage() {
         const audio = new Audio(audioUrl!);
         currentAudioRef.current = audio;
         audio.play();
+        analyzeAudio(audio);
 
         audio.onended = () => {
             isPlayingRef.current = false;

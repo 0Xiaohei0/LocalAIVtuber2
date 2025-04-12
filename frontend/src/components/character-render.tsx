@@ -24,7 +24,7 @@ export function CharacterRender() {
             {settings[toggleRenderId] ? (
                 <div>
                     {settings[rendererSwitchId] ? (
-                        <Live2DCanvas modelPath="/resource/live2D/models/ariu/ariu.model3.json" />
+                        <Live2DCanvas modelPath="/resource/live2D/models/akari_vts/akari.model3.json" />
                     ) : (
                         <VRM3dCanvas />
                     )}
