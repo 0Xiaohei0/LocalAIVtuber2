@@ -8,29 +8,25 @@
     ],
     "frontend.stream.setlist": [
         {
+            "nodeType": "promptedResponse",
+            "settings": {
+                "prompt": "Introduce yourself to your viewers."
+            }
+        },
+        {
+            "nodeType": "promptedResponse",
+            "settings": {
+                "prompt": "State that you will sing the next song."
+            }
+        },
+        {
             "nodeType": "sing",
             "settings": {
                 "songName": "Everlasting Summer"
             }
-        },
-        {
-            "nodeType": "promptedResponse",
-            "settings": {
-                "prompt": "Introduce the stream in a friendly manner."
-            }
-        },
-        {
-            "nodeType": "sing",
-            "settings": {
-                "songName": "Renai Circulation"
-            }
-        },
-        {
-            "nodeType": "promptedResponse",
-            "settings": {
-                "prompt": "Conclude the stream with a final remark."
-            }
         }
     ],
-    "frontend.stream.yt.videoid": ""
+    "frontend.stream.yt.videoid": "",
+    "frontend.character.renderModel": true,
+    "frontend.character.3d2dSwitch": true
 }

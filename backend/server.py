@@ -237,34 +237,6 @@ import json
 import os
 from typing import Any, Dict
 
-settings_schema = {
-    "llm.load_llm_on_cpu": {
-        "default": False,
-        "type": bool,
-        "description": "For Reducing load on lower end graphics cards, latency will be increased.",
-    },
-    "llm.keep_model_loaded": {
-        "default": False,
-        "type": bool,
-        "description": "Keep the LLM model loaded in memory",
-    },
-    "general.disable_pipeline": {
-        "default": False,
-        "type": bool,
-        "description": "For testing individual pipeline stages without triggering the entire pipeline.",
-    },
-    "frontend.stream.setlist": {
-        "default": [],
-        "type": list,
-        "description": "",
-    },
-    "frontend.stream.yt.videoid": {
-        "default": [],
-        "type": str,
-        "description": "",
-    }
-}
-
 class SettingsManager:
     def __init__(self, settings_file: str):
         self.settings_file = settings_file
@@ -272,9 +244,7 @@ class SettingsManager:
 
     def load_settings(self) -> Dict[str, Any]:
         if not os.path.exists(self.settings_file):
-            default_settings = {key: value["default"] for key, value in settings_schema.items()}
-            self.save_settings(default_settings)
-            return default_settings
+            return {}
         with open(self.settings_file, "r") as file:
             return json.load(file)
 
@@ -282,22 +252,12 @@ class SettingsManager:
         with open(self.settings_file, "w") as file:
             json.dump(settings, file, indent=4)
 
-    def validate_settings(self, settings: Dict[str, Any]):
-        for key, value in settings.items():
-            if key not in settings_schema:
-                raise ValueError(f"Unknown setting: {key}")
-            expected_type = settings_schema[key]["type"]
-            if not isinstance(value, expected_type):
-                raise ValueError(f"Invalid type for {key}: expected {expected_type.__name__}, got {type(value).__name__}")
-        return True
-
     def apply_settings(self):
         for key, value in self.settings.items():
             if key == "llm.keep_model_loaded":
                 llm.set_keep_model_loaded(value)
 
     def update_settings(self, updated_settings: Dict[str, Any]):
-        self.validate_settings(updated_settings)
         self.settings.update(updated_settings)
         self.save_settings(self.settings)
         self.apply_settings()
@@ -330,12 +290,8 @@ async def update_settings(request: UpdateSettingsRequest):
 
 @app.get("/api/settings")
 async def get_settings():
-    schema_plain = {
-        key: {**value, "type": value["type"].__name__} for key, value in settings_schema.items()
-    }
     return JSONResponse(content={
-        "settings": settings_manager.settings,
-        "schema": schema_plain,
+        "settings": settings_manager.settings
     })
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

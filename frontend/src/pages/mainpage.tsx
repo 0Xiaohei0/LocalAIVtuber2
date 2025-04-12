@@ -8,7 +8,7 @@ type PageKey = keyof typeof pageMapping
 
 function Mainpage() {
 
-    const [currentPage, setCurrentPage] = useState<PageKey>("stream")
+    const [currentPage, setCurrentPage] = useState<PageKey>("character")
 
 
     return (

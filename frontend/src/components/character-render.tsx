@@ -1,35 +1,19 @@
-import { useState } from "react"
 import Live2DCanvas from "@/components/live-2d-renderer"
 import VRM3dCanvas from "@/components/vrm-3d-renderer"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { SidePanel } from "./side-panel"
+import SettingsItem from "./SettingsItem"
+import { useSettings } from "@/context/SettingsContext"
 
 export function CharacterRender() {
-    const [is2DRenderer, setIs2DRenderer] = useState(false)
-    const [renderModel, setRenderModel] = useState(false)
-
-    const toggleRenderer = () => {
-        setIs2DRenderer((prev) => (!prev));
-    }
-
-    const toggleRenderModel = () => {
-        setRenderModel((prev) => (!prev));
-    }
-
-
+    const rendererSwitchId = "frontend.character.3d2dSwitch"
+    const toggleRenderId = "frontend.character.renderModel"
+    const {settings} = useSettings()
     return (
         <div className="relative h-screen overflow-hidden">
 
             <SidePanel>
-                <div className="flex justify-center items-center space-x-2">
-                    <Switch onClick={toggleRenderer} />
-                    <Label>{"3D / 2D switch"}</Label>
-                </div>
-                <div className="flex justify-center items-center space-x-2">
-                    <Switch onClick={toggleRenderModel} />
-                    <Label>{"Render model"}</Label>
-                </div>
+                <SettingsItem id={rendererSwitchId} label={"3D / 2D switch"} description={""} ></SettingsItem>
+                <SettingsItem id={toggleRenderId} label={"Render model"} description={""} ></SettingsItem>
             </SidePanel>
 
 
@@ -37,10 +21,10 @@ export function CharacterRender() {
             {/* <Live2DCanvas modelPath="src/assets/live2D/models/huohuo/huohuo.model3.json" /> */}
             {/* <Live2DCanvas modelPath="src/assets/live2D/models/ariu/ariu.model3.json" /> */}
 
-            {renderModel ? (
+            {settings[toggleRenderId] ? (
                 <div>
-                    {is2DRenderer ? (
-                        <Live2DCanvas modelPath="src/assets/live2D/models/ariu/ariu.model3.json" />
+                    {settings[rendererSwitchId] ? (
+                        <Live2DCanvas modelPath="/resource/live2D/models/ariu/ariu.model3.json" />
                     ) : (
                         <VRM3dCanvas />
                     )}

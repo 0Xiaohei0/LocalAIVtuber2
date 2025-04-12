@@ -27,7 +27,7 @@ class VoiceInput:
 
     vad_model = load_silero_vad()
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    whisper_model = WhisperModel("small", device=device)
+    whisper_model = WhisperModel("medium", device=device)
 
     vad_iterator = VADIterator(vad_model, sampling_rate=SAMPLING_RATE)
     running = False

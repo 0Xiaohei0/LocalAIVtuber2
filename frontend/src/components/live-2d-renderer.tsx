@@ -15,7 +15,7 @@ interface Live2DCanvasProps {
 const Live2DCanvas: React.FC<Live2DCanvasProps> = ({ modelPath }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const appRef = useRef<PIXI.Application | null>(null);
-
+  
   useEffect(() => {
     // Expose PIXI for live2d-display
     window.PIXI = PIXI;
@@ -32,14 +32,14 @@ const Live2DCanvas: React.FC<Live2DCanvasProps> = ({ modelPath }) => {
 
     (async () => {
       try {
-        const model = Live2DModel.fromSync(modelPath, { onError: console.warn });
+        const model = Live2DModel.fromSync(modelPath, { onError: console.warn, autoInteract: false });
         model.once('load', () => {
             model.x = window.innerWidth / 2;
             model.y = window.innerHeight;
             model.scale.set(0.3, 0.3);
             model.anchor.set(0.5, 0.5);
-            model.focus(0.5, 0.5);
             app.stage.addChild(model);
+            console.log(model)
         });
 
 
