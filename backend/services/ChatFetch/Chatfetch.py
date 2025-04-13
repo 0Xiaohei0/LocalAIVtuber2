@@ -5,9 +5,10 @@ class ChatFetch:
     def __init__(self):
         self.chat = None
         self.running = False
+        self.video_id = ""
 
-    async def start_fetching(self, video_id, websocket_clients):
-        self.chat = pytchat.create(video_id=video_id)
+    async def start_fetching(self, websocket_clients):
+        self.chat = pytchat.create(video_id=self.video_id)
         self.running = True
         try:
             while self.running and self.chat.is_alive():
@@ -17,9 +18,8 @@ class ChatFetch:
                         "author": c.author.name,
                         "message": c.message
                     }
-                    # Broadcast the message to all connected WebSocket clients
-                    await self.broadcast_message(message, websocket_clients)
-                await asyncio.sleep(1)  # Avoid busy-waiting
+                    asyncio.create_task(self.broadcast_message(message, websocket_clients))
+                await asyncio.sleep(2) 
         except Exception as e:
             print(f"Error in ChatFetch: {e}")
         finally:

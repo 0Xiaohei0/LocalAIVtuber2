@@ -8,13 +8,13 @@ import { StreamChatManager } from "@/lib/streamChatManager";
 
 export function StreamChat() {
     const { settings, updateSetting } = useSettings();
-    const videoId: string = settings["frontend.stream.yt.videoid"] || "";
+    const videoId: string = settings["stream.yt.videoid"] || "";
     const [messages, setMessages] = useState<string[]>([]);
     const [streamChatAPI, setStreamChatAPI] = useState<StreamChatManager | null>(null);
     const [isFetching, setIsFetching] = useState(false);
 
     useEffect(() => {
-        const api = new StreamChatManager(videoId, (message) => {
+        const api = new StreamChatManager((message) => {
             setMessages((prev) => [...prev, message]);
         });
         setStreamChatAPI(api);
@@ -39,8 +39,7 @@ export function StreamChat() {
     };
 
     const handleChangeVideoId = async (id: string) => {
-        await updateSetting("frontend.stream.yt.videoid", id);
-        streamChatAPI?.updateVideoId(id);
+        await updateSetting("stream.yt.videoid", id);
     };
 
     return (

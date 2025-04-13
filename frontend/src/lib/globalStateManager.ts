@@ -2,11 +2,13 @@ type GlobalStateListener<K extends keyof GlobalState> = (value: GlobalState[K]) 
 
 interface GlobalState {
     ttsLiveVolume: number;
+    systemPrompt: string;
 }
 
 class GlobalStateManager {
   private state: GlobalState = {
-    ttsLiveVolume: 0
+    ttsLiveVolume: 0,
+    systemPrompt: ""
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

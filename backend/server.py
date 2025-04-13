@@ -88,13 +88,8 @@ async def websocket_chat(websocket: WebSocket):
             pass 
 
 @app.post("/api/streamChat/yt/start")
-async def start_fetch_youtube(request: Request):
-    body = await request.json()
-    video_id = body.get("video_id")
-    if not video_id:
-        return JSONResponse(status_code=400, content={"error": "video_id is required"})
-    
-    asyncio.create_task(chat_fetch.start_fetching(video_id, chat_clients))
+async def start_fetch_youtube():
+    asyncio.create_task(chat_fetch.start_fetching(chat_clients))
     return JSONResponse(status_code=200, content={"message": "Chat fetch started"})
 
 @app.post("/api/streamChat/yt/stop")
@@ -256,6 +251,8 @@ class SettingsManager:
         for key, value in self.settings.items():
             if key == "llm.keep_model_loaded":
                 llm.set_keep_model_loaded(value)
+            if key == "stream.yt.videoid":
+                chat_fetch.video_id = value
 
     def update_settings(self, updated_settings: Dict[str, Any]):
         self.settings.update(updated_settings)

@@ -2,7 +2,7 @@
     {
         "displayName": "aya-v0.6.1-q4_k_m",
         "description": "finetuned LLM with personality",
-        "fileName":"aya-v0.6.0-q4_k_m.gguf",
+        "fileName":"aya-v0.6.1-q4_k_m.gguf",
         "link":"https://huggingface.co/MaziyarPanahi/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mistral-7B-Instruct-v0.3.Q4_K_M.gguf?download=true",
         "type": "text"
     },

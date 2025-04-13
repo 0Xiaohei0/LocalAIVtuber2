@@ -6,9 +6,7 @@ export const ChatNode: NodeDefinition = {
   type: 'chat',
   name: 'Chat',
   defaultSettings: {
-    InitialPrompt: 'You are looking through stream chat, restate the chat message before commenting on them.',
     duration: 60, // in minutes
-    video_id: ''
   },
   presets: {
     shortChat: {
@@ -20,10 +18,9 @@ export const ChatNode: NodeDefinition = {
   },
   async execute(settings) {
     const duration = settings.duration as number;
-    const videoId = settings.video_id as string;
     const endTime = new Date(Date.now() + duration * 60 * 1000);
     const messages: string[] = [];
-    const streamChatManager = new StreamChatManager(videoId, (message) => {
+    const streamChatManager = new StreamChatManager((message) => {
       messages.push(message);
     });
 

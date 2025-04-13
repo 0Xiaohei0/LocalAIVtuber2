@@ -2,14 +2,13 @@ export class StreamChatManager {
     private socket: WebSocket | null = null;
     private isFetching: boolean = false;
 
-    constructor(private videoId: string, private onMessage: (message: string) => void) {}
+    constructor(private onMessage: (message: string) => void) {}
 
     async startChatFetch(): Promise<void> {
         try {
             const response = await fetch("/api/streamChat/yt/start", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ video_id: this.videoId }),
             });
 
             if (response.ok) {
@@ -58,9 +57,5 @@ export class StreamChatManager {
 
     isChatFetching(): boolean {
         return this.isFetching;
-    }
-
-    updateVideoId(videoId: string): void {
-        this.videoId = videoId;
     }
 }

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Square } from 'lucide-react';
 import { pipelineManager } from "@/lib/pipelineManager";
+import { globalStateManager } from '@/lib/globalStateManager';
 
 type HistoryItem = {
     role: "assistant" | "user";
@@ -68,7 +69,7 @@ const Chatbox = () => {
         else pipelineManager.markLLMStarted(taskId);
 
         setIsProcessing(true); // Update state
-        const systemMessage = ``;
+        const systemMessage = globalStateManager.getState("systemPrompt");
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
@@ -76,7 +77,14 @@ const Chatbox = () => {
         const history: HistoryItem[] = messagesRef.current.slice(-30);
         setDisplayedMessages((prev) => [...prev, userMessage]);
         setInput('');
+        
+        console.log(JSON.stringify({
+            text: input,
+            history: history,
+            systemPrompt: systemMessage
+        })
 
+        )
         try {
             const response = await fetch('/api/completion', {
                 method: 'POST',

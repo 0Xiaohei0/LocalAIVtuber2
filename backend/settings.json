@@ -8,15 +8,28 @@
     ],
     "frontend.stream.setlist": [
         {
+            "nodeType": "systemPrompt",
+            "settings": {
+                "systemprompt": "You are hosting a karaoke stream today where the plan is to sing and chat with viewers. You are looking through Stream chat, repeat the viewer's message and commentate on them"
+            }
+        },
+        {
             "nodeType": "chat",
             "settings": {
-                "InitialPrompt": "You are looking through stream chat. repeat the chat message. Then commentate on it.",
-                "duration": 60,
-                "video_id": "6MkQ-Ay4kD0"
+                "InitialPrompt": "You are looking through stream chat, restate the chat message before commenting on them.",
+                "duration": 3,
+                "video_id": "7gvVf_exhpg"
+            }
+        },
+        {
+            "nodeType": "sing",
+            "settings": {
+                "songName": "Everlasting Summer"
             }
         }
     ],
-    "frontend.stream.yt.videoid": "",
+    "frontend.stream.yt.videoid": "7gvVf_exhpg",
     "frontend.character.renderModel": true,
-    "frontend.character.3d2dSwitch": true
+    "frontend.character.3d2dSwitch": true,
+    "stream.yt.videoid": "7gvVf_exhpg"
 }
