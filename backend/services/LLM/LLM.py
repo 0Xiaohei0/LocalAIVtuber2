@@ -24,6 +24,16 @@ class LLM:
                     self.current_model_data = self.all_model_data[0]
         if self.keep_model_loaded:
             self.load_model(self.current_model_data, gpu_layers)
+
+    def load_model_by_name(self, model_name: str, gpu_layers=-1):
+        with open(self.model_data_path, 'r') as f:
+            self.all_model_data = json.load(f)
+        for model_data in self.all_model_data:
+            if model_data.get("fileName") == model_name:
+                self.load_model(model_data, gpu_layers)
+                return True
+        logger.error(f"Model {model_name} not found.")
+        return False
         
     def load_model(self, model_data: dict, gpu_layers=-1):
         logger.info(f"Loading model {model_data}...")

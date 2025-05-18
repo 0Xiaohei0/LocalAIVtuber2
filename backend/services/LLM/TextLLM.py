@@ -36,7 +36,7 @@ class TextLLM(BaseLLM):
             messages.pop(1)
 
 
-        completion_chunks = self.llm.create_chat_completion(messages, stream=True, max_tokens=1024, temperature=0.9, repeat_penalty=1.1)
+        completion_chunks = self.llm.create_chat_completion(messages, stream=True, max_tokens=1024, temperature=0.9, repeat_penalty=2.0)
         
         for completion_chunk in completion_chunks:
             if "content" in completion_chunk["choices"][0]["delta"].keys():

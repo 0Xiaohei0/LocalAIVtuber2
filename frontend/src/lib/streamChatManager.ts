@@ -17,7 +17,8 @@ export class StreamChatManager {
 
                 this.socket.onmessage = (event) => {
                     const message = JSON.parse(event.data);
-                    this.onMessage(`${message.author}: ${message.message}`);
+                    this.onMessage(`You are hosting a karaoke stream today where the plan is to sing and chat with viewers. You are looking through Stream chat, repeat the viewer's message and commentate on them.
+                        Here is a viewer's message ${message.author} said: ${message.message}`);
                 };
 
                 this.socket.onerror = (error) => console.error("WebSocket error:", error);

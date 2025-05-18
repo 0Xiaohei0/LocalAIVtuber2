@@ -17,7 +17,7 @@ class VoiceInput:
     SAMPLING_RATE = 16000
     input_language = "en"
     whisper_filter_list = [
-        "you", "thank you.", "thanks for watching.", "Thank you for watching.",
+        "you", "thank you.", "thanks for watching.", "thanks for watching!", "Thank you for watching.",
         "1.5%", "I'm going to put it in the fridge.", "I", ".", "okay.", "bye.", "so,", "I'm sorry."
     ]
     SPEECH_THRESHOLD = 0.3

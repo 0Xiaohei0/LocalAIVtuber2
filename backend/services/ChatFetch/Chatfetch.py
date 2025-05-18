@@ -8,6 +8,10 @@ class ChatFetch:
         self.video_id = ""
 
     async def start_fetching(self, websocket_clients):
+        if self.running:
+            print("Terminating the previous chat fetch process.")
+            self.stop_fetching()
+
         self.chat = pytchat.create(video_id=self.video_id)
         self.running = True
         try:

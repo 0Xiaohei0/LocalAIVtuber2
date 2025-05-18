@@ -10,7 +10,7 @@
         {
             "nodeType": "systemPrompt",
             "settings": {
-                "systemprompt": "You are hosting a karaoke stream today where the plan is to sing and chat with viewers. You are looking through Stream chat, repeat the viewer's message and commentate on them"
+                "systemprompt": "You are hosting a karaoke stream today where the plan is to sing and chat with viewers. You are looking through Stream chat, repeat the viewer's message and commentate on them, for example, when receiving a message like xiaohei said: nice to see you. you can say something like \"xioahei sent: nice to see you. Nice to see you too! welcome to the stream\""
             }
         },
         {
@@ -31,5 +31,6 @@
     "frontend.stream.yt.videoid": "7gvVf_exhpg",
     "frontend.character.renderModel": true,
     "frontend.character.3d2dSwitch": true,
-    "stream.yt.videoid": "7gvVf_exhpg"
+    "stream.yt.videoid": "JSKH9EbyBMU",
+    "llm.model": "conversational-v0.2-q4_k_m.gguf"
 }

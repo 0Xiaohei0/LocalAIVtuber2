@@ -1,7 +1,7 @@
 import Live2DCanvas from "@/components/live-2d-renderer"
 import VRM3dCanvas from "@/components/vrm-3d-renderer"
 import { SidePanel } from "./side-panel"
-import SettingsItem from "./SettingsItem"
+import SettingSwitch from "./SettingSwitch"
 import { useSettings } from "@/context/SettingsContext"
 
 export function CharacterRender() {
@@ -12,8 +12,8 @@ export function CharacterRender() {
         <div className="relative h-screen overflow-hidden">
 
             <SidePanel>
-                <SettingsItem id={rendererSwitchId} label={"3D / 2D switch"} description={""} ></SettingsItem>
-                <SettingsItem id={toggleRenderId} label={"Render model"} description={""} ></SettingsItem>
+                <SettingSwitch id={rendererSwitchId} label={"3D / 2D switch"} description={""} ></SettingSwitch>
+                <SettingSwitch id={toggleRenderId} label={"Render model"} description={""} ></SettingSwitch>
             </SidePanel>
 
 

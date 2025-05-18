@@ -3,13 +3,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useSettings } from "@/context/SettingsContext";
 
-interface SettingsItemProps {
+interface SettingsSwitchProps {
     id: string;
     label: string;
     description: string;
 }
 
-const SettingsItem: React.FC<SettingsItemProps> = ({ id, label, description }) => {
+const SettingSwitch: React.FC<SettingsSwitchProps> = ({ id, label, description }) => {
     const { settings, updateSetting } = useSettings();
 
     return (
@@ -25,4 +25,4 @@ const SettingsItem: React.FC<SettingsItemProps> = ({ id, label, description }) =
     );
 };
 
-export default SettingsItem;
+export default SettingSwitch;
