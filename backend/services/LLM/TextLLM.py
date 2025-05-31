@@ -3,16 +3,27 @@ import os
 from typing import Generator
 from llama_cpp import Llama
 from .BaseLLM import BaseLLM
+from datetime import datetime
+from jinja2 import Environment
 
 class TextLLM(BaseLLM):
     def __init__(self, model_path, n_ctx=4096, n_gpu_layers=-1, seed=-1):
         self.context_length = n_ctx
+        
+        # Create Jinja2 environment with strftime_now function
+        env = Environment()
+        env.globals['strftime_now'] = lambda fmt: datetime.now().strftime(fmt)
+        
         self.llm = Llama(
             model_path=model_path,
             n_ctx=n_ctx,
             n_gpu_layers=n_gpu_layers,
             seed=seed,
-            verbose=True
+            verbose=True,
+            chat_format="chatml",
+            chat_handler=None,
+            chat_template=None,
+            jinja2_env=env
         )
 
     def get_chat_completion(self, text: str, history: list = [], system_prompt: str = "") -> Generator[str, None, None]:

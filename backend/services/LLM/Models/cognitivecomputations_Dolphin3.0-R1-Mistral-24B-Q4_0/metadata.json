@@ -1,0 +1,7 @@
+{
+    "displayName": "Dolphin3.0-R1-Mistral-24B-Q4_0",
+    "description": "General purpose LLM",
+    "fileName": "cognitivecomputations_Dolphin3.0-R1-Mistral-24B-Q4_0.gguf",
+    "link": "https://huggingface.co/DevQuasar/cognitivecomputations.Dolphin-Mistral-24B-Venice-Edition-GGUF/resolve/main/cognitivecomputations.Dolphin-Mistral-24B-Venice-Edition.Q4_K_S.gguf",
+    "type": "text"
+}
