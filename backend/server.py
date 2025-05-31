@@ -3,6 +3,7 @@ from services.ChatFetch.Chatfetch import ChatFetch
 from services.Input.Input import VoiceInput
 from services.TTS.TTS import TTS
 from services.Memory.Memory import Memory
+from services.Memory.HistoryStore import HistoryStore
 from services.lib.LAV_logger import logger
 import os
 from fastapi import FastAPI, Query, Request, Response, WebSocket
@@ -14,7 +15,7 @@ from pydantic import BaseModel
 import time
 from datetime import datetime
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 app = FastAPI()
 static_files_path = os.path.abspath("../frontend/dist")
@@ -25,7 +26,8 @@ app.mount("/resource", StaticFiles(directory="../frontend/dist/resource"), name=
 start_time = time.time()
 voice_input:VoiceInput = VoiceInput()
 llm:LLM = LLM()
-memory:Memory = Memory()
+# memory:Memory = Memory()
+history_store:HistoryStore = HistoryStore()
 tts:TTS = TTS()
 
 clients = set()
@@ -143,77 +145,81 @@ async def async_generator_wrapper(generator):
     for item in generator:
         yield item
 
+@app.get("/api/llm/models")
+async def get_llm_models():
+    llm._load_available_models()
+    return JSONResponse(content={"models": llm.all_model_data, "currentModel": llm.current_model_data})
 
 # *******************************
 # Memory - Messages
 # *******************************
 
-class QueryMemoryRequest(BaseModel):
-    text: str
-    limit: int = 3
+# class QueryMemoryRequest(BaseModel):
+#     text: str
+#     limit: int = 3
 
-@app.post("/api/memory/query")
-async def query_memory(request: QueryMemoryRequest):
-    response = memory.query(text=request.text, limit = request.limit)
-    if response is None:
-        return JSONResponse(status_code=400, content={"error": "session_id must not be empty"})
-    return JSONResponse(status_code=200, content=response)
+# @app.post("/api/memory/query")
+# async def query_memory(request: QueryMemoryRequest):
+#     response = memory.query(text=request.text, limit = request.limit)
+#     if response is None:
+#         return JSONResponse(status_code=400, content={"error": "session_id must not be empty"})
+#     return JSONResponse(status_code=200, content=response)
 
-class InsertMemoryRequest(BaseModel):
-    text: str
-    role: str = ""
-    name: str = ""
-    session_id: str = ""
+# class InsertMemoryRequest(BaseModel):
+#     text: str
+#     role: str = ""
+#     name: str = ""
+#     session_id: str = ""
 
-@app.post("/api/memory/insert")
-async def insert_memory(request: InsertMemoryRequest):
-    if (not request.session_id):
-        return JSONResponse(status_code=400, content={"error": "session_id must not be empty"})
-    response = memory.insert_message(message=request.text, role=request.role, name=request.name, session_id=request.session_id)
-    logger.info(response)
-    if response is None:
-        return JSONResponse(status_code=400, content={"error": "No response from Memory service"})
-    return JSONResponse(status_code=200, content={"message": "Memory inserted.", "response": response})
+# @app.post("/api/memory/insert")
+# async def insert_memory(request: InsertMemoryRequest):
+#     if (not request.session_id):
+#         return JSONResponse(status_code=400, content={"error": "session_id must not be empty"})
+#     response = memory.insert_message(message=request.text, role=request.role, name=request.name, session_id=request.session_id)
+#     logger.info(response)
+#     if response is None:
+#         return JSONResponse(status_code=400, content={"error": "No response from Memory service"})
+#     return JSONResponse(status_code=200, content={"message": "Memory inserted.", "response": response})
 
-class NewSessionRequest(BaseModel):
-    session_id: str
-    title: str
+# class NewSessionRequest(BaseModel):
+#     session_id: str
+#     title: str
 
 
 # *******************************
 # Memory - Session
 # *******************************
 
-@app.post("/api/memory/session/new")
-async def create_new_session(request: NewSessionRequest):
-    response = memory.upsert_session(session_id=request.session_id, title=request.title)
-    if response is None:
-        return JSONResponse(status_code=400, content={"error": "Failed to create session"})
-    return JSONResponse(status_code=200, content={"message": "Session created.", "response": response})
+# @app.post("/api/memory/session/new")
+# async def create_new_session(request: NewSessionRequest):
+#     response = memory.upsert_session(session_id=request.session_id, title=request.title)
+#     if response is None:
+#         return JSONResponse(status_code=400, content={"error": "Failed to create session"})
+#     return JSONResponse(status_code=200, content={"message": "Session created.", "response": response})
 
-class DeleteSessionRequest(BaseModel):
-    session_id: str
+# class DeleteSessionRequest(BaseModel):
+#     session_id: str
 
-@app.post("/api/memory/session/delete")
-async def delete_session(request: DeleteSessionRequest):
-    response = memory.delete_session(session_id=request.session_id)
-    if response is None:
-        return JSONResponse(status_code=400, content={"error": "Failed to create session"})
-    return JSONResponse(status_code=200, content={"message": "Session deleted.", "response": response})
+# @app.post("/api/memory/session/delete")
+# async def delete_session(request: DeleteSessionRequest):
+#     response = memory.delete_session(session_id=request.session_id)
+#     if response is None:
+#         return JSONResponse(status_code=400, content={"error": "Failed to create session"})
+#     return JSONResponse(status_code=200, content={"message": "Session deleted.", "response": response})
 
-@app.get("/api/memory/session")
-async def get_memory_sessions():
-    response = memory.get_sessions()
-    if response is None:
-        return []
-    return response
+# @app.get("/api/memory/session")
+# async def get_memory_sessions():
+#     response = memory.get_sessions()
+#     if response is None:
+#         return []
+#     return response
 
-@app.get("/api/memory/session/messages")
-async def get_session_messages(session_id: str = Query(...)):
-    response = memory.get_messages_by_session(session_id=session_id)
-    if response is None:
-        return JSONResponse(status_code=400, content={"error": "Failed to get messages."})
-    return JSONResponse(status_code=200, content={"message": "Message retrieved.", "response": response})
+# @app.get("/api/memory/session/messages")
+# async def get_session_messages(session_id: str = Query(...)):
+#     response = memory.get_messages_by_session(session_id=session_id)
+#     if response is None:
+#         return JSONResponse(status_code=400, content={"error": "Failed to get messages."})
+#     return JSONResponse(status_code=200, content={"message": "Message retrieved.", "response": response})
 
 
 # *******************************
@@ -335,10 +341,67 @@ async def get_settings():
         "settings": settings_manager.settings
     })
 
-@app.get("/api/llm/models")
-async def get_llm_models():
-    llm._load_available_models()
-    return JSONResponse(content={"models": llm.all_model_data, "currentModel": llm.current_model_data})
+# *******************************
+# Chat History API
+# *******************************
+
+class CreateSessionRequest(BaseModel):
+    title: str
+
+@app.post("/api/chat/session/create")
+async def create_chat_session(request: CreateSessionRequest):
+    try:
+        session = history_store.create_session(request.title)
+        return JSONResponse(status_code=200, content=session)
+    except Exception as e:
+        logger.error(f"Error creating chat session: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to create chat session"})
+
+class UpdateSessionRequest(BaseModel):
+    session_id: str
+    history: List[Dict[str, str]]
+
+@app.post("/api/chat/session/update")
+async def update_chat_session(request: UpdateSessionRequest):
+    try:
+        success = history_store.update_session(request.session_id, request.history)
+        if success:
+            return JSONResponse(status_code=200, content={"message": "Session updated successfully"})
+        return JSONResponse(status_code=404, content={"error": "Session not found"})
+    except Exception as e:
+        logger.error(f"Error updating chat session: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to update chat session"})
+
+@app.get("/api/chat/sessions")
+async def get_chat_sessions():
+    try:
+        sessions = history_store.get_session_list()
+        return JSONResponse(status_code=200, content=sessions)
+    except Exception as e:
+        logger.error(f"Error getting chat sessions: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to get chat sessions"})
+
+@app.get("/api/chat/session/{session_id}")
+async def get_chat_session(session_id: str):
+    try:
+        session = history_store.get_session_history(session_id)
+        if session:
+            return JSONResponse(status_code=200, content=session)
+        return JSONResponse(status_code=404, content={"error": "Session not found"})
+    except Exception as e:
+        logger.error(f"Error getting chat session: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to get chat session"})
+
+@app.delete("/api/chat/session/{session_id}")
+async def delete_chat_session(session_id: str):
+    try:
+        success = history_store.delete_session(session_id)
+        if success:
+            return JSONResponse(status_code=200, content={"message": "Session deleted successfully"})
+        return JSONResponse(status_code=404, content={"error": "Session not found"})
+    except Exception as e:
+        logger.error(f"Error deleting chat session: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to delete chat session"})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

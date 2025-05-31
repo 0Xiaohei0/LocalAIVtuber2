@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Square } from 'lucide-react';
+import { Send, Square, Plus } from 'lucide-react';
 import { pipelineManager } from "@/lib/pipelineManager";
 import { useSettings } from '@/context/SettingsContext';
+import { useSession } from '@/context/SessionContext';
 import { cut5 } from '@/lib/utils';
 
 type HistoryItem = {
@@ -20,10 +21,23 @@ const Chatbox = () => {
     const inputRef = useRef<HTMLInputElement>(null);
     const messagesRef = useRef<HistoryItem[]>([]);
     const { settings } = useSettings();
+    const { selectedSessionId, createNewSession } = useSession();
 
     useEffect(() => {
-        messagesRef.current = displayedMessages;
-    }, [displayedMessages]);
+        const fetchSession = async () => {
+            if (selectedSessionId) {
+                const response = await fetch(`/api/chat/session/${selectedSessionId}`);
+                const session = await response.json();
+                if (session) {
+                    setDisplayedMessages(session.history);
+                    messagesRef.current = session.history;
+                }
+            } else {
+                setDisplayedMessages([]);
+            }
+        };
+        fetchSession();
+    }, [selectedSessionId]);
 
     useEffect(() => {
         const handlePipelineUpdate = () => {
@@ -49,13 +63,21 @@ const Chatbox = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [displayedMessages]);
 
-
-    
+    const updateSession = async (sessionId: string, history: HistoryItem[]) => {
+        const response = await fetch(`/api/chat/session/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, history })
+        });
+        if (!response.ok) {
+            console.error("Error updating session:", response.statusText);
+        }
+    }
 
     const handleInterrupt = () => {
         const currentTask = pipelineManager.getCurrentTask()
         if (currentTask?.status == "pending_interruption" && !currentTask.interruptionState?.llm) {
-            setIsProcessing(false); // Update state
+            setIsProcessing(false);
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort();
             }
@@ -64,13 +86,20 @@ const Chatbox = () => {
         }
     }
 
+    const handleNewChat = async () => {
+        const sessionId = await createNewSession();
+        if (sessionId) {
+            setDisplayedMessages([]);
+            messagesRef.current = [];
+        }
+    };
+
     const handleSend = async (input: string, taskId?: string | null) => {
-        console.log("handle send called")
         if (input.trim() === '') return;
         if (!taskId) taskId = null;
         else pipelineManager.markLLMStarted(taskId);
 
-        setIsProcessing(true); // Update state
+        setIsProcessing(true);
         const systemMessage = settings["llm.system_prompt"];
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
@@ -79,14 +108,7 @@ const Chatbox = () => {
         const history: HistoryItem[] = messagesRef.current.slice(-30);
         setDisplayedMessages((prev) => [...prev, userMessage]);
         setInput('');
-        
-        console.log(JSON.stringify({
-            text: input,
-            history: history,
-            systemPrompt: systemMessage
-        })
 
-        )
         try {
             const response = await fetch('/api/completion', {
                 method: 'POST',
@@ -105,6 +127,8 @@ const Chatbox = () => {
                 setIsProcessing(false);
                 return;
             }
+
+            messagesRef.current.push({ role: 'user', content: input });
 
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
@@ -161,8 +185,14 @@ const Chatbox = () => {
                 pipelineManager.markLLMFinished(taskId);
             }
 
-            setIsProcessing(false); // Reset state
-            inputRef.current?.focus(); // Autofocus the input textbox
+            messagesRef.current.push({ role: 'assistant', content: aiMessage });
+
+            if (selectedSessionId) {
+                updateSession(selectedSessionId, messagesRef.current);
+            }
+
+            setIsProcessing(false);
+            inputRef.current?.focus();
 
         } catch (error) {
             if ((error as Error).name === 'AbortError') {
@@ -184,19 +214,22 @@ const Chatbox = () => {
                         >
                             {msg.content}
                         </div>
-
                     </React.Fragment>
                 ))}
-                <div>
-                   
-                </div>
-                {/* Invisible div to scroll into view */}
                 <div ref={messagesEndRef}></div>
             </div>
             <div className="sticky bottom-0 bg-background rounded-t-lg">
                 <div className='mb-4 flex w-full items-center space-x-2 bg-secondary rounded-lg px-4 py-6'>
+                    <Button 
+                        onClick={handleNewChat}
+                        variant="ghost"
+                        size="icon"
+                        className="mr-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                    </Button>
                     <Input
-                        ref={inputRef} // Attach the ref to the input element
+                        ref={inputRef}
                         disabled={isProcessing}
                         value={input}
                         placeholder="Type your message here."
