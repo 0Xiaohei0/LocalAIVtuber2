@@ -32,6 +32,6 @@
     "frontend.character.renderModel": true,
     "frontend.character.3d2dSwitch": true,
     "stream.yt.videoid": "JSKH9EbyBMU",
-    "llm.model": "aya-v0.4-q4_k_m.gguf",
+    "llm.model": "cognitivecomputations.Dolphin-Mistral-24B-Venice-Edition.Q4_K_S.gguf",
     "tts.voice": "Rin"
 }

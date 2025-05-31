@@ -73,14 +73,14 @@ class LLM:
         # Remove old model_data.json
         os.remove(old_model_data_path)
 
-    def load_model_by_name(self, model_name: str, gpu_layers=-1):
-        """Load a model by its name"""
+    def load_model_by_filename(self, model_filename: str, gpu_layers=-1):
+        """Load a model by its filename"""
         self._load_available_models()
         for model_data in self.all_model_data:
-            if model_data.get("fileName") == model_name:
+            if model_data.get("fileName") == model_filename:
                 self.load_model(model_data, gpu_layers)
                 return True
-        logger.error(f"Model {model_name} not found.")
+        logger.error(f"Model {model_filename} not found.")
         return False
         
     def load_model(self, model_data: dict, gpu_layers=-1):

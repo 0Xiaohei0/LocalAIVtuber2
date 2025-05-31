@@ -55,21 +55,13 @@ const [open, setOpen] = useState(false)
     }
   }
 
-  const formatFileSize = (fileName: string) => {
-    // Simple estimation based on common model sizes
-    if (fileName.includes("1b") || fileName.includes("1B")) return "~1.2GB"
-    if (fileName.includes("3b") || fileName.includes("3B")) return "~3.5GB"
-    if (fileName.includes("7b") || fileName.includes("7B")) return "~7.2GB"
-    if (fileName.includes("xl") || fileName.includes("XL")) return "~6.9GB"
-    return "~2.1GB"
-  }
 
   if (loading) return <div>Loading models...</div>
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-full justify-start">
+        <Button variant="outline" className="w-60 overflow-hidden text-ellipsis justify-start">
           <Brain className="mr-2 h-4 w-4" />
           {internalSelected ? internalSelected.displayName : "Select AI Model"}
         </Button>
@@ -108,7 +100,7 @@ const [open, setOpen] = useState(false)
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-4">
                     <span className="font-mono">{model.fileName}</span>
-                    <span>{formatFileSize(model.fileName)}</span>
+                    <span>{}</span>
                   </div>
                   <Button
                     variant="ghost"

@@ -281,7 +281,7 @@ class SettingsManager:
         for key, value in settings_items:
             if key == "llm.keep_model_loaded":
                 llm.set_keep_model_loaded(value)
-            if key == "llm.model":
+            if key == "llm.model_filename":
                 llm.load_model_by_name(value)
             if key == "stream.yt.videoid":
                 chat_fetch.video_id = value
