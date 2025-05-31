@@ -1,5 +1,4 @@
 import { Panel } from "@/components/panel";
-import SettingDropdown from "@/components/SettingDropdown";
 import SettingSwitch from "@/components/SettingSwitch";
 import { useSettings } from "@/context/SettingsContext";
 
@@ -28,12 +27,6 @@ function SettingsPage() {
                     id="llm.keep_model_loaded"
                     label="Keep LLM loaded"
                     description="For unloading LLM when inference finishes."
-                />
-                <SettingDropdown
-                    id="llm.model"
-                    label="LLM Model"
-                    description="Select the LLM model to use."
-                    options={["Mistral-7B-Instruct-v0.3.Q4_K_M.gguf", "conversational-v0.2-q4_k_m.gguf", "aya-v0.5-q4_k_m.gguf", "aya-v0.4-q4_k_m.gguf"]}
                 />
             </Panel>
         </div>

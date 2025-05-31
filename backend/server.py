@@ -334,5 +334,11 @@ async def get_settings():
     return JSONResponse(content={
         "settings": settings_manager.settings
     })
+
+@app.get("/api/llm/models")
+async def get_llm_models():
+    llm._load_available_models()
+    return JSONResponse(content={"models": llm.all_model_data, "currentModel": llm.current_model_data})
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
