@@ -32,15 +32,104 @@ class TTS:
         config_path = os.path.join(gpt_sovits_root,"GPT_SoVITS","configs","tts_infer.yaml")
         self.tts_config = TTS_Config(config_path)
         self.tts_pipeline = TTS_gptsovits(self.tts_config)
+        self.current_voice = "leaf"  # Default voice
+        self.voice_files = {}
+        self.prompt_texts = {}
+        self.prompt_langs = {}
+        self._update_voice_files()
+        self.ref_audio_path = os.path.join(current_module_directory, "models", self.current_voice, self.voice_files[self.current_voice])
+        self.prompt_text = self.prompt_texts[self.current_voice]
+        self.prompt_lang = self.prompt_langs[self.current_voice]
+
+    def _parse_filename(self, filename):
+        """Parse filename to extract language marker and prompt text"""
+        # Remove .wav extension
+        name = os.path.splitext(filename)[0]
+        
+        # Check for language marker at the start
+        lang = 'en'  # default language
+        prompt_text = name
+        
+        # Look for language markers like [ja], [en], etc.
+        if name.startswith('['):
+            end_bracket = name.find(']')
+            if end_bracket != -1:
+                lang = name[1:end_bracket].lower()
+                prompt_text = name[end_bracket + 1:].strip()
+        
+        return lang, prompt_text
+
+    def _update_voice_files(self):
+        """Update voice files and prompt texts from the models directory"""
+        models_dir = os.path.join(current_module_directory, "models")
+        if not os.path.exists(models_dir):
+            return
+
+        # Rebuild state from filesystem
+        new_voice_files = {}
+        new_prompt_texts = {}
+        new_prompt_langs = {}
+
+        for voice_dir in os.listdir(models_dir):
+            voice_path = os.path.join(models_dir, voice_dir)
+            if os.path.isdir(voice_path):
+                # Find the first .wav file in the directory
+                for file in os.listdir(voice_path):
+                    if file.endswith('.wav'):
+                        new_voice_files[voice_dir] = file
+                        # Parse filename for language and prompt text
+                        lang, prompt = self._parse_filename(file)
+                        new_prompt_texts[voice_dir] = prompt
+                        new_prompt_langs[voice_dir] = lang
+                        break
+
+        # Update state
+        self.voice_files = new_voice_files
+        self.prompt_texts = new_prompt_texts
+        self.prompt_langs = new_prompt_langs
+
+        # Update current voice if needed
+        if self.current_voice not in self.voice_files:
+            # Try to use leaf, otherwise use first available voice
+            self.current_voice = "leaf" if "leaf" in self.voice_files else next(iter(self.voice_files), None)
+            if self.current_voice:
+                self.ref_audio_path = os.path.join(models_dir, self.current_voice, self.voice_files[self.current_voice])
+                self.prompt_text = self.prompt_texts[self.current_voice]
+                self.prompt_lang = self.prompt_langs[self.current_voice]
+            else:
+                self.ref_audio_path = None
+                self.prompt_text = None
+                self.prompt_lang = None
+
+    def get_available_voices(self):
+        """Get list of available voices from the models directory"""
+        self._update_voice_files()  # Always get the latest voice files
+        return list(self.voice_files.keys())
+
+    def change_voice(self, voice_name):
+        """Change the current voice to the specified one"""
+        self._update_voice_files()  # Update voice files before checking
+        if voice_name not in self.voice_files:
+            raise ValueError(f"Voice '{voice_name}' not found")
+            
+        self.current_voice = voice_name
+        self.ref_audio_path = os.path.join(current_module_directory, "models", voice_name, self.voice_files[voice_name])
+        self.prompt_text = self.prompt_texts[voice_name]
+        self.prompt_lang = self.prompt_langs[voice_name]
+        return {"message": f"Voice changed to {voice_name}"}
 
     def syntheize(self, text):
+        self._update_voice_files()  # Update voice files before synthesis
+        if not self.ref_audio_path or not os.path.exists(self.ref_audio_path):
+            raise ValueError("No valid reference audio file available")
+            
         req = {
             "text": text,
             "text_lang": 'en',
-            "ref_audio_path": ref_audio_path,
+            "ref_audio_path": self.ref_audio_path,
             "aux_ref_audio_paths": [],
-            "prompt_text": prompt_text,
-            "prompt_lang": 'en',
+            "prompt_text": self.prompt_text,
+            "prompt_lang": self.prompt_lang,
             "top_k": 5,
             "top_p": 1,
             "temperature": 1,
@@ -82,7 +171,7 @@ class TTS:
                             media_type = "raw"
                             if_frist_chunk = False
                         yield pack_audio(BytesIO(), chunk, sr, media_type).getvalue()
-                return streaming_generator(tts_generator, media_type, )
+                return streaming_generator(tts_generator, media_type)
         
             else:
                 sr, audio_data = next(tts_generator)

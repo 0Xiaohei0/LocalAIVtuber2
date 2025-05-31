@@ -32,5 +32,6 @@
     "frontend.character.renderModel": true,
     "frontend.character.3d2dSwitch": true,
     "stream.yt.videoid": "JSKH9EbyBMU",
-    "llm.model": "conversational-v0.2-q4_k_m.gguf"
+    "llm.model": "conversational-v0.2-q4_k_m.gguf",
+    "tts.voice": "leaf"
 }

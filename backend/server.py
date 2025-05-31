@@ -11,6 +11,10 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 from services.LLM.LLM import LLM
 from pydantic import BaseModel
+import time
+from datetime import datetime
+import json
+from typing import Any, Dict
 
 app = FastAPI()
 static_files_path = os.path.abspath("../frontend/dist")
@@ -18,6 +22,7 @@ app.mount("/assets", StaticFiles(directory="../frontend/dist/assets"), name="ass
 app.mount("/resource", StaticFiles(directory="../frontend/dist/resource"), name="resource")
 
 # Initialize Services
+start_time = time.time()
 voice_input:VoiceInput = VoiceInput()
 llm:LLM = LLM()
 memory:Memory = Memory()
@@ -210,13 +215,40 @@ async def get_session_messages(session_id: str = Query(...)):
         return JSONResponse(status_code=400, content={"error": "Failed to get messages."})
     return JSONResponse(status_code=200, content={"message": "Message retrieved.", "response": response})
 
-class TTSRequest(BaseModel):
-    text: str
-
 
 # *******************************
 # TTS
 # *******************************
+
+class TTSRequest(BaseModel):
+    text: str
+
+class ChangeVoiceRequest(BaseModel):
+    voice_name: str
+
+@app.get("/api/tts/voices")
+async def get_available_voices():
+    try:
+        voices = tts.get_available_voices()
+        return JSONResponse(content={
+            "voices": voices,
+            "current_voice": tts.current_voice
+        })
+    except Exception as e:
+        logger.error(f"Error getting voices: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to get available voices"})
+
+@app.post("/api/tts/voice")
+async def change_voice(request: ChangeVoiceRequest):
+    try:
+        result = tts.change_voice(request.voice_name)
+        settings_manager.update_settings({"tts.voice": request.voice_name})
+        return JSONResponse(content=result)
+    except ValueError as ve:
+        return JSONResponse(status_code=400, content={"error": str(ve)})
+    except Exception as e:
+        logger.error(f"Error changing voice: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to change voice"})
 
 @app.post("/api/tts")
 async def get_audio(request: TTSRequest):
@@ -227,10 +259,6 @@ async def get_audio(request: TTSRequest):
 # *******************************
 # Settings
 # *******************************
-
-import json
-import os
-from typing import Any, Dict
 
 class SettingsManager:
     def __init__(self, settings_file: str):
@@ -248,13 +276,23 @@ class SettingsManager:
             json.dump(settings, file, indent=4)
 
     def apply_settings(self):
-        for key, value in self.settings.items():
+        # Create a copy of items to avoid modification during iteration
+        settings_items = list(self.settings.items())
+        for key, value in settings_items:
             if key == "llm.keep_model_loaded":
                 llm.set_keep_model_loaded(value)
             if key == "llm.model":
                 llm.load_model_by_name(value)
             if key == "stream.yt.videoid":
                 chat_fetch.video_id = value
+            if key == "tts.voice":
+                try:
+                    tts.change_voice(value)
+                except ValueError:
+                    # If saved voice is not available, remove it from settings
+                    logger.warning(f"Saved voice '{value}' not found, removing from settings")
+                    self.settings.pop("tts.voice")
+                    self.save_settings(self.settings)
 
     def update_settings(self, updated_settings: Dict[str, Any]):
         self.settings.update(updated_settings)
@@ -267,6 +305,10 @@ settings_manager = SettingsManager(SETTINGS_FILE)
 
 # Apply settings on startup
 settings_manager.apply_settings()
+
+# Log startup time
+startup_time = time.time() - start_time
+logger.info(f"Server started in {startup_time:.2f} seconds at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 # *******************************
 # Settings API

@@ -18,6 +18,8 @@ function TTSPage() {
     const [text, setText] = useState("");
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [voices, setVoices] = useState<string[]>([]);
+    const [selectedVoice, setSelectedVoice] = useState<string>("leaf");
 
     const abortControllerRef = useRef<AbortController | null>(null);
     const currentAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -60,6 +62,42 @@ function TTSPage() {
             unsubscribe();
         };
     }, []);
+
+    useEffect(() => {
+        // Fetch available voices when component mounts
+        fetchVoices();
+    }, []);
+
+    const fetchVoices = async () => {
+        const response = await fetch('/api/tts/voices');
+        const data = await response.json();
+        if (data.voices) {
+            setVoices(data.voices);
+            if (data.current_voice) {
+                setSelectedVoice(data.current_voice);
+            }
+        }
+    };
+
+    const handleVoiceChange = async (voice: string) => {
+        try {
+            const response = await fetch('/api/tts/voice', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ voice_name: voice })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setSelectedVoice(voice);
+            } else {
+                console.error(data.error || 'Failed to change voice');
+            }
+        } catch (error) {
+            console.error('Failed to change voice:', error);
+        }
+    };
 
     const generateAudioFromText = async (text: string): Promise<string> => {
         const abortController = new AbortController();
@@ -214,12 +252,16 @@ function TTSPage() {
                     <div className="flex items-center space-x-2">
                         <div className="flex flex-col gap-2">
                             <Label >Voice</Label>
-                            <Select>
+                            <Select value={selectedVoice} onValueChange={handleVoiceChange}>
                                 <SelectTrigger className="w-[280px]">
                                     <SelectValue placeholder="Select a voice" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="leaf">Leaf</SelectItem>
+                                    {voices.map((voice) => (
+                                        <SelectItem key={voice} value={voice}>
+                                            {voice}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
