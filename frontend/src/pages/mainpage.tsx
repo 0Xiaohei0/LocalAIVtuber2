@@ -7,7 +7,7 @@ import { SettingsProvider } from "@/context/SettingsContext"
 type PageKey = keyof typeof pageMapping
 
 function Mainpage() {
-    const [currentPage, setCurrentPage] = useState<PageKey>("stream")
+    const [currentPage, setCurrentPage] = useState<PageKey>("llm")
 
     return (
         <SidebarProvider open={false}>

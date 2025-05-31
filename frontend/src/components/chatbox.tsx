@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Square } from 'lucide-react';
 import { pipelineManager } from "@/lib/pipelineManager";
-import { globalStateManager } from '@/lib/globalStateManager';
+import { useSettings } from '@/context/SettingsContext';
+import { cut5 } from '@/lib/utils';
 
 type HistoryItem = {
     role: "assistant" | "user";
@@ -18,6 +19,7 @@ const Chatbox = () => {
     const abortControllerRef = useRef<AbortController | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const messagesRef = useRef<HistoryItem[]>([]);
+    const { settings } = useSettings();
 
     useEffect(() => {
         messagesRef.current = displayedMessages;
@@ -69,7 +71,7 @@ const Chatbox = () => {
         else pipelineManager.markLLMStarted(taskId);
 
         setIsProcessing(true); // Update state
-        const systemMessage = globalStateManager.getState("systemPrompt");
+        const systemMessage = settings["llm.system_prompt"];
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
 
@@ -131,22 +133,19 @@ const Chatbox = () => {
                 });
 
                 currentText += chunk;
-                const sentenceMatches = currentText.match(/[^.!?]+[.!?]/g);
-                if (!sentenceMatches) continue;
-                for (const sentence of sentenceMatches) {
-                    const trimmed = sentence.trim();
-
-                    if (trimmed.length > 0) {
-                        if (taskId === null) {
-                            taskId = pipelineManager.createTaskFromLLM(input, trimmed);
-                        } else {
-                            pipelineManager.addLLMResponse(taskId, trimmed);
+                const { sentences, remaining } = cut5(currentText);
+                if (sentences.length > 0) {
+                    for (const sentence of sentences) {
+                        const trimmed = sentence.trim();
+                        if (trimmed.length > 0) {
+                            if (taskId === null) {
+                                taskId = pipelineManager.createTaskFromLLM(input, trimmed);
+                            } else {
+                                pipelineManager.addLLMResponse(taskId, trimmed);
+                            }
                         }
                     }
-
-                    const lastMatch = sentenceMatches[sentenceMatches.length - 1];
-                    const endOfLastMatch = currentText.indexOf(lastMatch) + lastMatch.length;
-                    currentText = currentText.slice(endOfLastMatch);
+                    currentText = remaining;
                 }
             }
 

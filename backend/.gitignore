@@ -4,3 +4,4 @@ venv
 *__pycache__
 *.zip
 *.exe
+settings.json
