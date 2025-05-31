@@ -149,6 +149,14 @@ const Chatbox = () => {
                 }
             }
 
+            if (currentText.length > 0) {
+                if (taskId === null) {
+                    taskId = pipelineManager.createTaskFromLLM(input, currentText);
+                } else {
+                    pipelineManager.addLLMResponse(taskId, currentText);
+                }
+            }
+
             if (taskId !== null) {
                 pipelineManager.markLLMFinished(taskId);
             }

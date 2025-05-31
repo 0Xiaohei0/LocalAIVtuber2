@@ -122,10 +122,10 @@ class TTS:
         self._update_voice_files()  # Update voice files before synthesis
         if not self.ref_audio_path or not os.path.exists(self.ref_audio_path):
             raise ValueError("No valid reference audio file available")
-            
+        
         req = {
             "text": text,
-            "text_lang": 'en',
+            "text_lang": 'auto',
             "ref_audio_path": self.ref_audio_path,
             "aux_ref_audio_paths": [],
             "prompt_text": self.prompt_text,
