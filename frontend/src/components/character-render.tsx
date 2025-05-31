@@ -1,7 +1,7 @@
 import Live2DCanvas from "@/components/live-2d-renderer"
 import VRM3dCanvas from "@/components/vrm-3d-renderer"
-import { SidePanel } from "./side-panel"
-import SettingSwitch from "./SettingSwitch"
+import { SidePanel } from "@/components/side-panel"
+import SettingSwitch from "@/components/setting-switch"
 import { useSettings } from "@/context/SettingsContext"
 
 export function CharacterRender() {

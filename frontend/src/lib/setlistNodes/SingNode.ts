@@ -1,4 +1,4 @@
-import { songDataList } from '@/constants/songData';
+import { songDataList } from '@/constants/song-data';
 import { NodeDefinition } from './nodeDefinition'
 
 export const SingNode: NodeDefinition = {

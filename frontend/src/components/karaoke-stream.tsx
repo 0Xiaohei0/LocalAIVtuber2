@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "./ui/button";
 import { useState } from "react";
-import { songDataList } from "@/constants/songData";
+import { songDataList } from "@/constants/song-data";
 import { useSettings } from "@/context/SettingsContext";
-import { SetlistEditor } from "./SetlistEditor";
+import { SetlistEditor } from "@/components/setlist-editor";
 
 export function KaraokeStream() {
     const { settings, updateSetting, loading } = useSettings();

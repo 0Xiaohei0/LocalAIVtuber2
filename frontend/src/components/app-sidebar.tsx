@@ -1,4 +1,4 @@
-import pageMapping from "@/constants/pageMapping"
+import pageMapping from "@/constants/page-mapping"
 
 import {
   Sidebar,

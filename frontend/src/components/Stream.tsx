@@ -1,6 +1,5 @@
-
-import { SetlistEditor } from "./SetlistEditor";
-import { StreamChat } from "./StreamChat";
+import { SetlistEditor } from "./setlist-editor";
+import { StreamChat } from "./stream-chat";
 
 export function Stream() {
    

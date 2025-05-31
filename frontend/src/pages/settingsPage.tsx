@@ -1,5 +1,5 @@
 import { Panel } from "@/components/panel";
-import SettingSwitch from "@/components/SettingSwitch";
+import SettingSwitch from "@/components/setting-switch";
 import { useSettings } from "@/context/SettingsContext";
 
 function SettingsPage() {

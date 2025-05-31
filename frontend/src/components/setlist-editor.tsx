@@ -2,7 +2,7 @@
 import { SetlistItem, executeSetlist } from '@/lib/setlistNodes/executor'
 import { getNodeDefinition, nodeRegistry } from '@/lib/setlistNodes/NodeRegistry'
 import { useState } from 'react'
-import { NodeSettingsEditor } from './NodeSettingsEditor'
+import { NodeSettingsEditor } from './node-settings-editor'
 import { ArrowDownFromLine, ArrowUpFromLine, Plus, X } from 'lucide-react'
 import { Panel } from './panel'
 import { Button } from './ui/button'

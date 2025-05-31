@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
-import pageMapping from "@/constants/pageMapping"
+import pageMapping from "@/constants/page-mapping"
 import { SettingsProvider } from "@/context/SettingsContext"
 
 type PageKey = keyof typeof pageMapping

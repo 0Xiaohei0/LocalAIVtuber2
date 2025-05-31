@@ -282,7 +282,7 @@ class SettingsManager:
             if key == "llm.keep_model_loaded":
                 llm.set_keep_model_loaded(value)
             if key == "llm.model_filename":
-                llm.load_model_by_name(value)
+                llm.load_model_by_filename(value)
             if key == "stream.yt.videoid":
                 chat_fetch.video_id = value
             if key == "tts.voice":
