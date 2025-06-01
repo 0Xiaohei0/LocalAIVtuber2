@@ -5,7 +5,7 @@ import { Send, Square } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import EditableChatHistory from './editable-chat-history';
 import { HistoryItem } from '@/lib/types';
-import { ChatManager } from '@/lib/chatManager';
+import { chatManager } from '@/lib/chatManager';
 
 const Chatbox = () => {
     const [displayedMessages, setDisplayedMessages] = useState<HistoryItem[]>([]);
@@ -14,7 +14,19 @@ const Chatbox = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const { settings } = useSettings();
-    const chatManagerRef = useRef<ChatManager>(new ChatManager());
+
+    useEffect(() => {
+        chatManager.setSystemPrompt(settings["llm.system_prompt"]);
+    }, [settings["llm.system_prompt"]]);
+
+    useEffect(() => {
+        const unsubscribe = chatManager.subscribe((messages) => {
+            setDisplayedMessages(messages);
+            inputRef.current?.focus();
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -24,15 +36,7 @@ const Chatbox = () => {
         if (input.trim() === '') return;
         setIsProcessing(true);
         setInput('');
-        await chatManagerRef.current.sendMessage(
-            input,
-            null,
-            settings["llm.system_prompt"],
-            (messages: HistoryItem[]) => {
-                setDisplayedMessages(messages);
-                inputRef.current?.focus();
-            }
-        );
+        await chatManager.sendMessage(input);
         setIsProcessing(false);
     };
 
@@ -41,10 +45,9 @@ const Chatbox = () => {
             <div className="flex flex-col space-y-4 mb-4 flex-grow">
                 <EditableChatHistory 
                     messages={displayedMessages} 
-                    sessionId={chatManagerRef.current.getSessionId() ?? ""} 
+                    sessionId={chatManager.getSessionId() ?? ""} 
                     onUpdate={(history) => {
-                        setDisplayedMessages(history);
-                        chatManagerRef.current.setMessages(history);
+                        chatManager.setMessages(history);
                     }} 
                 />
                 <div ref={messagesEndRef}></div>

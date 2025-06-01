@@ -3,20 +3,29 @@ import { pipelineManager } from './pipelineManager';
 import { cut5 } from './utils';
 import { createNewSession, updateSession } from './sessionManager';
 
+type ChatUpdateCallback = (messages: HistoryItem[]) => void;
 
 export class ChatManager {
     private messages: HistoryItem[] = [];
     private sessionId: string | null = null;
     private abortController: AbortController | null = null;
-    private onMessageUpdate: ((messages: HistoryItem[]) => void) | null = null;
     private systemPrompt: string = '';
+    private subscribers: Set<ChatUpdateCallback> = new Set();
 
     constructor() {
         this.setupPipelineSubscription();
     }
 
-    public setCallbacks(onMessageUpdate: (messages: HistoryItem[]) => void, systemPrompt: string) {
-        this.onMessageUpdate = onMessageUpdate;
+    public subscribe(callback: ChatUpdateCallback): () => void {
+        this.subscribers.add(callback);
+        return () => this.subscribers.delete(callback);
+    }
+
+    private notifySubscribers() {
+        this.subscribers.forEach(callback => callback([...this.messages]));
+    }
+
+    public setSystemPrompt(systemPrompt: string) {
         this.systemPrompt = systemPrompt;
     }
 
@@ -26,7 +35,7 @@ export class ChatManager {
             const task = pipelineManager.getNextTaskForLLM();
             if (!task) return;
             const input = task.input!;
-            this.sendMessage(input, task.id, this.systemPrompt, this.onMessageUpdate ?? (() => {}));
+            this.sendMessage(input, task.id);
         };
 
         return pipelineManager.subscribe(handlePipelineUpdate);
@@ -47,8 +56,6 @@ export class ChatManager {
     public async sendMessage(
         input: string, 
         taskId: string | null = null,
-        systemPrompt: string = "",
-        onMessageUpdate: (messages: HistoryItem[]) => void = () => {}
     ): Promise<void> {
         if (input.trim() === '') return;
         if (!taskId) taskId = null;
@@ -59,13 +66,13 @@ export class ChatManager {
         const history = this.messages.slice(-30);
         
         this.messages.push(userMessage);
-        onMessageUpdate([...this.messages]);
+        this.notifySubscribers();
 
         try {
             console.log("getCompletion", JSON.stringify({
                 text: input,
                 history: history,
-                systemPrompt: systemPrompt
+                systemPrompt: this.systemPrompt
             }));
             const response = await fetch('/api/completion', {
                 method: 'POST',
@@ -73,7 +80,7 @@ export class ChatManager {
                 body: JSON.stringify({
                     text: input,
                     history: history,
-                    systemPrompt: systemPrompt
+                    systemPrompt: this.systemPrompt
                 }),
                 signal: this.abortController.signal
             });
@@ -93,6 +100,9 @@ export class ChatManager {
 
             await updateSession(this.sessionId, this.messages);
 
+            this.messages = [...this.messages, { role: 'user', content: input }];
+            this.notifySubscribers();
+
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
             let aiMessage = '';
@@ -107,7 +117,8 @@ export class ChatManager {
                 const chunk = decoder.decode(value);
                 aiMessage += chunk;
                 
-                onMessageUpdate([...this.messages, { role: 'assistant', content: aiMessage }]);
+                this.messages = [...this.messages.slice(0, -1), { role: 'assistant', content: aiMessage }];
+                this.notifySubscribers();
 
                 currentText += chunk;
                 const { sentences, remaining } = cut5(currentText);
@@ -138,9 +149,9 @@ export class ChatManager {
             if (taskId !== null) {
                 pipelineManager.markLLMFinished(taskId);
             }
-
-            this.messages.push({ role: 'assistant', content: aiMessage });
+            
             await updateSession(this.sessionId, this.messages);
+            this.notifySubscribers();
 
         } catch (error) {
             if ((error as Error).name === 'AbortError') {
@@ -157,6 +168,7 @@ export class ChatManager {
 
     public setMessages(messages: HistoryItem[]) {
         this.messages = messages;
+        this.notifySubscribers();
     }
 
     public getSessionId(): string | null {
@@ -166,4 +178,6 @@ export class ChatManager {
     public setSessionId(id: string | null) {
         this.sessionId = id;
     }
-} 
+}
+
+export const chatManager = new ChatManager(); 
