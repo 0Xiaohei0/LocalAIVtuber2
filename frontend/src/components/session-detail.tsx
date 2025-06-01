@@ -6,17 +6,13 @@ import { Card, CardContent, CardHeader } from "../components/ui/card"
 import { Textarea } from "../components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import EditableChatHistory from "./editable-chat-history"
-
-interface Message {
-  role: string
-  content: string
-}
+import { HistoryItem } from "@/lib/types"
 
 interface Session {
   id: string
   title: string
   created_at: string
-  history: Message[]
+  history: HistoryItem[]
   indexed?: boolean
 }
 

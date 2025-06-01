@@ -5,11 +5,8 @@ import { Send, Square } from 'lucide-react';
 import { pipelineManager } from "@/lib/pipelineManager";
 import { useSettings } from '@/context/SettingsContext';
 import { cut5 } from '@/lib/utils';
-
-type HistoryItem = {
-    role: "assistant" | "user";
-    content: string;
-}
+import EditableChatHistory from './editable-chat-history';
+import { HistoryItem } from '@/lib/types';
 
 const Chatbox = () => {
     const [displayedMessages, setDisplayedMessages] = useState<HistoryItem[]>([]);
@@ -210,16 +207,10 @@ const Chatbox = () => {
     return (
         <div className="flex flex-col max-w-3xl mx-auto h-[calc(100vh-50px-17px)]">
             <div className="flex flex-col space-y-4 mb-4 flex-grow">
-                {displayedMessages.map((msg, index) => (
-                    <React.Fragment key={index}>
-                        <div
-                            className={`break-words max-w-7/10 px-4 py-2 has-[>svg]:px-3 gap-2 rounded-md text-sm font-medium shadow-xs ${msg.role === 'user' ? 'bg-primary text-primary-foreground self-end' : 'bg-secondary text-secondary-foreground self-start'
-                                }`}
-                        >
-                            {msg.content}
-                        </div>
-                    </React.Fragment>
-                ))}
+                <EditableChatHistory messages={displayedMessages} sessionId={sessionId ?? ""} onUpdate={(history) => {
+                    setDisplayedMessages(history);
+                    messagesRef.current = history;
+                }} />
                 <div ref={messagesEndRef}></div>
             </div>
             <div className="sticky bottom-0 bg-background rounded-t-lg">

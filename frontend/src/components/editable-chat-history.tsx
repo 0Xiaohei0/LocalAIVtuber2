@@ -2,16 +2,12 @@ import { useState } from "react"
 import { Edit3, Save, X, Trash } from "lucide-react"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
-
-interface Message {
-    role: string
-    content: string
-}
+import { HistoryItem } from "@/lib/types"
 
 interface EditableChatHistoryProps {
-    messages: Message[]
+    messages: HistoryItem[]
     sessionId: string
-    onUpdate: (updatedHistory: Message[]) => void
+    onUpdate: (updatedHistory: HistoryItem[]) => void
 }
 
 export default function EditableChatHistory({ messages, sessionId, onUpdate }: EditableChatHistoryProps) {
@@ -92,11 +88,17 @@ export default function EditableChatHistory({ messages, sessionId, onUpdate }: E
         <div className="flex flex-col space-y-4">
             {messages.map((message, index) => (
                 <div key={index} className="group relative flex flex-col gap-1.5">
+                    <div className={`text-xs text-muted-foreground ${message.role === 'user'
+                        ? 'self-end'
+                        : 'self-start'
+                    }`}>
+                        {message.role === 'user' ? 'You' : 'AI'}
+                    </div>
                     <div
                         className={`break-words max-w-7/10 w-fit px-4 py-2 rounded-md text-sm font-medium shadow-xs bg-secondary text-secondary-foreground
                              ${message.role === 'user'
-                                ? 'self-end ml-auto'
-                                : 'self-start mr-auto'
+                                ? 'self-end'
+                                : 'self-start'
                             }`}
                     >
                         {editingMessageIndex === index ? (
