@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Calendar, Database, Plus } from 'lucide-react';
+import { Search, Calendar, Database, Plus, RefreshCcw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
@@ -65,7 +65,7 @@ export default function SessionList() {
             // Transform the data to include additional fields
             const transformedData = data.map((session: ChatSession) => ({
                 ...session,
-                indexed: Math.random() > 0.5, // Mock indexed status
+                indexed: false,
                 messageCount: session.history?.length || 0,
                 lastActivity: session.created_at // Using created_at as lastActivity for now
             }));
@@ -169,6 +169,12 @@ export default function SessionList() {
                             </div>
                         </div>
 
+                        <Button variant="outline" onClick={() => {
+                            fetchSessions();
+                        }}>
+                            <RefreshCcw className="h-4 w-4" />
+                        </Button>
+
                         <Select value={indexedFilter} onValueChange={setIndexedFilter}>
                             <SelectTrigger className="w-full md:w-48">
                                 <Database className="h-4 w-4 mr-2" />
@@ -237,7 +243,7 @@ export default function SessionList() {
                                 <div className="flex items-center justify-between text-sm">
                                     <div className="flex items-center space-x-4">
                                         <span>Created: {formatDate(session.created_at)}</span>
-                                        <span>Messages: {session.messageCount}</span>
+                                        {/* <span>Messages: {session.messageCount}</span> */}
                                     </div>
                                     <span>Last activity: {formatDate(session.lastActivity || session.created_at)}</span>
                                 </div>

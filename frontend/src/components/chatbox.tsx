@@ -20,6 +20,7 @@ const Chatbox = () => {
     const inputRef = useRef<HTMLInputElement>(null);
     const messagesRef = useRef<HistoryItem[]>([]);
     const { settings } = useSettings();
+    const [sessionId, setSessionId] = useState<string | null>(null);
 
     useEffect(() => {
         const handlePipelineUpdate = () => {
@@ -57,6 +58,43 @@ const Chatbox = () => {
         }
     }
 
+    const createNewSession = async () => {
+        try {
+            const response = await fetch('/api/chat/session/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: `New Chat`
+                }),
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to create session');
+            }
+            
+            const session = await response.json();
+            return session.id;
+        } catch (err) {
+            console.error('Failed to create session:', err);
+            return null;
+        }
+    };
+
+    const updateSession = async (history: HistoryItem[]) => {
+        console.log("Updating session:", sessionId, history);
+        if (sessionId === null) return;
+        const response = await fetch(`/api/chat/session/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, history })
+        });
+        if (!response.ok) {
+            console.error("Error updating session:", response.statusText);
+        }
+    }
+
     const handleSend = async (input: string, taskId?: string | null) => {
         if (input.trim() === '') return;
         if (!taskId) taskId = null;
@@ -90,8 +128,15 @@ const Chatbox = () => {
                 setIsProcessing(false);
                 return;
             }
+            if (sessionId === null) {
+                const newSessionId = await createNewSession();
+                if (newSessionId) {
+                    setSessionId(newSessionId);
+                }
+            }
 
             messagesRef.current.push({ role: 'user', content: input });
+            updateSession(messagesRef.current);
 
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
@@ -149,7 +194,7 @@ const Chatbox = () => {
             }
 
             messagesRef.current.push({ role: 'assistant', content: aiMessage });
-
+            updateSession(messagesRef.current);
             setIsProcessing(false);
             inputRef.current?.focus();
 
