@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
-import { ArrowLeft, Edit3, Save, X, Code, User, Bot, Calendar, Database } from "lucide-react"
+import { ArrowLeft, Code, Calendar, Database, Save } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 import { Card, CardContent, CardHeader } from "../components/ui/card"
 import { Textarea } from "../components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
+import EditableChatHistory from "./editable-chat-history"
 
 interface Message {
   role: string
@@ -35,8 +36,6 @@ export default function SessionDetail({ sessionId, onBack }: SessionDetailProps)
   const [sessionData, setSessionData] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null)
-  const [editContent, setEditContent] = useState("")
   const [jsonContent, setJsonContent] = useState("")
   const [activeTab, setActiveTab] = useState("chat")
 
@@ -78,51 +77,6 @@ export default function SessionDetail({ sessionId, onBack }: SessionDetailProps)
         </div>
       </div>
     )
-  }
-
-  const startEditing = (index: number) => {
-    setEditingMessageIndex(index)
-    setEditContent(sessionData.history[index].content)
-  }
-
-  const saveEdit = async () => {
-    if (editingMessageIndex === null) return
-
-    try {
-      const updatedHistory = [...sessionData.history]
-      updatedHistory[editingMessageIndex] = {
-        ...updatedHistory[editingMessageIndex],
-        content: editContent
-      }
-
-      const response = await fetch(`/api/chat/session/${sessionData.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          history: updatedHistory
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update message')
-      }
-
-      setSessionData({
-        ...sessionData,
-        history: updatedHistory
-      })
-      setEditingMessageIndex(null)
-      setEditContent("")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update message')
-    }
-  }
-
-  const cancelEdit = () => {
-    setEditingMessageIndex(null)
-    setEditContent("")
   }
 
   const formatDate = (dateString: string) => {
@@ -224,54 +178,11 @@ export default function SessionDetail({ sessionId, onBack }: SessionDetailProps)
             <TabsTrigger value="json">JSON Editor</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="chat" className="space-y-4">
-            {sessionData.history.map((message, index) => (
-              <Card key={index} className={`${message.role === "user" ? "ml-12" : "mr-12"}`}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      {message.role === "user" ? (
-                        <User className="h-5 w-5 text-blue-600" />
-                      ) : (
-                        <Bot className="h-5 w-5 text-green-600" />
-                      )}
-                      <span className="font-medium capitalize">{message.role}</span>
-                      <span className="text-sm text-gray-500">{formatDate(sessionData.created_at)}</span>
-                    </div>
-
-                    {editingMessageIndex !== index && (
-                      <Button variant="ghost" size="sm" onClick={() => startEditing(index)}>
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-
-                <CardContent>
-                  {editingMessageIndex === index ? (
-                    <div className="space-y-3">
-                      <Textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="min-h-24"
-                      />
-                      <div className="flex space-x-2">
-                        <Button size="sm" onClick={saveEdit}>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={cancelEdit}>
-                          <X className="h-4 w-4 mr-2" />
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="whitespace-pre-wrap">{message.content}</div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+          <TabsContent value="chat">
+            <EditableChatHistory 
+              messages={sessionData.history}
+              sessionId={sessionData.id}
+            />
           </TabsContent>
 
           <TabsContent value="json" className="space-y-4">
