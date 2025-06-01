@@ -1,10 +1,9 @@
-import MemoryList from "@/components/memory-list"
+import SessionList from "@/components/session-list"
 
-function MemoryPage() {
-    return (
-        <div>
-            <MemoryList></MemoryList>
-        </div>
+
+    function MemoryPage() {
+        return (
+                <SessionList/>
     )
   }
   
