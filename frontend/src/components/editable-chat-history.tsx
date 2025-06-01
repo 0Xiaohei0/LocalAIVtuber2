@@ -11,9 +11,10 @@ interface Message {
 interface EditableChatHistoryProps {
     messages: Message[]
     sessionId: string
+    onUpdate: (updatedHistory: Message[]) => void
 }
 
-export default function EditableChatHistory({ messages, sessionId }: EditableChatHistoryProps) {
+export default function EditableChatHistory({ messages, sessionId, onUpdate }: EditableChatHistoryProps) {
     const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null)
     const [editContent, setEditContent] = useState("")
     const [error, setError] = useState<string | null>(null)
@@ -21,6 +22,32 @@ export default function EditableChatHistory({ messages, sessionId }: EditableCha
     const startEditing = (index: number) => {
         setEditingMessageIndex(index)
         setEditContent(messages[index].content)
+    }
+
+    const deleteMessage = async (index: number) => {
+        try {
+            const updatedHistory = [...messages]
+            updatedHistory.splice(index, 1)
+
+            const response = await fetch(`/api/chat/session/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    history: updatedHistory
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error('Failed to update message')
+            }
+
+            onUpdate(updatedHistory)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update message')
+        }
     }
 
     const saveEdit = async () => {
@@ -48,8 +75,9 @@ export default function EditableChatHistory({ messages, sessionId }: EditableCha
                 throw new Error('Failed to update message')
             }
 
-            // Trigger a page reload to get the updated data
-            window.location.reload()
+            onUpdate(updatedHistory)
+            setEditingMessageIndex(null)
+            setEditContent("")
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to update message')
         }
@@ -65,9 +93,10 @@ export default function EditableChatHistory({ messages, sessionId }: EditableCha
             {messages.map((message, index) => (
                 <div key={index} className="group relative flex flex-col gap-1.5">
                     <div
-                        className={`break-words max-w-7/10 w-fit px-4 py-2 rounded-md text-sm font-medium shadow-xs ${message.role === 'user'
-                                ? 'bg-primary text-primary-foreground self-end ml-auto'
-                                : 'bg-secondary text-secondary-foreground self-start mr-auto'
+                        className={`break-words max-w-7/10 w-fit px-4 py-2 rounded-md text-sm font-medium shadow-xs bg-secondary text-secondary-foreground
+                             ${message.role === 'user'
+                                ? 'self-end ml-auto'
+                                : 'self-start mr-auto'
                             }`}
                     >
                         {editingMessageIndex === index ? (
@@ -89,7 +118,10 @@ export default function EditableChatHistory({ messages, sessionId }: EditableCha
                                 </div>
                             </div>
                         ) : (
-                            <div className="whitespace-pre-wrap">{message.content}</div>
+                            <div className={`whitespace-pre-wrap ${message.role === 'user'
+                                ? 'opacity-80'
+                                : 'opacity-100'
+                            }`}>{message.content}</div>
                         )}
                     </div>
                     {editingMessageIndex !== index && (
@@ -100,7 +132,7 @@ export default function EditableChatHistory({ messages, sessionId }: EditableCha
                             <Button variant="ghost" size="sm" onClick={() => startEditing(index)}>
                                 <Edit3 className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" onClick={() => deleteMessage(index)}>
                                 <Trash className="h-4 w-4" />
                             </Button>
                         </div>
