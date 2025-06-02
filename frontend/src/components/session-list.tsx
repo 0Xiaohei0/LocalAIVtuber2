@@ -6,6 +6,8 @@ import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import SessionDetail from './session-detail';
+import { createNewSession, fetchSessions, deleteSession } from '@/lib/sessionManager';
+import { Session } from '@/lib/types';
 
 interface ChatSession {
     id: string;
@@ -22,80 +24,25 @@ interface ChatSession {
 
 export default function SessionList() {
     const [sessions, setSessions] = useState<ChatSession[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [indexedFilter, setIndexedFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
-    const createNewSession = async () => {
-        try {
-            const response = await fetch('/api/chat/session/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    title: `New Chat`
-                }),
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to create session');
-            }
-            
-            const session = await response.json();
-            await fetchSessions();
-            return session.id;
-        } catch (err) {
-            console.error('Failed to create session:', err);
-            return null;
-        }
-    };
-
-    const fetchSessions = async () => {
-        try {
-            setLoading(true);
-            const response = await fetch('/api/chat/sessions');
-            if (!response.ok) {
-                throw new Error('Failed to fetch sessions');
-            }
-            const data = await response.json();
-            // Transform the data to include additional fields
-            const transformedData = data.map((session: ChatSession) => ({
-                ...session,
-                indexed: false,
-                messageCount: session.history?.length || 0,
-                lastActivity: session.created_at // Using created_at as lastActivity for now
-            }));
-            setSessions(transformedData);
-            setError(null);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'An error occurred');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const deleteSession = async (sessionId: string) => {
-        try {
-            const response = await fetch(`/api/chat/session/${sessionId}`, {
-                method: 'DELETE',
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to delete session');
-            }
-            
-            await fetchSessions();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to delete session');
-        }
+    const getSessions = async () => {
+        const data = await fetchSessions();
+         // Transform the data to include additional fields
+         const transformedData = data.map((session: Session) => ({
+            ...session,
+            indexed: false,
+            messageCount: session.history?.length || 0,
+            lastActivity: session.created_at // Using created_at as lastActivity for now
+        }));
+        setSessions(transformedData);
     };
 
     useEffect(() => {
-        fetchSessions();
+        getSessions();
     }, []);
 
     const filteredSessions = sessions
@@ -170,7 +117,7 @@ export default function SessionList() {
                         </div>
 
                         <Button variant="outline" onClick={() => {
-                            fetchSessions();
+                            getSessions();
                         }}>
                             <RefreshCcw className="h-4 w-4" />
                         </Button>
@@ -211,9 +158,6 @@ export default function SessionList() {
 
                 {/* Sessions List */}
                 <div className="space-y-4">
-                    {loading && <p className="">Loading...</p>}
-                    {error && <p className="text-red-400">{error}</p>}
-                    
                     {filteredSessions.map((session) => (
                         <Card 
                             key={session.id} 
@@ -252,7 +196,7 @@ export default function SessionList() {
                     ))}
                 </div>
 
-                {!loading && filteredSessions.length === 0 && (
+                {filteredSessions.length === 0 && (
                     <div className="text-center py-12">
                         <div className="text-gray-400 mb-4">
                             <Database className="h-12 w-12 mx-auto" />

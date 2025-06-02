@@ -1,7 +1,7 @@
 import { HistoryItem } from './types';
 import { pipelineManager } from './pipelineManager';
 import { cut5 } from './utils';
-import { createNewSession, updateSession } from './sessionManager';
+import { createNewSession, updateSession, fetchSessionContent } from './sessionManager';
 
 type ChatUpdateCallback = (messages: HistoryItem[]) => void;
 
@@ -175,8 +175,14 @@ export class ChatManager {
         return this.sessionId;
     }
 
-    public setSessionId(id: string | null) {
+    public async setSessionId(id: string | null) {
         this.sessionId = id;
+        // update session chat history
+        if (id) {
+            const session = await fetchSessionContent(id);
+            this.messages = session.history;
+        }
+        this.notifySubscribers();
     }
 }
 

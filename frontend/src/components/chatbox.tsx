@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Square } from 'lucide-react';
@@ -6,6 +6,10 @@ import { useSettings } from '@/context/SettingsContext';
 import EditableChatHistory from './editable-chat-history';
 import { HistoryItem } from '@/lib/types';
 import { chatManager } from '@/lib/chatManager';
+import { fetchSessions } from '@/lib/sessionManager';
+import { Session } from '@/lib/types';
+import { SidePanel } from './side-panel';
+import { SidebarMenuButton } from './ui/sidebar';
 
 const Chatbox = () => {
     const [displayedMessages, setDisplayedMessages] = useState<HistoryItem[]>([]);
@@ -14,10 +18,36 @@ const Chatbox = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const { settings } = useSettings();
+    const [sessionList, setSessionList] = useState<Session[]>([]);
+    const [selectedSession, setSelectedSession] = useState<string | null>(null);
+
+    const getSessions = async () => {
+        const data = await fetchSessions();
+        setSessionList(data);
+    };
+
+    useEffect(() => {
+        getSessions();
+    }, []);
+
+    useEffect(() => {
+        if (selectedSession) {
+            chatManager.setSessionId(selectedSession);
+        }
+    }, [selectedSession]);
 
     useEffect(() => {
         chatManager.setSystemPrompt(settings["llm.system_prompt"]);
     }, [settings["llm.system_prompt"]]);
+
+    useEffect(() => {
+        const fetchSessionList = async () => {
+            const response = await fetch('/api/chat/sessions');
+            const data = await response.json();
+            setSessionList(data);
+        };
+        fetchSessionList();
+    }, []);
 
     useEffect(() => {
         const unsubscribe = chatManager.subscribe((messages) => {
@@ -41,14 +71,25 @@ const Chatbox = () => {
     };
 
     return (
+
         <div className="flex flex-col max-w-3xl mx-auto h-[calc(100vh-50px-17px)]">
+            <SidePanel side="left">
+                {sessionList.map((session) => (
+                    <SidebarMenuButton disabled={isProcessing} className={`${selectedSession === session.id ? 'bg-muted' : ''}`}
+                     key={session.id} onClick={() => setSelectedSession(session.id)}>
+                        <div className='flex flex-row justify-between'> 
+                            {session.title}
+                        </div>
+                    </SidebarMenuButton>
+                ))}
+            </SidePanel>
             <div className="flex flex-col space-y-4 mb-4 flex-grow">
-                <EditableChatHistory 
-                    messages={displayedMessages} 
-                    sessionId={chatManager.getSessionId() ?? ""} 
+                <EditableChatHistory
+                    messages={displayedMessages}
+                    sessionId={chatManager.getSessionId() ?? ""}
                     onUpdate={(history) => {
                         chatManager.setMessages(history);
-                    }} 
+                    }}
                 />
                 <div ref={messagesEndRef}></div>
             </div>

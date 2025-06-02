@@ -33,3 +33,47 @@ export async function updateSession(sessionId: string | null, history: HistoryIt
         console.error("Error updating session:", response.statusText);
     }
 }
+
+export const fetchSessions = async () => {
+    try {
+        const response = await fetch('/api/chat/sessions');
+        if (!response.ok) {
+            throw new Error('Failed to fetch sessions');
+        }
+        const data = await response.json();
+        return data;
+    } catch (err) {
+        console.error('Failed to fetch sessions:', err);
+        return [];
+    }
+};
+
+export const fetchSessionContent = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/chat/session/${sessionId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch session')
+      }
+      const data = await response.json()
+      return data
+    } catch (err) {
+      console.error('Failed to fetch session content:', err);
+      return null;
+    }
+  }
+
+export const deleteSession = async (sessionId: string) => {
+    try {
+        const response = await fetch(`/api/chat/session/${sessionId}`, {
+            method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to delete session');
+        }
+        
+        await fetchSessions();
+    } catch (err) {
+        console.error('Failed to delete session:', err);
+    }
+};

@@ -6,15 +6,8 @@ import { Card, CardContent, CardHeader } from "../components/ui/card"
 import { Textarea } from "../components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import EditableChatHistory from "./editable-chat-history"
-import { HistoryItem } from "@/lib/types"
-
-interface Session {
-  id: string
-  title: string
-  created_at: string
-  history: HistoryItem[]
-  indexed?: boolean
-}
+import { Session } from "@/lib/types"
+import { fetchSessionContent } from "@/lib/sessionManager"
 
 interface ImportedMessage {
   role: string
@@ -30,41 +23,19 @@ interface SessionDetailProps {
 
 export default function SessionDetail({ sessionId, onBack }: SessionDetailProps) {
   const [sessionData, setSessionData] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [jsonContent, setJsonContent] = useState("")
   const [activeTab, setActiveTab] = useState("chat")
 
   useEffect(() => {
     const fetchSession = async () => {
-      try {
-        const response = await fetch(`/api/chat/session/${sessionId}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch session')
-        }
-        const data = await response.json()
-        setSessionData(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
+      const session = await fetchSessionContent(sessionId)
+      setSessionData(session)
     }
 
     fetchSession()
   }, [sessionId])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-6">
-        <div className="max-w-4xl mx-auto text-center py-12">
-          <p>Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !sessionData) {
+  if (!sessionData) {
     return (
       <div className="min-h-screen p-6">
         <div className="max-w-4xl mx-auto text-center py-12">
