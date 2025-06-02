@@ -24,7 +24,7 @@ export function SidePanel({ children, className, side = "right" }: SidePanelProp
                         ? "translate-x-full" 
                         : "-translate-x-full"
             } ${className || ''}`}
-            style={{ zIndex: 1000 }}
+            style={{ zIndex: 40 }}
         >
             <button
                 className={`absolute ${side === "right" ? "left-[-25px] rounded-l-sm" : "right-[-25px] rounded-r-sm"} top-5 border  bg-background dark:border-input`}

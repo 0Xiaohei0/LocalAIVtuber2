@@ -24,6 +24,12 @@ const Chatbox = () => {
     const getSessions = async () => {
         const data = await fetchSessions();
         setSessionList(data);
+        if(data.length > 0 && !selectedSession) {
+            setSelectedSession(data[0].id);
+        }
+        else if(data.length === 0 && selectedSession) {
+            setSelectedSession(null);
+        }
     };
 
     useEffect(() => {
