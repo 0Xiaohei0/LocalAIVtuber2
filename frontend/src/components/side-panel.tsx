@@ -1,4 +1,4 @@
-import { ArrowRightFromLine, ArrowLeftFromLine } from "lucide-react";
+import { ArrowRightFromLine, ArrowLeftFromLine, ChevronLeft, ChevronRight } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { Panel } from "./panel";
 
@@ -17,7 +17,7 @@ export function SidePanel({ children, className, side = "right" }: SidePanelProp
 
     return (
         <div
-            className={`absolute ${side === "right" ? "right-0" : "left-0"} top-0 h-full p-2 transition-transform duration-300 ${
+            className={`absolute ${side === "right" ? "right-0" : "left-0"} top-0 h-full transition-transform duration-300 ${
                 isSidePanelOpen 
                     ? "translate-x-0" 
                     : side === "right" 
@@ -27,15 +27,15 @@ export function SidePanel({ children, className, side = "right" }: SidePanelProp
             style={{ zIndex: 1000 }}
         >
             <button
-                className={`absolute ${side === "right" ? "left-[-40px]" : "right-[-40px]"} top-5 border p-2 rounded-md bg-background`}
+                className={`absolute ${side === "right" ? "left-[-25px] rounded-l-sm" : "right-[-25px] rounded-r-sm"} top-5 border  bg-background dark:border-input`}
                 onClick={toggleSidePanel}
             >
                 {isSidePanelOpen 
-                    ? (side === "right" ? <ArrowRightFromLine /> : <ArrowLeftFromLine />)
-                    : (side === "right" ? <ArrowLeftFromLine /> : <ArrowRightFromLine />)
+                    ? (side === "right" ? <ChevronRight /> : <ChevronLeft />)
+                    : (side === "right" ? <ChevronLeft /> : <ChevronRight />)
                 }
             </button>
-            <Panel className="h-full w-2xs flex flex-col gap-2 items-start">
+            <Panel className="h-full w-2xs flex flex-col gap-2 items-start  rounded-none">
                 {children}
             </Panel>
         </div>
