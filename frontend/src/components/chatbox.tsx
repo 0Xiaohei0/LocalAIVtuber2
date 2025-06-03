@@ -96,6 +96,9 @@ const Chatbox = () => {
                     onUpdate={(history) => {
                         chatManager.setMessages(history);
                     }}
+                    onContinue={(index) => {
+                        chatManager.continueMessage(index);
+                    }}
                 />
                 <div ref={messagesEndRef}></div>
             </div>

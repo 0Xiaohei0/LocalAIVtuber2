@@ -1,4 +1,4 @@
-import { ArrowRightFromLine, ArrowLeftFromLine, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ReactNode, useState } from "react";
 import { Panel } from "./panel";
 

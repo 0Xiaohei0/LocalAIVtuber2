@@ -115,6 +115,10 @@ class LLMRequest(BaseModel):
     systemPrompt: str = ""
     screenshot: bool = False
 
+class CompleteResponseRequest(BaseModel):
+    history: list
+    systemPrompt: str = ""
+
 @app.post("/api/completion")
 async def get_completion(request: LLMRequest, fastapi_request: Request):
     try:
@@ -134,6 +138,31 @@ async def get_completion(request: LLMRequest, fastapi_request: Request):
             finally:
                 pass
                 # llm.unload_model()  # Ensure the model is unloaded when the stream ends or is interrupted
+
+        return StreamingResponse(stream_response(), media_type="text/plain")
+    except Exception as e:
+        logger.error(f"Error during completion: {e}", exc_info=True)
+        return {"error": "Internal server error"}
+
+@app.post("/api/completion/complete")
+async def complete_current_response(request: CompleteResponseRequest, fastapi_request: Request):
+    try:
+        if not llm.llm:
+            llm.load_model(llm.current_model_data)
+            
+        response = llm.llm.complete_current_response(request.history, request.systemPrompt)
+        if response is None:
+            return {"error": "No response from LLM service"}
+        
+        async def stream_response():
+            try:
+                async for chunk in async_generator_wrapper(response):
+                    if await fastapi_request.is_disconnected():
+                        logger.info("Client disconnected, stopping response stream.")
+                        break
+                    yield chunk
+            finally:
+                pass
 
         return StreamingResponse(stream_response(), media_type="text/plain")
     except Exception as e:

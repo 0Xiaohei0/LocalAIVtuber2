@@ -162,6 +162,34 @@ export class ChatManager {
         }
     }
 
+    public async continueMessage(index: number) {
+        // take history from beginning of history to index
+        const history = this.messages.slice(0, index + 1);
+        // send history to backend
+        const response = await fetch('/api/completion/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ history: history, systemPrompt: this.systemPrompt })
+        });
+        // get streaming response similar to sendMessage
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) return;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            // add to the existing message
+            this.messages[index].content += chunk;
+            this.notifySubscribers();
+        }
+        await updateSession(this.sessionId, this.messages);
+        this.notifySubscribers();
+    }
+
     public getMessages(): HistoryItem[] {
         return this.messages;
     }

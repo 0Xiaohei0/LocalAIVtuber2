@@ -1,23 +1,31 @@
 import { useState } from "react"
-import { Edit3, Save, X, Trash } from "lucide-react"
+import { Edit3, Save, X, Trash, ArrowRight } from "lucide-react"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { HistoryItem } from "@/lib/types"
+import { TooltipContent, TooltipTrigger } from "./ui/tooltip"
+import { Tooltip } from "./ui/tooltip"
+import { TooltipProvider } from "./ui/tooltip"
+import { toast } from "sonner"
 
 interface EditableChatHistoryProps {
     messages: HistoryItem[]
     sessionId: string
     onUpdate: (updatedHistory: HistoryItem[]) => void
+    onContinue: (index: number) => void
 }
 
-export default function EditableChatHistory({ messages, sessionId, onUpdate }: EditableChatHistoryProps) {
+export default function EditableChatHistory({ messages, sessionId, onUpdate, onContinue }: EditableChatHistoryProps) {
     const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null)
     const [editContent, setEditContent] = useState("")
-    const [error, setError] = useState<string | null>(null)
 
     const startEditing = (index: number) => {
         setEditingMessageIndex(index)
         setEditContent(messages[index].content)
+    }
+
+    const continueMessage = (index: number) => {
+        onContinue(index)
     }
 
     const deleteMessage = async (index: number) => {
@@ -42,7 +50,7 @@ export default function EditableChatHistory({ messages, sessionId, onUpdate }: E
 
             onUpdate(updatedHistory)
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to update message')
+            toast.error(err instanceof Error ? err.message : 'Failed to update message')
         }
     }
 
@@ -75,7 +83,7 @@ export default function EditableChatHistory({ messages, sessionId, onUpdate }: E
             setEditingMessageIndex(null)
             setEditContent("")
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to update message')
+            toast.error(err instanceof Error ? err.message : 'Failed to update message')
         }
     }
 
@@ -131,17 +139,46 @@ export default function EditableChatHistory({ messages, sessionId, onUpdate }: E
                                 ? 'self-end ml-auto'
                                 : 'self-start mr-auto'
                             }`}>
+                            <Button variant="ghost" size="sm" onClick={() => continueMessage(index)}>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <ArrowRight className="h-4 w-4" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" sideOffset={14}>
+                                            Continue Message
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => startEditing(index)}>
-                                <Edit3 className="h-4 w-4" />
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Edit3 className="h-4 w-4" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" sideOffset={14}>
+                                            Edit Message
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </Button>
                             <Button variant="ghost" size="sm" onClick={() => deleteMessage(index)}>
-                                <Trash className="h-4 w-4" />
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            <Trash className="h-4 w-4" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" sideOffset={14}>
+                                            Delete Message
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </Button>
                         </div>
                     )}
                 </div>
             ))}
-            {error && <div className="text-red-500 text-sm">{error}</div>}
         </div>
     )
 } 
