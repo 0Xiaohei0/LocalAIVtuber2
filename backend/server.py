@@ -401,6 +401,21 @@ async def update_chat_session(request: UpdateSessionRequest):
         logger.error(f"Error updating chat session: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": "Failed to update chat session"})
 
+class UpdateSessionTitleRequest(BaseModel):
+    session_id: str
+    title: str
+
+@app.post("/api/chat/session/update-title")
+async def update_chat_session_title(request: UpdateSessionTitleRequest):
+    try:
+        success = history_store.update_session_title(request.session_id, request.title)
+        if success:
+            return JSONResponse(status_code=200, content={"message": "Session title updated successfully"})
+        return JSONResponse(status_code=404, content={"error": "Session not found"})
+    except Exception as e:
+        logger.error(f"Error updating chat session title: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to update chat session title"})
+
 @app.get("/api/chat/sessions")
 async def get_chat_sessions():
     try:

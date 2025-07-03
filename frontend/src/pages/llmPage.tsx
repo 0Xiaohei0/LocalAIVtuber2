@@ -15,7 +15,7 @@ function LLMPage() {
             <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pt-4">
                 <Chatbox/>
             </ScrollArea>
-            <SidePanel>
+            <SidePanel isOpen={true}>
                 <div className="space-y-2 flex flex-col items-start gap-4">
                     <div className="flex flex-col items-start gap-2">
                         <label className="text-sm font-medium">AI Model Selector</label>

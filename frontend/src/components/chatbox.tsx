@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Square } from 'lucide-react';
+import { Send, Square, Plus, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import EditableChatHistory from './editable-chat-history';
 import { HistoryItem } from '@/lib/types';
 import { chatManager } from '@/lib/chatManager';
-import { fetchSessions } from '@/lib/sessionManager';
+import { fetchSessions, createNewSession, deleteSession, updateSessionTitle } from '@/lib/sessionManager';
 import { Session } from '@/lib/types';
 import { SidePanel } from './side-panel';
 import { SidebarMenuButton } from './ui/sidebar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Chatbox = () => {
     const [displayedMessages, setDisplayedMessages] = useState<HistoryItem[]>([]);
@@ -20,6 +26,8 @@ const Chatbox = () => {
     const { settings } = useSettings();
     const [sessionList, setSessionList] = useState<Session[]>([]);
     const [selectedSession, setSelectedSession] = useState<string | null>(null);
+    const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+    const [editingTitle, setEditingTitle] = useState<string>('');
 
     const getSessions = async () => {
         const data = await fetchSessions();
@@ -31,6 +39,56 @@ const Chatbox = () => {
             setSelectedSession(null);
         }
     };
+
+    const handleCreateNewSession = async () => {
+        const newSessionId = await createNewSession();
+        if (newSessionId) {
+            await getSessions(); // Refresh the session list
+            setSelectedSession(newSessionId); // Select the new session
+        }
+    };
+
+    const handleDeleteSession = async (sessionId: string) => {
+        await deleteSession(sessionId);
+        await getSessions(); // Refresh the session list
+        if (selectedSession === sessionId) {
+            // If we deleted the currently selected session, select the first available one
+            const remainingSessions = sessionList.filter(s => s.id !== sessionId);
+            if (remainingSessions.length > 0) {
+                setSelectedSession(remainingSessions[0].id);
+            } else {
+                setSelectedSession(null);
+            }
+        }
+    };
+
+    const handleRenameSession = async (sessionId: string, newTitle: string) => {
+        const success = await updateSessionTitle(sessionId, newTitle);
+        if (success) {
+            await getSessions(); // Refresh the session list
+            setEditingSessionId(null);
+            setEditingTitle('');
+        }
+    };
+
+    const startEditing = (session: Session) => {
+        setEditingSessionId(session.id);
+        setEditingTitle(session.title);
+    };
+
+    const cancelEditing = () => {
+        setEditingSessionId(null);
+        setEditingTitle('');
+    };
+
+    const saveEditing = async () => {
+        if (editingSessionId && editingTitle.trim()) {
+            await handleRenameSession(editingSessionId, editingTitle.trim());
+        }
+    };
+
+    // Check if current session has messages
+    const isCurrentSessionEmpty = displayedMessages.length === 0;
 
     useEffect(() => {
         getSessions();
@@ -77,16 +135,73 @@ const Chatbox = () => {
     };
 
     return (
-
         <div className="flex flex-col max-w-3xl mx-auto h-[calc(100vh-50px-17px)]">
-            <SidePanel side="left">
+            <SidePanel side="left" isOpen={true}>
+                <div className="w-full mb-4">
+                    <Button 
+                        onClick={handleCreateNewSession}
+                        disabled={isProcessing || isCurrentSessionEmpty}
+                        className="w-full flex items-center gap-2"
+                        variant="outline"
+                    >
+                        <Plus className="h-4 w-4" />
+                        New Session
+                    </Button>
+                </div>
                 {sessionList.map((session) => (
-                    <SidebarMenuButton disabled={isProcessing} className={`${selectedSession === session.id ? 'bg-muted' : ''}`}
-                     key={session.id} onClick={() => setSelectedSession(session.id)}>
-                        <div className='flex flex-row justify-between'> 
-                            {session.title}
-                        </div>
-                    </SidebarMenuButton>
+                    <div key={session.id} className="relative group w-full">
+                        {editingSessionId === session.id ? (
+                            <div className="flex items-center gap-2 p-2">
+                                <Input
+                                    value={editingTitle}
+                                    onChange={(e) => setEditingTitle(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            saveEditing();
+                                        } else if (e.key === 'Escape') {
+                                            cancelEditing();
+                                        }
+                                    }}
+                                    onBlur={saveEditing}
+                                    className="flex-1 text-sm"
+                                    autoFocus
+                                />
+                            </div>
+                        ) : (
+                            <SidebarMenuButton 
+                                disabled={isProcessing} 
+                                className={`${selectedSession === session.id ? 'bg-muted' : ''} w-full`}
+                                onClick={() => setSelectedSession(session.id)}
+                            >
+                                <div className='flex flex-row justify-between items-center w-full'> 
+                                    <span className="truncate">{session.title}</span>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <div
+                                                className="h-6 w-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </div>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => startEditing(session)}>
+                                                <Edit className="h-4 w-4 mr-2" />
+                                                Rename
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem 
+                                                onClick={() => handleDeleteSession(session.id)}
+                                                className="text-destructive"
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                Delete
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </SidebarMenuButton>
+                        )}
+                    </div>
                 ))}
             </SidePanel>
             <div className="flex flex-col space-y-4 mb-4 flex-grow">

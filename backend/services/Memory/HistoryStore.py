@@ -75,6 +75,33 @@ class HistoryStore:
         except (json.JSONDecodeError, IOError):
             return False
 
+    def update_session_title(self, session_id: str, title: str) -> bool:
+        """
+        Update the title of an existing chat session.
+        
+        Args:
+            session_id (str): ID of the session to update
+            title (str): New title for the session
+            
+        Returns:
+            bool: True if update was successful, False if session doesn't exist
+        """
+        session_path = self._get_session_path(session_id)
+        if not os.path.exists(session_path):
+            return False
+            
+        try:
+            with open(session_path, 'r', encoding='utf-8') as f:
+                session_data = json.load(f)
+            
+            session_data["title"] = title
+            
+            with open(session_path, 'w', encoding='utf-8') as f:
+                json.dump(session_data, f, ensure_ascii=False, indent=2)
+            return True
+        except (json.JSONDecodeError, IOError):
+            return False
+
     def get_session_list(self) -> List[Dict[str, Any]]:
         """
         Get a list of all chat sessions with their metadata.

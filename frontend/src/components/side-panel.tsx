@@ -6,10 +6,11 @@ interface SidePanelProps {
     children?: ReactNode;
     side?: "left" | "right";
     className?: string;
+    isOpen?: boolean;
 }
 
-export function SidePanel({ children, className, side = "right" }: SidePanelProps) {
-    const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
+export function SidePanel({ children, className, side = "right", isOpen = false }: SidePanelProps) {
+    const [isSidePanelOpen, setIsSidePanelOpen] = useState(isOpen);
 
     const toggleSidePanel = () => {
         setIsSidePanelOpen((prev) => (!prev));

@@ -34,6 +34,25 @@ export async function updateSession(sessionId: string | null, history: HistoryIt
     }
 }
 
+export async function updateSessionTitle(sessionId: string, title: string): Promise<boolean> {
+    try {
+        const response = await fetch('/api/chat/session/update-title', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, title }),
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update session title');
+        }
+        
+        return true;
+    } catch (err) {
+        console.error('Failed to update session title:', err);
+        return false;
+    }
+}
+
 export const fetchSessions = async () => {
     try {
         const response = await fetch('/api/chat/sessions');
