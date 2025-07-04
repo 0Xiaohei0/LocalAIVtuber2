@@ -180,78 +180,6 @@ async def get_llm_models():
     return JSONResponse(content={"models": llm.all_model_data, "currentModel": llm.current_model_data})
 
 # *******************************
-# Memory - Messages
-# *******************************
-
-# class QueryMemoryRequest(BaseModel):
-#     text: str
-#     limit: int = 3
-
-# @app.post("/api/memory/query")
-# async def query_memory(request: QueryMemoryRequest):
-#     response = memory.query(text=request.text, limit = request.limit)
-#     if response is None:
-#         return JSONResponse(status_code=400, content={"error": "session_id must not be empty"})
-#     return JSONResponse(status_code=200, content=response)
-
-# class InsertMemoryRequest(BaseModel):
-#     text: str
-#     role: str = ""
-#     name: str = ""
-#     session_id: str = ""
-
-# @app.post("/api/memory/insert")
-# async def insert_memory(request: InsertMemoryRequest):
-#     if (not request.session_id):
-#         return JSONResponse(status_code=400, content={"error": "session_id must not be empty"})
-#     response = memory.insert_message(message=request.text, role=request.role, name=request.name, session_id=request.session_id)
-#     logger.info(response)
-#     if response is None:
-#         return JSONResponse(status_code=400, content={"error": "No response from Memory service"})
-#     return JSONResponse(status_code=200, content={"message": "Memory inserted.", "response": response})
-
-# class NewSessionRequest(BaseModel):
-#     session_id: str
-#     title: str
-
-
-# *******************************
-# Memory - Session
-# *******************************
-
-# @app.post("/api/memory/session/new")
-# async def create_new_session(request: NewSessionRequest):
-#     response = memory.upsert_session(session_id=request.session_id, title=request.title)
-#     if response is None:
-#         return JSONResponse(status_code=400, content={"error": "Failed to create session"})
-#     return JSONResponse(status_code=200, content={"message": "Session created.", "response": response})
-
-# class DeleteSessionRequest(BaseModel):
-#     session_id: str
-
-# @app.post("/api/memory/session/delete")
-# async def delete_session(request: DeleteSessionRequest):
-#     response = memory.delete_session(session_id=request.session_id)
-#     if response is None:
-#         return JSONResponse(status_code=400, content={"error": "Failed to create session"})
-#     return JSONResponse(status_code=200, content={"message": "Session deleted.", "response": response})
-
-# @app.get("/api/memory/session")
-# async def get_memory_sessions():
-#     response = memory.get_sessions()
-#     if response is None:
-#         return []
-#     return response
-
-# @app.get("/api/memory/session/messages")
-# async def get_session_messages(session_id: str = Query(...)):
-#     response = memory.get_messages_by_session(session_id=session_id)
-#     if response is None:
-#         return JSONResponse(status_code=400, content={"error": "Failed to get messages."})
-#     return JSONResponse(status_code=200, content={"message": "Message retrieved.", "response": response})
-
-
-# *******************************
 # TTS
 # *******************************
 
@@ -543,6 +471,23 @@ async def get_indexed_chunks(session_id: str):
     except Exception as e:
         logger.error(f"Error getting indexed chunks for session {session_id}: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": "Failed to get indexed chunks"})
+
+# *******************************
+# Memory - Context Query API
+# *******************************
+
+class QueryContextRequest(BaseModel):
+    text: str
+    limit: int = 3
+
+@app.post("/api/memory/context")
+async def query_memory_context(request: QueryContextRequest):
+    try:
+        response = memory.query(text=request.text, limit=request.limit)
+        return JSONResponse(status_code=200, content={"context": response})
+    except Exception as e:
+        logger.error(f"Error querying memory context: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to query memory context"})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

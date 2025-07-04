@@ -69,10 +69,37 @@ export class ChatManager {
         this.notifySubscribers();
 
         try {
+            // Fetch relevant context from memory
+            let contextText = '';
+            try {
+                const contextRes = await fetch('/api/memory/context', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: input, limit: 3 })
+                });
+                if (contextRes.ok) {
+                    const contextData = await contextRes.json();
+                    if (Array.isArray(contextData.context) && contextData.context.length > 0) {
+                        contextText = contextData.context
+                            .map((c: Record<string, unknown>) => typeof c.document === 'string' ? c.document : '')
+                            .filter(Boolean)
+                            .join('\n');
+                    }
+                }
+            } catch (ctxErr) {
+                console.warn('Failed to fetch context:', ctxErr);
+            }
+
+            // Prepend context to systemPrompt if available
+            let systemPromptWithContext = this.systemPrompt;
+            if (contextText) {
+                systemPromptWithContext = `Relevant context from memory:\n${contextText}\n\n` + this.systemPrompt;
+            }
+
             console.log("getCompletion", JSON.stringify({
                 text: input,
                 history: history,
-                systemPrompt: this.systemPrompt
+                systemPrompt: systemPromptWithContext
             }));
             const response = await fetch('/api/completion', {
                 method: 'POST',
@@ -80,7 +107,7 @@ export class ChatManager {
                 body: JSON.stringify({
                     text: input,
                     history: history,
-                    systemPrompt: this.systemPrompt
+                    systemPrompt: systemPromptWithContext
                 }),
                 signal: this.abortController.signal
             });
