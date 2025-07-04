@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { ArrowLeft, Code, Calendar, Database, Save } from "lucide-react"
+import { useEffect, useState, useRef } from "react"
+import { ArrowLeft, Calendar, Database } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 import { Card, CardContent, CardHeader } from "../components/ui/card"
@@ -16,6 +16,11 @@ interface ImportedMessage {
   timestamp?: string
 }
 
+interface IndexedChunk {
+  text: string;
+  metadata?: Record<string, unknown>;
+}
+
 interface SessionDetailProps {
   sessionId: string
   onBack: () => void
@@ -25,15 +30,112 @@ export default function SessionDetail({ sessionId, onBack }: SessionDetailProps)
   const [sessionData, setSessionData] = useState<Session | null>(null)
   const [jsonContent, setJsonContent] = useState("")
   const [activeTab, setActiveTab] = useState("chat")
+  const [jsonError, setJsonError] = useState<string | null>(null)
+  const [indexedChunks, setIndexedChunks] = useState<IndexedChunk[] | null>(null)
+  const [indexedLoading, setIndexedLoading] = useState(false)
+  const [indexedError, setIndexedError] = useState<string | null>(null)
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     const fetchSession = async () => {
       const session = await fetchSessionContent(sessionId)
       setSessionData(session)
     }
-
     fetchSession()
   }, [sessionId])
+
+  // Auto-export JSON when switching to JSON tab
+  useEffect(() => {
+    if (activeTab === "json" && sessionData) {
+      const jsonData = {
+        session: {
+          id: sessionData.id,
+          title: sessionData.title,
+          createdAt: sessionData.created_at,
+          indexed: sessionData.indexed,
+        },
+        messages: sessionData.history.map((msg, index) => ({
+          id: `m${index + 1}`,
+          ...msg,
+          timestamp: sessionData.created_at // Using created_at as timestamp for now
+        })),
+      }
+      setJsonContent(JSON.stringify(jsonData, null, 2))
+      setJsonError(null)
+    }
+  }, [activeTab, sessionData])
+
+  // Fetch indexed data when Indexed Data tab is selected
+  useEffect(() => {
+    if (activeTab === "indexed") {
+      setIndexedLoading(true)
+      setIndexedError(null)
+      setIndexedChunks(null)
+      fetch(`/api/chat/session/${sessionId}/indexed`)
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed to fetch indexed data")
+          const data = await res.json()
+          setIndexedChunks(data.chunks)
+        })
+        .catch((err) => {
+          setIndexedError(err.message || "Failed to fetch indexed data")
+        })
+        .finally(() => setIndexedLoading(false))
+    }
+  }, [activeTab, sessionId])
+
+  // Debounced auto-import as user edits JSON
+  useEffect(() => {
+    if (activeTab !== "json") return
+    if (!sessionData) return
+    if (!jsonContent) return
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current)
+    debounceTimeout.current = setTimeout(async () => {
+      try {
+        const parsed = JSON.parse(jsonContent)
+        if (parsed.messages && Array.isArray(parsed.messages)) {
+          // Only update if the new history is different
+          const newHistory = parsed.messages.map((msg: ImportedMessage) => ({
+            role: msg.role,
+            content: msg.content
+          }))
+          const currentHistory = sessionData.history.map((msg) => ({
+            role: msg.role,
+            content: msg.content
+          }))
+          if (JSON.stringify(newHistory) === JSON.stringify(currentHistory)) {
+            setJsonError(null)
+            return
+          }
+          const response = await fetch("/api/chat/session/update", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              session_id: sessionData.id,
+              history: newHistory
+            }),
+          })
+          if (!response.ok) {
+            setJsonError('Failed to import messages')
+            return
+          }
+          setSessionData({
+            ...sessionData,
+            history: newHistory
+          })
+          setJsonError(null)
+        }
+      } catch {
+        setJsonError("Invalid JSON format or import failed")
+      }
+    }, 500)
+    // Cleanup on unmount or content change
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current)
+    }
+  }, [jsonContent, activeTab, sessionData])
 
   if (!sessionData) {
     return (
@@ -54,57 +156,6 @@ export default function SessionDetail({ sessionId, onBack }: SessionDetailProps)
       hour: "2-digit",
       minute: "2-digit",
     })
-  }
-
-  const exportToJson = () => {
-    const jsonData = {
-      session: {
-        id: sessionData.id,
-        title: sessionData.title,
-        createdAt: sessionData.created_at,
-        indexed: sessionData.indexed,
-      },
-      messages: sessionData.history.map((msg, index) => ({
-        id: `m${index + 1}`,
-        ...msg,
-        timestamp: sessionData.created_at // Using created_at as timestamp for now
-      })),
-    }
-    setJsonContent(JSON.stringify(jsonData, null, 2))
-  }
-
-  const importFromJson = async () => {
-    try {
-      const parsed = JSON.parse(jsonContent)
-      if (parsed.messages && Array.isArray(parsed.messages)) {
-        const response = await fetch(`/api/chat/session/${sessionData.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            history: parsed.messages.map((msg: ImportedMessage) => ({
-              role: msg.role,
-              content: msg.content
-            }))
-          }),
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to import messages')
-        }
-
-        setSessionData({
-          ...sessionData,
-          history: parsed.messages.map((msg: ImportedMessage) => ({
-            role: msg.role,
-            content: msg.content
-          }))
-        })
-      }
-    } catch (err) {
-      console.error("Invalid JSON format or import failed", err)
-    }
   }
 
   return (
@@ -140,22 +191,25 @@ export default function SessionDetail({ sessionId, onBack }: SessionDetailProps)
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="chat">Chat History</TabsTrigger>
             <TabsTrigger value="json">JSON Editor</TabsTrigger>
+            <TabsTrigger value="indexed">Indexed Data</TabsTrigger>
           </TabsList>
 
           <TabsContent value="chat">
-            <EditableChatHistory 
-              messages={sessionData.history}
-              sessionId={sessionData.id}
-              onUpdate={(updatedHistory) => {
-                setSessionData(prev => prev ? {
-                  ...prev,
-                  history: updatedHistory
-                } : null)
-              }}
-            />
+            <Card className="p-4">
+              <EditableChatHistory 
+                messages={sessionData.history}
+                sessionId={sessionData.id}
+                onUpdate={(updatedHistory) => {
+                  setSessionData(prev => prev ? {
+                    ...prev,
+                    history: updatedHistory
+                  } : null)
+                }}
+              />
+            </Card>
           </TabsContent>
 
           <TabsContent value="json" className="space-y-4">
@@ -163,25 +217,49 @@ export default function SessionDetail({ sessionId, onBack }: SessionDetailProps)
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">JSON Editor</h3>
-                  <div className="space-x-2">
-                    <Button variant="outline" onClick={exportToJson}>
-                      <Code className="h-4 w-4 mr-2" />
-                      Export to JSON
-                    </Button>
-                    <Button onClick={importFromJson}>
-                      <Save className="h-4 w-4 mr-2" />
-                      Import from JSON
-                    </Button>
-                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <Textarea
                   value={jsonContent}
                   onChange={(e) => setJsonContent(e.target.value)}
-                  placeholder="Click 'Export to JSON' to see the current session data, or paste JSON here to import"
+                  placeholder="Session data in JSON format. Edit to update session."
                   className="min-h-96 font-mono text-sm"
                 />
+                {jsonError && (
+                  <div className="text-red-500 mt-2">{jsonError}</div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="indexed" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <h3 className="text-lg font-semibold">Indexed Data</h3>
+              </CardHeader>
+              <CardContent>
+                {indexedLoading && <div>Loading indexed data...</div>}
+                {indexedError && <div className="text-red-500">{indexedError}</div>}
+                {indexedChunks && indexedChunks.length === 0 && <div>No indexed data found for this session.</div>}
+                {indexedChunks && indexedChunks.length > 0 && (
+                  <div className="space-y-4">
+                    {[...indexedChunks]
+                      .sort((a, b) => {
+                        const aIdx = typeof a.metadata?.chunk_index === 'number' ? a.metadata.chunk_index : 0;
+                        const bIdx = typeof b.metadata?.chunk_index === 'number' ? b.metadata.chunk_index : 0;
+                        return aIdx - bIdx;
+                      })
+                      .map((chunk, idx) => (
+                        <div key={idx} className="p-3 border rounded bg-muted">
+                          <div className="font-mono text-sm whitespace-pre-wrap">{chunk.text}</div>
+                          {chunk.metadata && typeof chunk.metadata.chunk_index === 'number' && (
+                            <div className="text-xs text-gray-500 mt-1">Chunk #{(chunk.metadata.chunk_index as number) + 1}</div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

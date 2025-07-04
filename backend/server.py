@@ -534,5 +534,15 @@ async def get_session_index_status(session_id: str):
         logger.error(f"Error getting session index status: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": "Failed to get session index status"})
 
+@app.get("/api/chat/session/{session_id}/indexed")
+async def get_indexed_chunks(session_id: str):
+    try:
+        # Fetch all indexed chunks for the session
+        chunks = memory.query_by_session(session_id, limit=1000)
+        return JSONResponse(status_code=200, content={"chunks": chunks})
+    except Exception as e:
+        logger.error(f"Error getting indexed chunks for session {session_id}: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to get indexed chunks"})
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

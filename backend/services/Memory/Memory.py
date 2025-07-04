@@ -144,9 +144,12 @@ class Memory:
             
             result = []
             for item in search_result:
+                doc = ""
+                if isinstance(item.payload, dict):
+                    doc = item.payload.get("document", "")
                 result.append({
-                    "text": item.document,
-                    "metadata": item.metadata
+                    "text": doc,
+                    "metadata": item.payload if isinstance(item.payload, dict) else {}
                 })
             return result
         except Exception as e:
