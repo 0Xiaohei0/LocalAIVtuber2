@@ -3,14 +3,16 @@ import os
 import re
 import uuid
 from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import Filter, FieldCondition, MatchValue, Distance, VectorParams
 import time
 from ..lib.LAV_logger import logger
 import datetime
+from typing import List, Dict, Any, Optional
+from .ChatChunker import ChatChunker
 
 class Memory:
     MESSAGE_COLLECTION_NAME = "memory_collection"
-    SESSION_COLLECTION_NAME = "session_collection"
+    
     def __init__(self, temp = False):
         self.current_module_directory = os.path.dirname(__file__)
         self.data_path = os.path.join(self.current_module_directory, "data")
@@ -20,34 +22,90 @@ class Memory:
             self.client = QdrantClient(path=self.data_path)
         
         self.client.set_model("sentence-transformers/all-MiniLM-L6-v2")
-
     
-    def insert_message(self, message:str, role="", name="", session_id=""):
-        time_str = '{:%Y-%m-%d %H:%M:%S.%f}'.format(datetime.datetime.now())
-        # match = re.match(r"\[(.*?)\]\[(.*?)\]: (.*)", text)
-        docs = [f"[{time_str}][{role}:{name}]: {message}"]
-        metadata = [
-            {
-                "session_id": session_id,
-                "time": time_str,
-                "role": role,
-                "name": name,
-                "message": message
-            }
-        ]
-        ids = [str(uuid.uuid4())]
+    def check_collection_exists(self):
+        if not self.client.collection_exists(self.MESSAGE_COLLECTION_NAME):
+            logger.error(f"Collection {self.MESSAGE_COLLECTION_NAME} does not exist")
+            return False
+        return True
+
+
+    def insert_history(self, history: List[Dict[str, str]], session_id: str = "", 
+                      window_size: int = 3, stride: int = 1, format_style: str = "simple"):
+        """
+        Insert chat history into memory by chunking it first.
         
-        response = self.client.add(
-            collection_name=self.MESSAGE_COLLECTION_NAME,
-            documents=docs,
-            metadata=metadata,
-            ids=ids
-        )
-        logger.debug(f"Inserted document: {docs} with metadata: {metadata}")
-        return response
+        Args:
+            history: List of message dictionaries with 'role' and 'content' keys
+            session_id: Session identifier for the chunks
+            window_size: Number of messages per chunk
+            stride: Number of messages to move forward for each new chunk
+            format_style: How to format the messages ("simple", "detailed", "markdown")
+        """
+        if not history:
+            logger.warning("Empty history provided, nothing to insert")
+            return None
+            
+        try:
+            # Create chunks from the history
+            chunker = ChatChunker(window_size=window_size, stride=stride)
+            chunks = chunker.chunk_history(history, session_id, format_style, include_metadata=True)
+            
+            if not chunks:
+                logger.warning("No chunks created from history")
+                return None
+                
+            # Prepare data for insertion
+            documents = []
+            metadata_list = []
+            ids = []
+            time_str = '{:%Y-%m-%d %H:%M:%S.%f}'.format(datetime.datetime.now())
+            
+            for i, chunk in enumerate(chunks):
+                # Extract text from chunk
+                chunk_text = chunk.get("text", "")
+                if not chunk_text.strip():
+                    continue
+                    
+                # Create metadata for this chunk
+                chunk_metadata = {
+                    "session_id": session_id,
+                    "time": time_str,
+                    "chunk_index": i,
+                    "total_chunks": len(chunks)
+                }
+                
+                # Add chunk-specific metadata if available
+                if "metadata" in chunk:
+                    chunk_metadata.update(chunk["metadata"])
+                
+                documents.append(chunk_text)
+                metadata_list.append(chunk_metadata)
+                ids.append(str(uuid.uuid4()))
+            
+            if not documents:
+                logger.warning("No valid documents to insert after chunking")
+                return None
+                
+            # Insert all chunks into the vector database
+            response = self.client.add(
+                collection_name=self.MESSAGE_COLLECTION_NAME,
+                documents=documents,
+                metadata=metadata_list,
+                ids=ids
+            )
+            
+            logger.info(f"Inserted {len(documents)} chunks from {len(history)} messages for session {session_id}")
+            logger.debug(f"Chunks inserted with metadata: {metadata_list}")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error inserting history for session {session_id}: {e}")
+            return None
 
     def query(self, text, limit = 3)  -> list:
-        if not self.collection_exists(): return []
+        if not self.check_collection_exists(): return []
         search_result = self.client.query(
             collection_name=self.MESSAGE_COLLECTION_NAME,
             query_text = text,
@@ -60,167 +118,73 @@ class Memory:
         return result
 
     def get(self, limit = 50, offset = 0):
-        if not self.collection_exists(): return
-        self.collection_exists(self.MESSAGE_COLLECTION_NAME)
+        if not self.check_collection_exists(): return None
         return self.client.scroll(self.MESSAGE_COLLECTION_NAME,
                            limit=limit, 
                            offset=offset)[0]
-    
 
-    def upsert_session(self, session_id: str, title: str):
-        time_str = '{:%Y-%m-%d %H:%M:%S.%f}'.format(datetime.datetime.now())
-        title_point = [f"[{time_str}][session-title]: {title}"]
-        metadata = [{
-            "session_id": session_id,
-            "time": time_str,
-            "title": title
-        }]
-        filter_obj = Filter(
-                must=[
-                    FieldCondition(
-                        key="session_id",
-                        match=MatchValue(value=session_id)
-                    )
-                ]
-            )
-        existing_points = None
-        if self.client.collection_exists(self.SESSION_COLLECTION_NAME):
-            # Step 1: Try to find existing point with this session_id
-            existing_points = self.client.scroll(
-                collection_name=self.SESSION_COLLECTION_NAME,
-                scroll_filter=filter_obj,
-                limit=1
-            )
-
-        if existing_points and existing_points[0]:
-            existing_id = existing_points[0][0].id  # First point ID
-            ids = [existing_id]
-            logger.debug(f"Updating existing session with ID: {existing_id}")
-        else:
-            # No match found, insert new with a fresh UUID
-            ids = [str(uuid.uuid4())]
-            logger.debug(f"Inserting new session with session_id: {session_id}")
-
-        # Step 2: Add (insert or overwrite)
-        response = self.client.add(
-            collection_name=self.SESSION_COLLECTION_NAME,
-            documents=title_point,
-            metadata=metadata,
-            ids=ids
-        )
-
-        logger.debug(f"Upserted session title: {title_point} with metadata: {metadata}")
-        return response
-    
-    
-    def get_sessions(self, limit=100) -> list:
-        if not self.client.collection_exists(self.SESSION_COLLECTION_NAME): return []
-        all_sessions = []
-        offset = None
-
-        while True:
-            result, offset = self.client.scroll(
-                collection_name=self.SESSION_COLLECTION_NAME,
-                limit=500,
-                offset=offset,
-                with_payload=True
-            )
-            all_sessions.extend(result)
-            if offset is None:
-                break
-
-        # Convert and sort
-        session_data = []
-        for point in all_sessions:
-            metadata = point.payload
-            if not metadata:
-                continue
-            time_str = metadata.get("time")
-            session_id = metadata.get("session_id")
-            title = metadata.get("title", "Untitled")
-
-            if not time_str or not session_id:
-                continue
-
-            try:
-                timestamp = datetime.datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S.%f")
-            except:
-                continue
-
-            session_data.append({
-                "id": session_id,
-                "title": title,
-                "timestamp": timestamp
-            })
-
-        # Sort by time desc and return top N
-        sorted_sessions = sorted(session_data, key=lambda x: x["timestamp"], reverse=True)
-        return sorted_sessions[:limit]
-
-    def get_messages_by_session(self, session_id: str, limit: int = 1000) -> list:
-        if not self.collection_exists(): return []
+    def query_by_session(self, session_id: str, limit: int = 10) -> List[Dict]:
+        """Query memory for messages from a specific session."""
+        if not self.check_collection_exists():
+            return []
+        
         try:
-            filter_obj = Filter(
-                must=[
-                    FieldCondition(
-                        key="session_id",
-                        match=MatchValue(value=session_id)
-                    )
-                ]
-            )
-
-            results = self.client.scroll(
+            search_result = self.client.scroll(
                 collection_name=self.MESSAGE_COLLECTION_NAME,
-                scroll_filter=filter_obj,
-                limit=limit,
-                with_payload=True
+                scroll_filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="session_id",
+                            match=MatchValue(value=session_id)
+                        )
+                    ]
+                ),
+                limit=limit
             )[0]
+            
+            result = []
+            for item in search_result:
+                result.append({
+                    "text": item.document,
+                    "metadata": item.metadata
+                })
+            return result
         except Exception as e:
-            logger.error(f"Error retrieving messages for session {session_id}: {e}", exc_info=True)
+            logger.error(f"Error querying session {session_id}: {e}")
             return []
 
-        messages = []
-        for point in results:
-            payload = point.payload or point.metadata
-            messages.append({
-                "role": payload.get("role", ""),
-                "name": payload.get("name", ""),
-                "message": payload.get("message", ""),
-                "timestamp": payload.get("time", "")
-            })
-
-        messages.sort(key=lambda x: x["timestamp"])
-        return messages
-
-    def delete_session(self, session_id: str):
-        if not self.collection_exists(): return
-        filter_obj = Filter(
-                must=[
-                    FieldCondition(
-                        key="session_id",
-                        match=MatchValue(value=session_id)
-                    )
-                ]
-            )
-
-        self.client.delete(
-            collection_name=self.SESSION_COLLECTION_NAME,
-            points_selector=filter_obj
-        )
-
-        self.client.delete(
-            collection_name=self.MESSAGE_COLLECTION_NAME,
-            points_selector=filter_obj
-        )
-
-        return {
-            "status": "deleted",
-            "session_id": session_id,
-        }
-
-    def collection_exists(self):
-        return self.client.collection_exists(self.MESSAGE_COLLECTION_NAME) and self.client.collection_exists(self.SESSION_COLLECTION_NAME)
-
+    def delete_session_messages(self, session_id: str) -> bool:
+        """Delete all messages from a specific session."""
+        if not self.check_collection_exists():
+            return False
+        
+        try:
+            # Get all points for the session
+            points = self.client.scroll(
+                collection_name=self.MESSAGE_COLLECTION_NAME,
+                scroll_filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="session_id",
+                            match=MatchValue(value=session_id)
+                        )
+                    ]
+                ),
+                limit=1000  # Adjust as needed
+            )[0]
+            
+            if points:
+                point_ids = [point.id for point in points]
+                self.client.delete(
+                    collection_name=self.MESSAGE_COLLECTION_NAME,
+                    points_selector=point_ids
+                )
+                logger.info(f"Deleted {len(point_ids)} messages for session {session_id}")
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting session {session_id}: {e}")
+            return False
 
 if __name__ == "__main__":
     current_module_directory = os.path.dirname(__file__)

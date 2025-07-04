@@ -6,7 +6,7 @@ import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import SessionDetail from './session-detail';
-import { createNewSession, fetchSessions, deleteSession } from '@/lib/sessionManager';
+import { createNewSession, fetchSessions, deleteSession, indexSession, removeSessionIndex } from '@/lib/sessionManager';
 import { Session } from '@/lib/types';
 
 interface ChatSession {
@@ -18,6 +18,7 @@ interface ChatSession {
         content: string;
     }>;
     indexed?: boolean;
+    indexed_at?: string;
     messageCount?: number;
     lastActivity?: string;
 }
@@ -28,13 +29,15 @@ export default function SessionList() {
     const [indexedFilter, setIndexedFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+    const [indexingStates, setIndexingStates] = useState<Record<string, boolean>>({});
 
     const getSessions = async () => {
         const data = await fetchSessions();
          // Transform the data to include additional fields
          const transformedData = data.map((session: Session) => ({
             ...session,
-            indexed: false,
+            indexed: session.indexed || false,
+            indexed_at: session.indexed_at,
             messageCount: session.history?.length || 0,
             lastActivity: session.created_at // Using created_at as lastActivity for now
         }));
@@ -82,6 +85,38 @@ export default function SessionList() {
 
     const handleBackToList = () => {
         setSelectedSessionId(null);
+    };
+
+    const handleIndexSession = async (sessionId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIndexingStates(prev => ({ ...prev, [sessionId]: true }));
+        
+        try {
+            const success = await indexSession(sessionId);
+            if (success) {
+                await getSessions(); // Refresh the sessions list
+            }
+        } catch (error) {
+            console.error('Failed to index session:', error);
+        } finally {
+            setIndexingStates(prev => ({ ...prev, [sessionId]: false }));
+        }
+    };
+
+    const handleRemoveIndex = async (sessionId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIndexingStates(prev => ({ ...prev, [sessionId]: true }));
+        
+        try {
+            const success = await removeSessionIndex(sessionId);
+            if (success) {
+                await getSessions(); // Refresh the sessions list
+            }
+        } catch (error) {
+            console.error('Failed to remove session index:', error);
+        } finally {
+            setIndexingStates(prev => ({ ...prev, [sessionId]: false }));
+        }
     };
 
     if (selectedSessionId) {
@@ -164,15 +199,38 @@ export default function SessionList() {
                             className="relative hover:shadow-md transition-shadow cursor-pointer"
                             onClick={() => handleSessionClick(session.id)}
                         >
-                            <button 
-                                className="absolute top-2 right-4 hover:text-red-400"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteSession(session.id);
-                                }}
-                            >
-                                ×
-                            </button>
+                            <div className="absolute top-2 right-4 flex items-center gap-2">
+                                {session.indexed ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={indexingStates[session.id]}
+                                        onClick={(e) => handleRemoveIndex(session.id, e)}
+                                        className="text-xs"
+                                    >
+                                        {indexingStates[session.id] ? "Removing..." : "Remove Index"}
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={indexingStates[session.id]}
+                                        onClick={(e) => handleIndexSession(session.id, e)}
+                                        className="text-xs"
+                                    >
+                                        {indexingStates[session.id] ? "Indexing..." : "Index"}
+                                    </Button>
+                                )}
+                                <button 
+                                    className="hover:text-red-400"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteSession(session.id);
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            </div>
                             <CardHeader className="pb-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
@@ -187,6 +245,11 @@ export default function SessionList() {
                                 <div className="flex items-center justify-between text-sm">
                                     <div className="flex items-center space-x-4">
                                         <span>Created: {formatDate(session.created_at)}</span>
+                                        {session.indexed && session.indexed_at && (
+                                            <span className="text-green-600">
+                                                Indexed: {formatDate(session.indexed_at)}
+                                            </span>
+                                        )}
                                         {/* <span>Messages: {session.messageCount}</span> */}
                                     </div>
                                     <span>Last activity: {formatDate(session.lastActivity || session.created_at)}</span>

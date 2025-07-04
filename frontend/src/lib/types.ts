@@ -9,4 +9,5 @@ export interface Session {
     created_at: string
     history: HistoryItem[]
     indexed?: boolean
+    indexed_at?: string
   }

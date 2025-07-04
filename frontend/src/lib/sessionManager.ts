@@ -96,3 +96,63 @@ export const deleteSession = async (sessionId: string) => {
         console.error('Failed to delete session:', err);
     }
 };
+
+export const indexSession = async (sessionId: string, options?: {
+    window_size?: number;
+    stride?: number;
+    format_style?: string;
+}): Promise<boolean> => {
+    try {
+        const response = await fetch(`/api/chat/session/${sessionId}/index`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_id: sessionId,
+                window_size: options?.window_size || 3,
+                stride: options?.stride || 1,
+                format_style: options?.format_style || 'simple'
+            }),
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to index session');
+        }
+        
+        return true;
+    } catch (err) {
+        console.error('Failed to index session:', err);
+        return false;
+    }
+};
+
+export const removeSessionIndex = async (sessionId: string): Promise<boolean> => {
+    try {
+        const response = await fetch(`/api/chat/session/${sessionId}/index`, {
+            method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to remove session index');
+        }
+        
+        return true;
+    } catch (err) {
+        console.error('Failed to remove session index:', err);
+        return false;
+    }
+};
+
+export const getSessionIndexStatus = async (sessionId: string) => {
+    try {
+        const response = await fetch(`/api/chat/session/${sessionId}/index/status`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to get session index status');
+        }
+        
+        return await response.json();
+    } catch (err) {
+        console.error('Failed to get session index status:', err);
+        return null;
+    }
+};

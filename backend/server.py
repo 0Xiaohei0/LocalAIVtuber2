@@ -26,7 +26,7 @@ app.mount("/resource", StaticFiles(directory="../frontend/dist/resource"), name=
 start_time = time.time()
 voice_input:VoiceInput = VoiceInput()
 llm:LLM = LLM()
-# memory:Memory = Memory()
+memory:Memory = Memory()
 history_store:HistoryStore = HistoryStore()
 tts:TTS = TTS()
 
@@ -446,6 +446,93 @@ async def delete_chat_session(session_id: str):
     except Exception as e:
         logger.error(f"Error deleting chat session: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": "Failed to delete chat session"})
+
+# *******************************
+# Session Indexing API
+# *******************************
+
+class IndexSessionRequest(BaseModel):
+    session_id: str
+    window_size: int = 3
+    stride: int = 1
+    format_style: str = "simple"
+
+@app.post("/api/chat/session/{session_id}/index")
+async def index_chat_session(session_id: str, request: IndexSessionRequest):
+    try:
+        # Get the session history
+        session = history_store.get_session_history(session_id)
+        if not session:
+            return JSONResponse(status_code=404, content={"error": "Session not found"})
+        
+        history = session.get("history", [])
+        if not history:
+            return JSONResponse(status_code=400, content={"error": "Session has no history to index"})
+        
+        # Insert the history into memory using the new chunking functionality
+        response = memory.insert_history(
+            history=history,
+            session_id=session_id,
+            window_size=request.window_size,
+            stride=request.stride,
+            format_style=request.format_style
+        )
+        
+        if response is None:
+            return JSONResponse(status_code=500, content={"error": "Failed to index session"})
+        
+        # Mark the session as indexed
+        history_store.mark_session_indexed(session_id, True)
+        
+        return JSONResponse(status_code=200, content={
+            "message": "Session indexed successfully",
+            "chunks_created": len(history) // request.window_size + 1 if len(history) > 0 else 0
+        })
+        
+    except Exception as e:
+        logger.error(f"Error indexing chat session: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to index chat session"})
+
+@app.delete("/api/chat/session/{session_id}/index")
+async def remove_session_index(session_id: str):
+    try:
+        # Check if session exists
+        session = history_store.get_session_history(session_id)
+        if not session:
+            return JSONResponse(status_code=404, content={"error": "Session not found"})
+        
+        # Remove all messages for this session from memory
+        success = memory.delete_session_messages(session_id)
+        
+        if not success:
+            return JSONResponse(status_code=500, content={"error": "Failed to remove session from memory"})
+        
+        # Mark the session as not indexed
+        history_store.mark_session_indexed(session_id, False)
+        
+        return JSONResponse(status_code=200, content={"message": "Session index removed successfully"})
+        
+    except Exception as e:
+        logger.error(f"Error removing session index: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to remove session index"})
+
+@app.get("/api/chat/session/{session_id}/index/status")
+async def get_session_index_status(session_id: str):
+    try:
+        session = history_store.get_session_history(session_id)
+        if not session:
+            return JSONResponse(status_code=404, content={"error": "Session not found"})
+        
+        return JSONResponse(status_code=200, content={
+            "session_id": session_id,
+            "indexed": session.get("indexed", False),
+            "indexed_at": session.get("indexed_at"),
+            "message_count": len(session.get("history", []))
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting session index status: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to get session index status"})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -39,7 +39,9 @@ class HistoryStore:
             "id": session_id,
             "title": title,
             "created_at": datetime.now().isoformat(),
-            "history": []
+            "history": [],
+            "indexed": False,
+            "indexed_at": None
         }
         
         session_path = self._get_session_path(session_id)
@@ -102,12 +104,40 @@ class HistoryStore:
         except (json.JSONDecodeError, IOError):
             return False
 
+    def mark_session_indexed(self, session_id: str, indexed: bool = True) -> bool:
+        """
+        Mark a session as indexed or not indexed.
+        
+        Args:
+            session_id (str): ID of the session to update
+            indexed (bool): Whether the session is indexed
+            
+        Returns:
+            bool: True if update was successful, False if session doesn't exist
+        """
+        session_path = self._get_session_path(session_id)
+        if not os.path.exists(session_path):
+            return False
+            
+        try:
+            with open(session_path, 'r', encoding='utf-8') as f:
+                session_data = json.load(f)
+            
+            session_data["indexed"] = indexed
+            session_data["indexed_at"] = datetime.now().isoformat() if indexed else None
+            
+            with open(session_path, 'w', encoding='utf-8') as f:
+                json.dump(session_data, f, ensure_ascii=False, indent=2)
+            return True
+        except (json.JSONDecodeError, IOError):
+            return False
+
     def get_session_list(self) -> List[Dict[str, Any]]:
         """
         Get a list of all chat sessions with their metadata.
         
         Returns:
-            List[Dict[str, Any]]: List of session information (id, title, creation time)
+            List[Dict[str, Any]]: List of session information (id, title, creation time, indexed status)
         """
         sessions = []
         for filename in os.listdir(self.sessions_dir):
@@ -119,7 +149,10 @@ class HistoryStore:
                         sessions.append({
                             "id": session_data["id"],
                             "title": session_data["title"],
-                            "created_at": session_data["created_at"]
+                            "created_at": session_data["created_at"],
+                            "indexed": session_data.get("indexed", False),
+                            "indexed_at": session_data.get("indexed_at"),
+                            "history": session_data.get("history", [])
                         })
                 except (json.JSONDecodeError, IOError):
                     continue
