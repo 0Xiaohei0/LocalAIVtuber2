@@ -189,6 +189,20 @@ class Memory:
             logger.error(f"Error deleting session {session_id}: {e}")
             return False
 
+    def delete_all_messages(self) -> bool:
+        """Delete all messages from the memory collection."""
+        if not self.check_collection_exists():
+            return False
+        
+        try:
+            # Delete the entire collection and recreate it
+            self.client.delete_collection(self.MESSAGE_COLLECTION_NAME)
+            logger.info(f"Deleted entire collection: {self.MESSAGE_COLLECTION_NAME}")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting all messages: {e}")
+            return False
+
 if __name__ == "__main__":
     current_module_directory = os.path.dirname(__file__)
     import time

@@ -156,3 +156,37 @@ export const getSessionIndexStatus = async (sessionId: string) => {
         return null;
     }
 };
+
+export const reindexAllSessions = async (): Promise<{
+    success: boolean;
+    message: string;
+    reindexed_count?: number;
+    failed_sessions?: string[];
+    total_sessions?: number;
+}> => {
+    try {
+        const response = await fetch('/api/chat/reindex-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to reindex all sessions');
+        }
+        
+        const data = await response.json();
+        return {
+            success: true,
+            message: data.message,
+            reindexed_count: data.reindexed_count,
+            failed_sessions: data.failed_sessions,
+            total_sessions: data.total_sessions
+        };
+    } catch (err) {
+        console.error('Failed to reindex all sessions:', err);
+        return {
+            success: false,
+            message: 'Failed to reindex all sessions'
+        };
+    }
+};

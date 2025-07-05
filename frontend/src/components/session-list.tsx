@@ -6,7 +6,7 @@ import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import SessionDetail from './session-detail';
-import { createNewSession, fetchSessions, deleteSession, indexSession, removeSessionIndex } from '@/lib/sessionManager';
+import { createNewSession, fetchSessions, deleteSession, indexSession, removeSessionIndex, reindexAllSessions } from '@/lib/sessionManager';
 import { Session } from '@/lib/types';
 
 interface ChatSession {
@@ -30,6 +30,7 @@ export default function SessionList() {
     const [sortBy, setSortBy] = useState("newest");
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [indexingStates, setIndexingStates] = useState<Record<string, boolean>>({});
+    const [isReindexingAll, setIsReindexingAll] = useState(false);
 
     const getSessions = async () => {
         const data = await fetchSessions();
@@ -119,6 +120,25 @@ export default function SessionList() {
         }
     };
 
+    const handleReindexAll = async () => {
+        setIsReindexingAll(true);
+        
+        try {
+            const result = await reindexAllSessions();
+            if (result.success) {
+                await getSessions(); // Refresh the sessions list
+                alert(`Reindexing completed! ${result.reindexed_count} sessions reindexed out of ${result.total_sessions} total sessions.`);
+            } else {
+                alert('Failed to reindex all sessions: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Failed to reindex all sessions:', error);
+            alert('Failed to reindex all sessions');
+        } finally {
+            setIsReindexingAll(false);
+        }
+    };
+
     if (selectedSessionId) {
         return (
             <SessionDetail 
@@ -187,6 +207,16 @@ export default function SessionList() {
                         >
                             <Plus className="w-4 h-4" />
                             New Chat
+                        </Button>
+
+                        <Button 
+                            onClick={handleReindexAll}
+                            disabled={isReindexingAll}
+                            variant="outline"
+                            className="flex items-center gap-2"
+                        >
+                            <Database className="w-4 h-4" />
+                            {isReindexingAll ? "Reindexing..." : "Reindex All"}
                         </Button>
                     </div>
                 </div>

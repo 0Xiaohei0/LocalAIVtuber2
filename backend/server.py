@@ -472,6 +472,63 @@ async def get_indexed_chunks(session_id: str):
         logger.error(f"Error getting indexed chunks for session {session_id}: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": "Failed to get indexed chunks"})
 
+@app.post("/api/chat/reindex-all")
+async def reindex_all_sessions():
+    try:
+        # Get all sessions
+        sessions = history_store.get_session_list()
+        if not sessions:
+            return JSONResponse(status_code=200, content={"message": "No sessions to reindex"})
+        
+        # Delete all existing indexes
+        success = memory.delete_all_messages()
+        if not success:
+            return JSONResponse(status_code=500, content={"error": "Failed to delete existing indexes"})
+        
+        # Mark all sessions as not indexed
+        for session in sessions:
+            history_store.mark_session_indexed(session["id"], False)
+        
+        # Reindex all sessions with history
+        reindexed_count = 0
+        failed_sessions = []
+        
+        for session in sessions:
+            try:
+                session_data = history_store.get_session_history(session["id"])
+                if session_data and session_data.get("history"):
+                    # Insert the history into memory
+                    response = memory.insert_history(
+                        history=session_data["history"],
+                        session_id=session["id"],
+                        window_size=3,
+                        stride=1,
+                        format_style="simple"
+                    )
+                    
+                    if response is not None:
+                        # Mark the session as indexed
+                        history_store.mark_session_indexed(session["id"], True)
+                        reindexed_count += 1
+                    else:
+                        failed_sessions.append(session["id"])
+                else:
+                    failed_sessions.append(session["id"])
+            except Exception as e:
+                logger.error(f"Error reindexing session {session['id']}: {e}")
+                failed_sessions.append(session["id"])
+        
+        return JSONResponse(status_code=200, content={
+            "message": "Reindexing completed",
+            "reindexed_count": reindexed_count,
+            "failed_sessions": failed_sessions,
+            "total_sessions": len(sessions)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error reindexing all sessions: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to reindex all sessions"})
+
 # *******************************
 # Memory - Context Query API
 # *******************************
