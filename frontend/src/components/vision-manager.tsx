@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Loader2, Camera, FileText, Image as ImageIcon, AlertCircle, CheckCircle, Monitor } from 'lucide-react';
+import { Panel } from './panel';
+import { chatManager } from '@/lib/chatManager';
 
 interface MonitorInfo {
   index: number;
@@ -76,6 +78,8 @@ export function VisionManager({ className }: VisionManagerProps) {
 
       if (data.success) {
         setResponse(data);
+        chatManager.setVisionPrompt(data.caption);
+        chatManager.setOcrPrompt(data.extracted_text);
       } else {
         setError(data.error || 'Failed to capture screenshot');
       }
@@ -91,18 +95,9 @@ export function VisionManager({ className }: VisionManagerProps) {
   };
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Camera className="h-5 w-5" />
-            Vision Manager
-          </CardTitle>
-          <CardDescription>
-            Capture screenshots and analyze content with OCR and image captioning
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="max-w-4xl mx-auto flex flex-col gap-4">
+      <Panel>
+        <div className="space-y-4">
           {/* Monitor Selection */}
           <div className="space-y-2">
             <label className="text-sm font-medium flex items-center gap-2">
@@ -149,25 +144,25 @@ export function VisionManager({ className }: VisionManagerProps) {
               </>
             )}
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </Panel>
 
       {error && (
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
+        <Panel className="border-destructive">
+          <div className="pt-6">
             <div className="flex items-center gap-2 text-destructive">
               <AlertCircle className="h-4 w-4" />
               <span className="font-medium">Error</span>
             </div>
             <p className="mt-2 text-sm text-destructive">{error}</p>
-          </CardContent>
-        </Card>
+          </div>
+        </Panel>
       )}
 
       {response && (
-        <div className="space-y-6">
+        <div className={`space-y-6 ${className}`}>
           {/* Screenshot Image */}
-          <Card>
+          <Panel>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ImageIcon className="h-5 w-5" />
@@ -186,11 +181,11 @@ export function VisionManager({ className }: VisionManagerProps) {
                 </Badge>
               </div>
             </CardContent>
-          </Card>
+          </Panel>
 
           {/* Image Caption */}
           {response.caption && (
-            <Card>
+            <Panel>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
@@ -200,12 +195,12 @@ export function VisionManager({ className }: VisionManagerProps) {
               <CardContent>
                 <p className="text-sm leading-relaxed">{response.caption}</p>
               </CardContent>
-            </Card>
+            </Panel>
           )}
 
           {/* Extracted Text */}
           {response.extracted_text && (
-            <Card>
+            <Panel>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
@@ -243,15 +238,15 @@ export function VisionManager({ className }: VisionManagerProps) {
                   )}
                 </div>
               </CardContent>
-            </Card>
+            </Panel>
           )}
 
           {/* Response Metadata */}
-          <Card>
+          <Panel>
             <CardHeader>
               <CardTitle>Response Details</CardTitle>
             </CardHeader>
-            <CardContent>
+            <div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="font-medium">Status:</span>
@@ -272,8 +267,8 @@ export function VisionManager({ className }: VisionManagerProps) {
                   <span className="ml-2">{response.extracted_text ? 'Yes' : 'No'}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Panel>
         </div>
       )}
     </div>

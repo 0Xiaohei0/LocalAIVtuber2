@@ -18,6 +18,7 @@ import time
 from datetime import datetime
 import json
 from typing import Any, Dict, List
+import mss
 
 app = FastAPI()
 static_files_path = os.path.abspath("../frontend/dist")
@@ -83,37 +84,32 @@ async def get_monitor_info():
     Get information about available monitors.
     """
     try:
-        import mss
-        with mss.mss() as sct:
-            monitors = sct.monitors
+        monitors = vision_input.get_monitors()
+        logger.info(f"Monitors Server: {monitors}")
             
-            monitor_info = []
-            for i, monitor in enumerate(monitors):
-                # Determine if this is likely the primary monitor
-                # Primary monitor usually has left=0 and top=0 or is the first actual monitor
-                is_primary = (i == 1) or (monitor["left"] == 0 and monitor["top"] == 0)
-                
-                # Check for negative coordinates (positioned to the left/top of primary)
-                has_negative_coords = monitor["left"] < 0 or monitor["top"] < 0
-                
-                monitor_info.append({
-                    "index": i,
-                    "width": monitor["width"],
-                    "height": monitor["height"],
-                    "top": monitor["top"],
-                    "left": monitor["left"],
-                    "is_primary": is_primary,
-                    "has_negative_coords": has_negative_coords,
-                    "description": f"Monitor {i} ({monitor['width']}x{monitor['height']}) at ({monitor['left']}, {monitor['top']})"
-                })
+        monitor_info = []
+        for i, monitor in enumerate(monitors):
+            # Determine if this is likely the primary monitor
+            # Primary monitor usually has left=0 and top=0 or is the first actual monitor
+            is_primary = (monitor["left"] == 0 and monitor["top"] == 0)
             
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "monitors": monitor_info,
-                    "count": len(monitors)
-                }
-            )
+            monitor_info.append({
+                "index": i,
+                "width": monitor["width"],
+                "height": monitor["height"],
+                "top": monitor["top"],
+                "left": monitor["left"],
+                "is_primary": is_primary,
+                "description": f"Monitor {i} ({monitor['width']}x{monitor['height']}) at ({monitor['left']}, {monitor['top']})"
+            })
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "monitors": monitor_info,
+                "count": len(monitors)
+            }
+        )
     except Exception as e:
         logger.error(f"Error getting monitor info: {e}", exc_info=True)
         return JSONResponse(

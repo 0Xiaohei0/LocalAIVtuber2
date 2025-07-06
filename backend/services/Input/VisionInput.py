@@ -8,6 +8,7 @@ import numpy as np
 from typing import List, Tuple, Dict, Optional
 from ..lib.LAV_logger import logger
 import json
+import traceback
 
 class VisionInput:
     """
@@ -44,6 +45,21 @@ class VisionInput:
             self.logger.error(f"Failed to initialize image captioning model: {e}")
             self.processor = None
             self.model = None
+
+    def get_monitors(self) -> List[Dict]:
+        """
+        Get current monitor information for debugging.
+        
+        Returns:
+            List of monitor dictionaries
+        """
+        try:
+            with mss.mss() as sct:
+                monitors = sct.monitors
+                return monitors
+        except Exception as e:
+            self.logger.error(f"Failed to get monitors: {e}, {traceback.format_exc()}")
+            return []
     
     def capture_screenshot(self, monitor_index: int = 1, save_path: Optional[str] = None) -> Optional[Image.Image]:
         """
@@ -240,6 +256,8 @@ class VisionInput:
 if __name__ == "__main__":
     # Initialize vision input
     vision_input = VisionInput()
+    monitors = vision_input.get_monitors()
+    print(f"Monitors: {monitors}")
     
     # Process screen
     result = vision_input.process_screen(

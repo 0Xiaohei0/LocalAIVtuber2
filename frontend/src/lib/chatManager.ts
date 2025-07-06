@@ -10,6 +10,8 @@ export class ChatManager {
     private sessionId: string | null = null;
     private abortController: AbortController | null = null;
     private systemPrompt: string = '';
+    private visionPrompt: string = '';
+    private ocrPrompt: string = '';
     private subscribers: Set<ChatUpdateCallback> = new Set();
 
     constructor() {
@@ -27,6 +29,14 @@ export class ChatManager {
 
     public setSystemPrompt(systemPrompt: string) {
         this.systemPrompt = systemPrompt;
+    }
+
+    public setVisionPrompt(visionPrompt: string) {
+        this.visionPrompt = visionPrompt;
+    }
+
+    public setOcrPrompt(ocrPrompt: string) {
+        this.ocrPrompt = ocrPrompt;
     }
 
     private setupPipelineSubscription() {
@@ -92,14 +102,18 @@ export class ChatManager {
 
             // Prepend context to systemPrompt if available
             let systemPromptWithContext = this.systemPrompt;
-            if (contextText) {
-                systemPromptWithContext = `Relevant context from memory:\n${contextText}\n\n` + this.systemPrompt;
+            const visionSection = this.visionPrompt.trim() ? `The user is currently looking at: ${this.visionPrompt}\n\n` : '';
+            const ocrSection = this.ocrPrompt.trim() ? `The text extracted from the screen is: ${this.ocrPrompt}\n\n` : '';
+            const contextSection = contextText.trim() ? `Relevant context from memory:\n${contextText}\n\n` : '';
+            
+            if (visionSection || ocrSection || contextSection) {
+                systemPromptWithContext = visionSection + ocrSection + contextSection + this.systemPrompt;
             }
 
             console.log("getCompletion", JSON.stringify({
                 text: input,
                 history: history,
-                systemPrompt: systemPromptWithContext
+                systemPrompt: systemPromptWithContext,
             }));
             const response = await fetch('/api/completion', {
                 method: 'POST',
