@@ -1,6 +1,8 @@
 import asyncio
+import traceback
 from services.ChatFetch.Chatfetch import ChatFetch
 from services.Input.Input import VoiceInput
+from services.Input.VisionInput import VisionInput
 from services.TTS.TTS import TTS
 from services.Memory.Memory import Memory
 from services.Memory.HistoryStore import HistoryStore
@@ -29,6 +31,7 @@ llm:LLM = LLM()
 memory:Memory = Memory()
 history_store:HistoryStore = HistoryStore()
 tts:TTS = TTS()
+vision_input:VisionInput = VisionInput()
 
 clients = set()
 
@@ -73,6 +76,115 @@ async def websocket_audio(websocket: WebSocket):
             await websocket.close()
         except RuntimeError:
             pass  # Already closed
+
+@app.get("/api/monitors")
+async def get_monitor_info():
+    """
+    Get information about available monitors.
+    """
+    try:
+        import mss
+        with mss.mss() as sct:
+            monitors = sct.monitors
+            
+            monitor_info = []
+            for i, monitor in enumerate(monitors):
+                # Determine if this is likely the primary monitor
+                # Primary monitor usually has left=0 and top=0 or is the first actual monitor
+                is_primary = (i == 1) or (monitor["left"] == 0 and monitor["top"] == 0)
+                
+                # Check for negative coordinates (positioned to the left/top of primary)
+                has_negative_coords = monitor["left"] < 0 or monitor["top"] < 0
+                
+                monitor_info.append({
+                    "index": i,
+                    "width": monitor["width"],
+                    "height": monitor["height"],
+                    "top": monitor["top"],
+                    "left": monitor["left"],
+                    "is_primary": is_primary,
+                    "has_negative_coords": has_negative_coords,
+                    "description": f"Monitor {i} ({monitor['width']}x{monitor['height']}) at ({monitor['left']}, {monitor['top']})"
+                })
+            
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "monitors": monitor_info,
+                    "count": len(monitors)
+                }
+            )
+    except Exception as e:
+        logger.error(f"Error getting monitor info: {e}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to get monitor info: {str(e)}"}
+        )
+
+@app.get("/api/screenshot")
+async def get_screenshot(monitor_index: int = 1):
+    """
+    Capture a screenshot and return the image, caption, and extracted text.
+    """
+    try:
+        logger.info(f"Screenshot request for monitor index: {monitor_index}")
+        
+        # Process screen (capture screenshot, perform OCR, generate caption)
+        result = vision_input.process_screen(
+            monitor_index=monitor_index,
+            save_screenshot=False,
+            confidence_threshold=0.5
+        )
+        
+        if not result['success']:
+            return JSONResponse(
+                status_code=500, 
+                content={"error": "Failed to capture screenshot"}
+            )
+        
+        # Convert screenshot to base64 for JSON response
+        import io
+        import base64
+        img_byte_arr = io.BytesIO()
+        result['screenshot'].save(img_byte_arr, format='PNG')
+        img_byte_arr.seek(0)
+        image_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+        
+        # Extract all detected text
+        detected_text = vision_input.get_detected_text(result['ocr_results'])
+        
+        # Convert numpy types to native Python types for JSON serialization
+        def convert_numpy_types(obj):
+            if hasattr(obj, 'item'):  # numpy scalar
+                return obj.item()
+            elif isinstance(obj, (list, tuple)):
+                return [convert_numpy_types(item) for item in obj]
+            elif isinstance(obj, dict):
+                return {key: convert_numpy_types(value) for key, value in obj.items()}
+            return obj
+        
+        # Convert OCR results to ensure JSON serialization
+        converted_ocr_results = convert_numpy_types(result['ocr_results'])
+        
+        # Return JSON response with all data
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "image": image_base64,
+                "caption": result['caption'] or "",
+                "extracted_text": detected_text,
+                "ocr_count": len(result['ocr_results']),
+                "ocr_results": converted_ocr_results  # Converted OCR data
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error capturing screenshot: {e}, {traceback.format_exc()}")
+        return JSONResponse(
+            status_code=500, 
+            content={"error": f"Failed to capture screenshot: {str(e)}"}
+        )
 
 # *******************************
 # StreamChat

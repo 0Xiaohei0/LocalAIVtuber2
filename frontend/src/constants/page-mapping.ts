@@ -4,9 +4,10 @@ import PipelineMonitorPage from "@/pages/pipelineMonitorPage"
 import SettingsPage from "@/pages/settingsPage"
 import TTSPage from "@/pages/ttsPage"
 import CharacterPage from "@/pages/characterPage"
-import { MessageCircleCode, Mic, Speech, SquareActivity, Settings, User, Airplay, Database } from "lucide-react"
+import { MessageCircleCode, Mic, Speech, SquareActivity, Settings, User, Airplay, Database, Eye } from "lucide-react"
 import StreamPage from "@/pages/streamPage"
 import MemoryPage from "@/pages/memoryPage"
+import VisionPage from "@/pages/visionPage"
 
 
 const pageMapping = {
@@ -14,6 +15,11 @@ const pageMapping = {
         page: InputPage,
         icon: Mic,
         title: "Input"
+    },
+    "vision": {
+        page: VisionPage,
+        icon: Eye,
+        title: "Vision"
     },
     "llm": {
         page: LLMPage,
