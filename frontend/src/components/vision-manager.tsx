@@ -7,6 +7,7 @@ import { Input } from './ui/input';
 import { Loader2, Camera, FileText, Image as ImageIcon, AlertCircle, CheckCircle, Monitor, Zap, Play, Pause, Clock } from 'lucide-react';
 import { Panel } from './panel';
 import { chatManager } from '@/lib/chatManager';
+import { SidePanel } from './side-panel';
 
 interface MonitorInfo {
   index: number;
@@ -45,7 +46,7 @@ export function VisionManager({ className }: VisionManagerProps) {
   const [loadingMonitors, setLoadingMonitors] = useState(true);
   const [ocrScaleFactor, setOcrScaleFactor] = useState<number>(1);
   const [autoCapture, setAutoCapture] = useState(false);
-  const [captureDelay, setCaptureDelay] = useState<number>(5);
+  const [captureDelay, setCaptureDelay] = useState<number>(0);
   const [requestDuration, setRequestDuration] = useState<number | null>(null);
   const [intervalId, setIntervalId] = useState<number | null>(null);
 
@@ -55,7 +56,7 @@ export function VisionManager({ className }: VisionManagerProps) {
       try {
         const res = await fetch('/api/monitors');
         const data = await res.json();
-        
+
         if (data.monitors) {
           setMonitors(data.monitors);
           // Set primary monitor as default
@@ -81,7 +82,7 @@ export function VisionManager({ className }: VisionManagerProps) {
         captureScreenshot();
       }, captureDelay * 1000);
       setIntervalId(id);
-      
+
       return () => {
         if (id) {
           clearInterval(id);
@@ -105,9 +106,6 @@ export function VisionManager({ className }: VisionManagerProps) {
   const captureScreenshot = async () => {
     const startTime = Date.now();
     setLoading(true);
-    setError(null);
-    setResponse(null);
-    setRequestDuration(null);
 
     try {
       const res = await fetch(`/api/screenshot?monitor_index=${selectedMonitor}&ocr_scale_factor=${ocrScaleFactor}`);
@@ -133,15 +131,11 @@ export function VisionManager({ className }: VisionManagerProps) {
     setAutoCapture(!autoCapture);
   };
 
-  const formatConfidence = (confidence: number) => {
-    return `${(confidence * 100).toFixed(1)}%`;
-  };
-
   // Calculate scaled resolution based on selected monitor and scale factor
   const getScaledResolution = () => {
     const selectedMonitorInfo = monitors.find(m => m.index === selectedMonitor);
     if (!selectedMonitorInfo) return null;
-    
+
     return {
       width: Math.round(selectedMonitorInfo.width * ocrScaleFactor),
       height: Math.round(selectedMonitorInfo.height * ocrScaleFactor)
@@ -151,11 +145,11 @@ export function VisionManager({ className }: VisionManagerProps) {
   const scaledResolution = getScaledResolution();
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-4">
-      <Panel>
-        <div className="space-y-4">
+    <div className="relative overflow-hidden h-screen">
+      <div>
+        <SidePanel isOpen={true}>
           {/* Monitor Selection */}
-          <div className="space-y-2">
+          <div className="space-y-2 w-full overflow-hidden">
             <label className="text-sm font-medium flex items-center gap-2">
               <Monitor className="h-4 w-4" />
               Select Monitor
@@ -167,7 +161,7 @@ export function VisionManager({ className }: VisionManagerProps) {
               </div>
             ) : (
               <Select value={selectedMonitor.toString()} onValueChange={(value) => setSelectedMonitor(parseInt(value))}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a monitor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -220,10 +214,11 @@ export function VisionManager({ className }: VisionManagerProps) {
               <span className="text-sm text-muted-foreground">Delay:</span>
               <Input
                 type="number"
-                min="1"
-                max="300"
+                min="0"
+                max="1000"
+                step="0.1"
                 value={captureDelay}
-                onChange={(e) => setCaptureDelay(parseInt(e.target.value) || 5)}
+                onChange={(e) => setCaptureDelay(parseInt(e.target.value) || 0)}
                 className="w-16"
                 disabled={autoCapture}
               />
@@ -233,201 +228,209 @@ export function VisionManager({ className }: VisionManagerProps) {
               <p>Time to wait after each screenshot before taking the next one</p>
             </div>
           </div>
+        </SidePanel>
+      </div>
+      <div className="max-w-4xl mx-auto flex flex-col gap-4 pt-4">
+        <Panel>
+          <div className="space-y-4">
 
-          {/* Capture Buttons */}
-          <div className="flex gap-2">
-            <Button 
-              onClick={captureScreenshot} 
-              disabled={loading || loadingMonitors || autoCapture}
-              className="flex-1"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Capturing...
-                </>
-              ) : (
-                <>
-                  <Camera className="mr-2 h-4 w-4" />
-                  Capture Screenshot
-                </>
-              )}
-            </Button>
-            
-            <Button 
-              onClick={toggleAutoCapture}
-              disabled={loading || loadingMonitors}
-              variant={autoCapture ? "destructive" : "secondary"}
-            >
-              {autoCapture ? (
-                <>
-                  <Pause className="mr-2 h-4 w-4" />
-                  Stop Auto
-                </>
-              ) : (
-                <>
-                  <Play className="mr-2 h-4 w-4" />
-                  Start Auto
-                </>
-              )}
-            </Button>
-          </div>
 
-          {autoCapture && (
-            <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-              <p>Auto-capture is running. Taking screenshots every {captureDelay} seconds.</p>
+            {/* Capture Buttons */}
+            <div className="flex gap-2">
+              <Button
+                onClick={captureScreenshot}
+                disabled={loading || loadingMonitors || autoCapture}
+                className="flex-1"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Capturing...
+                  </>
+                ) : (
+                  <>
+                    <Camera className="mr-2 h-4 w-4" />
+                    Capture Screenshot
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={toggleAutoCapture}
+                variant={autoCapture ? "destructive" : "secondary"}
+              >
+                {autoCapture ? (
+                  <>
+                    <Pause className="mr-2 h-4 w-4" />
+                    Stop Auto
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Start Auto
+                  </>
+                )}
+              </Button>
             </div>
-          )}
-        </div>
-      </Panel>
 
-      {error && (
-        <Panel className="border-destructive">
-          <div className="pt-6">
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              <span className="font-medium">Error</span>
-            </div>
-            <p className="mt-2 text-sm text-destructive">{error}</p>
+            {autoCapture && (
+              <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                <p>Auto-capture is running. Taking screenshots every {captureDelay} seconds.</p>
+              </div>
+            )}
           </div>
         </Panel>
-      )}
 
-      {response && (
-        <div className={`space-y-6 ${className}`}>
-          {/* Screenshot Image */}
-          <Panel>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ImageIcon className="h-5 w-5" />
-                Screenshot
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="relative">
-                <img
-                  src={`data:image/png;base64,${response.image}`}
-                  alt="Screenshot"
-                  className="w-full max-w-full rounded-lg border shadow-sm"
-                />
-                <Badge className="absolute top-2 right-2 bg-black/70 text-white">
-                  {response.ocr_count} text regions
-                </Badge>
+        <Panel className="overflow-y-scroll scrollbar-hide h-[80vh]">
+          {error && (
+            <Panel className="border-destructive">
+              <div className="pt-6">
+                <div className="flex items-center gap-2 text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="font-medium">Error</span>
+                </div>
+                <p className="mt-2 text-sm text-destructive">{error}</p>
               </div>
-            </CardContent>
-          </Panel>
-
-          {/* Image Caption */}
-          {response.caption && (
-            <Panel>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Image Caption
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm leading-relaxed">{response.caption}</p>
-              </CardContent>
             </Panel>
           )}
 
-          {/* Extracted Text */}
-          {response.extracted_text && (
-            <Panel>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Extracted Text
-                </CardTitle>
-                <CardDescription>
-                  {response.ocr_count} text regions detected
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="rounded-lg bg-muted p-3">
-                    <p className="text-sm whitespace-pre-wrap">{response.extracted_text}</p>
+          {response && (
+            <div className={`space-y-6 ${className}`}>
+              {/* Screenshot Image */}
+              <div>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5" />
+                    Screenshot
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative">
+                    <img
+                      src={`data:image/png;base64,${response.image}`}
+                      alt="Screenshot"
+                      className="w-full max-w-full rounded-lg border shadow-sm"
+                    />
+                    <Badge className="absolute top-2 right-2 bg-black/70 text-white">
+                      {response.ocr_count} text regions
+                    </Badge>
                   </div>
-                  
-                  {response.ocr_results.length > 0 && (
-                    <div>
-                      <h4 className="font-medium mb-3">Detailed OCR Results</h4>
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {response.ocr_results.map((result, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 rounded border">
-                            <span className="text-sm font-medium">{result.text}</span>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={result.confidence > 0.8 ? "default" : "secondary"}>
-                                {formatConfidence(result.confidence)}
-                              </Badge>
-                              {result.confidence > 0.8 && (
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Panel>
-          )}
+                </CardContent>
+              </div>
 
-          {/* Response Metadata */}
-          <Panel>
-            <CardHeader>
-              <CardTitle>Response Details</CardTitle>
-            </CardHeader>
-            <div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              {/* Image Caption */}
+              {response.caption && (
                 <div>
-                  <span className="font-medium">Status:</span>
-                  <Badge variant="default" className="ml-2">
-                    Success
-                  </Badge>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Image Caption
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm leading-relaxed">{response.caption}</p>
+                  </CardContent>
                 </div>
+              )}
+
+              {/* Extracted Text */}
+              {response.extracted_text && (
                 <div>
-                  <span className="font-medium">OCR Regions:</span>
-                  <span className="ml-2">{response.ocr_count}</span>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Extracted Text
+                    </CardTitle>
+                    <CardDescription>
+                      {response.ocr_count} text regions detected
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="rounded-lg bg-muted p-3">
+                        <p className="text-sm whitespace-pre-wrap">{response.extracted_text}</p>
+                      </div>
+
+                      {/* {response.ocr_results.length > 0 && (
+                        <div>
+                          <h4 className="font-medium mb-3">Detailed OCR Results</h4>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {response.ocr_results.map((result, index) => (
+                              <div key={index} className="flex items-center justify-between p-2 rounded border">
+                                <span className="text-sm font-medium">{result.text}</span>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={result.confidence > 0.8 ? "default" : "secondary"}>
+                                    {formatConfidence(result.confidence)}
+                                  </Badge>
+                                  {result.confidence > 0.8 && (
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )} */}
+                    </div>
+                  </CardContent>
                 </div>
+              )}
+
+              {/* Response Metadata */}
+              <div>
+                <CardHeader>
+                  <CardTitle>Response Details</CardTitle>
+                </CardHeader>
                 <div>
-                  <span className="font-medium">OCR Scale Factor:</span>
-                  <span className="ml-2">{Math.round(response.ocr_scale_factor * 100)}%</span>
-                </div>
-                <div>
-                  <span className="font-medium">Has Caption:</span>
-                  <span className="ml-2">{response.caption ? 'Yes' : 'No'}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Original Resolution:</span>
-                  <span className="ml-2">
-                    {(() => {
-                      const selectedMonitorInfo = monitors.find(m => m.index === selectedMonitor);
-                      return selectedMonitorInfo ? `${selectedMonitorInfo.width} × ${selectedMonitorInfo.height}` : 'N/A';
-                    })()}
-                  </span>
-                </div>
-                <div>
-                  <span className="font-medium">Scaled Resolution:</span>
-                  <span className="ml-2">{scaledResolution ? `${scaledResolution.width} × ${scaledResolution.height}` : 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Has Text:</span>
-                  <span className="ml-2">{response.extracted_text ? 'Yes' : 'No'}</span>
-                </div>
-                <div>
-                  <span className="font-medium">Request Time:</span>
-                  <span className="ml-2">
-                    {requestDuration ? `${requestDuration}ms` : 'N/A'}
-                  </span>
+                  <div className="grid grid-cols-2 gap-4 text-sm p-5">
+                    <div>
+                      <span className="font-medium">Status:</span>
+                      <Badge variant="default" className="ml-2">
+                        Success
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="font-medium">OCR Regions:</span>
+                      <span className="ml-2">{response.ocr_count}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">OCR Scale Factor:</span>
+                      <span className="ml-2">{Math.round(response.ocr_scale_factor * 100)}%</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Has Caption:</span>
+                      <span className="ml-2">{response.caption ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Original Resolution:</span>
+                      <span className="ml-2">
+                        {(() => {
+                          const selectedMonitorInfo = monitors.find(m => m.index === selectedMonitor);
+                          return selectedMonitorInfo ? `${selectedMonitorInfo.width} × ${selectedMonitorInfo.height}` : 'N/A';
+                        })()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Scaled Resolution:</span>
+                      <span className="ml-2">{scaledResolution ? `${scaledResolution.width} × ${scaledResolution.height}` : 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Has Text:</span>
+                      <span className="ml-2">{response.extracted_text ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Request Time:</span>
+                      <span className="ml-2">
+                        {requestDuration ? `${requestDuration}ms` : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </Panel>
-        </div>
-      )}
+          )}
+        </Panel>
+      </div>
     </div>
   );
 }
