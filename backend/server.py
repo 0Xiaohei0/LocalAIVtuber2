@@ -118,18 +118,30 @@ async def get_monitor_info():
         )
 
 @app.get("/api/screenshot")
-async def get_screenshot(monitor_index: int = 1):
+async def get_screenshot(monitor_index: int = 1, ocr_scale_factor: float = 0.5):
     """
     Capture a screenshot and return the image, caption, and extracted text.
+    
+    Args:
+        monitor_index: Index of the monitor to capture
+        ocr_scale_factor: Factor to scale down image for OCR processing (0.1 to 1.0)
     """
     try:
-        logger.info(f"Screenshot request for monitor index: {monitor_index}")
+        logger.info(f"Screenshot request for monitor index: {monitor_index}, scale factor: {ocr_scale_factor}")
+        
+        # Validate scale factor
+        if ocr_scale_factor < 0.1 or ocr_scale_factor > 1.0:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "OCR scale factor must be between 0.1 and 1.0"}
+            )
         
         # Process screen (capture screenshot, perform OCR, generate caption)
         result = vision_input.process_screen(
             monitor_index=monitor_index,
             save_screenshot=False,
-            confidence_threshold=0.5
+            confidence_threshold=0.5,
+            ocr_scale_factor=ocr_scale_factor
         )
         
         if not result['success']:
@@ -171,7 +183,8 @@ async def get_screenshot(monitor_index: int = 1):
                 "caption": result['caption'] or "",
                 "extracted_text": detected_text,
                 "ocr_count": len(result['ocr_results']),
-                "ocr_results": converted_ocr_results  # Converted OCR data
+                "ocr_results": converted_ocr_results,  # Converted OCR data
+                "ocr_scale_factor": ocr_scale_factor
             }
         )
         

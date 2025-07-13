@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Loader2, Camera, FileText, Image as ImageIcon, AlertCircle, CheckCircle, Monitor } from 'lucide-react';
+import { Input } from './ui/input';
+import { Loader2, Camera, FileText, Image as ImageIcon, AlertCircle, CheckCircle, Monitor, Zap } from 'lucide-react';
 import { Panel } from './panel';
 import { chatManager } from '@/lib/chatManager';
 
@@ -28,6 +29,7 @@ interface ScreenshotResponse {
     bbox: number[][];
     confidence: number;
   }>;
+  ocr_scale_factor: number;
 }
 
 interface VisionManagerProps {
@@ -41,6 +43,7 @@ export function VisionManager({ className }: VisionManagerProps) {
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
   const [selectedMonitor, setSelectedMonitor] = useState<number>(1);
   const [loadingMonitors, setLoadingMonitors] = useState(true);
+  const [ocrScaleFactor, setOcrScaleFactor] = useState<number>(1);
 
   // Load monitor information on component mount
   useEffect(() => {
@@ -73,7 +76,7 @@ export function VisionManager({ className }: VisionManagerProps) {
     setResponse(null);
 
     try {
-      const res = await fetch(`/api/screenshot?monitor_index=${selectedMonitor}`);
+      const res = await fetch(`/api/screenshot?monitor_index=${selectedMonitor}&ocr_scale_factor=${ocrScaleFactor}`);
       const data = await res.json();
 
       if (data.success) {
@@ -93,6 +96,19 @@ export function VisionManager({ className }: VisionManagerProps) {
   const formatConfidence = (confidence: number) => {
     return `${(confidence * 100).toFixed(1)}%`;
   };
+
+  // Calculate scaled resolution based on selected monitor and scale factor
+  const getScaledResolution = () => {
+    const selectedMonitorInfo = monitors.find(m => m.index === selectedMonitor);
+    if (!selectedMonitorInfo) return null;
+    
+    return {
+      width: Math.round(selectedMonitorInfo.width * ocrScaleFactor),
+      height: Math.round(selectedMonitorInfo.height * ocrScaleFactor)
+    };
+  };
+
+  const scaledResolution = getScaledResolution();
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-4">
@@ -123,6 +139,34 @@ export function VisionManager({ className }: VisionManagerProps) {
                   ))}
                 </SelectContent>
               </Select>
+            )}
+          </div>
+
+          {/* OCR Scale Factor */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              OCR Scale Factor
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min="0.1"
+                max="1.0"
+                step="0.1"
+                value={ocrScaleFactor}
+                onChange={(e) => setOcrScaleFactor(parseFloat(e.target.value) || 0.5)}
+                className="w-20"
+              />
+              <span className="text-sm text-muted-foreground">
+                ({Math.round(ocrScaleFactor * 100)}% of original size)
+              </span>
+            </div>
+            {scaledResolution && (
+              <div className="text-xs text-muted-foreground">
+                <p>Lower values = faster processing, higher values = better accuracy</p>
+                <p>Scaled resolution: {scaledResolution.width} × {scaledResolution.height}</p>
+              </div>
             )}
           </div>
 
@@ -259,8 +303,25 @@ export function VisionManager({ className }: VisionManagerProps) {
                   <span className="ml-2">{response.ocr_count}</span>
                 </div>
                 <div>
+                  <span className="font-medium">OCR Scale Factor:</span>
+                  <span className="ml-2">{Math.round(response.ocr_scale_factor * 100)}%</span>
+                </div>
+                <div>
                   <span className="font-medium">Has Caption:</span>
                   <span className="ml-2">{response.caption ? 'Yes' : 'No'}</span>
+                </div>
+                <div>
+                  <span className="font-medium">Original Resolution:</span>
+                  <span className="ml-2">
+                    {(() => {
+                      const selectedMonitorInfo = monitors.find(m => m.index === selectedMonitor);
+                      return selectedMonitorInfo ? `${selectedMonitorInfo.width} × ${selectedMonitorInfo.height}` : 'N/A';
+                    })()}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Scaled Resolution:</span>
+                  <span className="ml-2">{scaledResolution ? `${scaledResolution.width} × ${scaledResolution.height}` : 'N/A'}</span>
                 </div>
                 <div>
                   <span className="font-medium">Has Text:</span>
