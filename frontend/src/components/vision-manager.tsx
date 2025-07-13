@@ -4,7 +4,7 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
-import { Loader2, Camera, FileText, Image as ImageIcon, AlertCircle, CheckCircle, Monitor, Zap, Play, Pause, Clock } from 'lucide-react';
+import { Loader2, Camera, FileText, Image as ImageIcon, AlertCircle, Monitor, Zap, Play, Pause, Clock } from 'lucide-react';
 import { Panel } from './panel';
 import { chatManager } from '@/lib/chatManager';
 import { SidePanel } from './side-panel';
@@ -78,9 +78,12 @@ export function VisionManager({ className }: VisionManagerProps) {
   // Handle auto-capture interval
   useEffect(() => {
     if (autoCapture && !loading) {
+      // Use a minimum delay of 100ms to prevent overwhelming the system
+      const delayMs = Math.max(captureDelay * 1000, 100);
+      
       const id = window.setInterval(() => {
         captureScreenshot();
-      }, captureDelay * 1000);
+      }, delayMs);
       setIntervalId(id);
 
       return () => {
@@ -214,11 +217,11 @@ export function VisionManager({ className }: VisionManagerProps) {
               <span className="text-sm text-muted-foreground">Delay:</span>
               <Input
                 type="number"
-                min="0"
+                min="0.1"
                 max="1000"
                 step="0.1"
                 value={captureDelay}
-                onChange={(e) => setCaptureDelay(parseInt(e.target.value) || 0)}
+                onChange={(e) => setCaptureDelay(parseFloat(e.target.value) || 0)}
                 className="w-16"
                 disabled={autoCapture}
               />
@@ -275,7 +278,7 @@ export function VisionManager({ className }: VisionManagerProps) {
 
             {autoCapture && (
               <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                <p>Auto-capture is running. Taking screenshots every {captureDelay} seconds.</p>
+                <p>Auto-capture is running. Taking screenshots every {captureDelay === 0 ? '0.1' : captureDelay} seconds.</p>
               </div>
             )}
           </div>
