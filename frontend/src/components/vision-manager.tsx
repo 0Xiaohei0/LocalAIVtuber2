@@ -4,7 +4,7 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
-import { Loader2, Camera, FileText, Image as ImageIcon, AlertCircle, CheckCircle, Monitor, Zap } from 'lucide-react';
+import { Loader2, Camera, FileText, Image as ImageIcon, AlertCircle, CheckCircle, Monitor, Zap, Play, Pause, Clock } from 'lucide-react';
 import { Panel } from './panel';
 import { chatManager } from '@/lib/chatManager';
 
@@ -44,6 +44,10 @@ export function VisionManager({ className }: VisionManagerProps) {
   const [selectedMonitor, setSelectedMonitor] = useState<number>(1);
   const [loadingMonitors, setLoadingMonitors] = useState(true);
   const [ocrScaleFactor, setOcrScaleFactor] = useState<number>(1);
+  const [autoCapture, setAutoCapture] = useState(false);
+  const [captureDelay, setCaptureDelay] = useState<number>(5);
+  const [requestDuration, setRequestDuration] = useState<number | null>(null);
+  const [intervalId, setIntervalId] = useState<number | null>(null);
 
   // Load monitor information on component mount
   useEffect(() => {
@@ -70,10 +74,40 @@ export function VisionManager({ className }: VisionManagerProps) {
     loadMonitors();
   }, []);
 
+  // Handle auto-capture interval
+  useEffect(() => {
+    if (autoCapture && !loading) {
+      const id = window.setInterval(() => {
+        captureScreenshot();
+      }, captureDelay * 1000);
+      setIntervalId(id);
+      
+      return () => {
+        if (id) {
+          clearInterval(id);
+        }
+      };
+    } else if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    }
+  }, [autoCapture, captureDelay, loading]);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [intervalId]);
+
   const captureScreenshot = async () => {
+    const startTime = Date.now();
     setLoading(true);
     setError(null);
     setResponse(null);
+    setRequestDuration(null);
 
     try {
       const res = await fetch(`/api/screenshot?monitor_index=${selectedMonitor}&ocr_scale_factor=${ocrScaleFactor}`);
@@ -89,8 +123,14 @@ export function VisionManager({ className }: VisionManagerProps) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to capture screenshot');
     } finally {
+      const endTime = Date.now();
+      setRequestDuration(endTime - startTime);
       setLoading(false);
     }
+  };
+
+  const toggleAutoCapture = () => {
+    setAutoCapture(!autoCapture);
   };
 
   const formatConfidence = (confidence: number) => {
@@ -170,24 +210,74 @@ export function VisionManager({ className }: VisionManagerProps) {
             )}
           </div>
 
-          {/* Capture Button */}
-          <Button 
-            onClick={captureScreenshot} 
-            disabled={loading || loadingMonitors}
-            className="w-full"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Capturing Screenshot...
-              </>
-            ) : (
-              <>
-                <Camera className="mr-2 h-4 w-4" />
-                Capture Screenshot
-              </>
-            )}
-          </Button>
+          {/* Auto-Capture Settings */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Auto-Capture Settings
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Delay:</span>
+              <Input
+                type="number"
+                min="1"
+                max="300"
+                value={captureDelay}
+                onChange={(e) => setCaptureDelay(parseInt(e.target.value) || 5)}
+                className="w-16"
+                disabled={autoCapture}
+              />
+              <span className="text-sm text-muted-foreground">seconds</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              <p>Time to wait after each screenshot before taking the next one</p>
+            </div>
+          </div>
+
+          {/* Capture Buttons */}
+          <div className="flex gap-2">
+            <Button 
+              onClick={captureScreenshot} 
+              disabled={loading || loadingMonitors || autoCapture}
+              className="flex-1"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Capturing...
+                </>
+              ) : (
+                <>
+                  <Camera className="mr-2 h-4 w-4" />
+                  Capture Screenshot
+                </>
+              )}
+            </Button>
+            
+            <Button 
+              onClick={toggleAutoCapture}
+              disabled={loading || loadingMonitors}
+              variant={autoCapture ? "destructive" : "secondary"}
+            >
+              {autoCapture ? (
+                <>
+                  <Pause className="mr-2 h-4 w-4" />
+                  Stop Auto
+                </>
+              ) : (
+                <>
+                  <Play className="mr-2 h-4 w-4" />
+                  Start Auto
+                </>
+              )}
+            </Button>
+          </div>
+
+          {autoCapture && (
+            <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+              <p>Auto-capture is running. Taking screenshots every {captureDelay} seconds.</p>
+            </div>
+          )}
         </div>
       </Panel>
 
@@ -326,6 +416,12 @@ export function VisionManager({ className }: VisionManagerProps) {
                 <div>
                   <span className="font-medium">Has Text:</span>
                   <span className="ml-2">{response.extracted_text ? 'Yes' : 'No'}</span>
+                </div>
+                <div>
+                  <span className="font-medium">Request Time:</span>
+                  <span className="ml-2">
+                    {requestDuration ? `${requestDuration}ms` : 'N/A'}
+                  </span>
                 </div>
               </div>
             </div>
