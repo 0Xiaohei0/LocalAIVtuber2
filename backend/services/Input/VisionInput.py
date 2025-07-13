@@ -106,13 +106,16 @@ class VisionInput:
             self.logger.error(f"Failed to capture screenshot: {e}")
             return None
     
-    def perform_ocr(self, image: Image.Image, confidence_threshold: float = 0.5) -> List[Dict]:
+    def perform_ocr(self, image: Image.Image, confidence_threshold: float = 0.5, scale_factor: float = 0.5, save_scaled_image: bool = False, scaled_image_path: str = None) -> List[Dict]:
         """
         Perform OCR on the given image.
         
         Args:
             image: PIL Image object
             confidence_threshold: Minimum confidence for text detection
+            scale_factor: Factor to scale down the image (0.5 = half size) for faster processing
+            save_scaled_image: Whether to save the scaled image used for OCR
+            scaled_image_path: Path to save the scaled image if save_scaled_image is True
             
         Returns:
             List of dictionaries containing text, bounding box, and confidence
@@ -122,16 +125,39 @@ class VisionInput:
             return []
         
         try:
+            # Scale down the image for faster OCR processing
+            original_size = image.size
+            if scale_factor != 1.0:
+                new_width = int(original_size[0] * scale_factor)
+                new_height = int(original_size[1] * scale_factor)
+                scaled_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                self.logger.info(f"Scaled image from {original_size} to {scaled_image.size} for OCR processing")
+                
+                # Save scaled image if requested
+                if save_scaled_image and scaled_image_path:
+                    scaled_image.save(scaled_image_path)
+                    self.logger.info(f"Scaled image saved to: {scaled_image_path}")
+            else:
+                scaled_image = image
+            
             # Convert PIL image to numpy array for EasyOCR
-            image_array = np.array(image)
+            image_array = np.array(scaled_image)
             
             # Perform OCR on the numpy array
             results = self.ocr_reader.readtext(image_array, decoder='beamsearch')
             
-            # Filter results by confidence threshold
+            # Filter results by confidence threshold and scale bounding boxes back to original size
             filtered_results = []
             for bbox, text, conf in results:
                 if conf >= confidence_threshold:
+                    # Scale bounding box coordinates back to original image size
+                    if scale_factor != 1.0:
+                        scaled_bbox = []
+                        for point in bbox:
+                            scaled_point = (int(point[0] / scale_factor), int(point[1] / scale_factor))
+                            scaled_bbox.append(scaled_point)
+                        bbox = scaled_bbox
+                    
                     filtered_results.append({
                         'text': text,
                         'bbox': bbox,
@@ -182,7 +208,8 @@ class VisionInput:
             return None
     
     def process_screen(self, monitor_index: int = 0, save_screenshot: bool = False, 
-                      screenshot_path: str = None, confidence_threshold: float = 0.5) -> Dict:
+                      screenshot_path: str = None, confidence_threshold: float = 0.5, 
+                      ocr_scale_factor: float = 0.5) -> Dict:
         """
         Complete screen processing: capture screenshot, perform OCR, and generate caption.
         
@@ -191,6 +218,7 @@ class VisionInput:
             save_screenshot: Whether to save the screenshot
             screenshot_path: Path to save screenshot if save_screenshot is True
             confidence_threshold: Minimum confidence for OCR
+            ocr_scale_factor: Factor to scale down image for OCR processing (0.5 = half size)
             
         Returns:
             Dictionary containing screenshot, OCR results, and caption
@@ -214,8 +242,16 @@ class VisionInput:
         
         result['screenshot'] = screenshot
         
-        # Perform OCR
-        ocr_results = self.perform_ocr(screenshot, confidence_threshold)
+        # Create path for scaled image if screenshot is being saved
+        scaled_image_path = None
+        if save_screenshot and screenshot_path:
+            # Create a scaled version filename
+            base_name, ext = os.path.splitext(screenshot_path)
+            scaled_image_path = f"{base_name}_scaled{ext}"
+        
+        # Perform OCR with scaled image for faster processing
+        ocr_results = self.perform_ocr(screenshot, confidence_threshold, ocr_scale_factor, 
+                                     save_scaled_image=save_screenshot, scaled_image_path=scaled_image_path)
         result['ocr_results'] = ocr_results
         
         # Generate caption
@@ -254,21 +290,29 @@ class VisionInput:
 
 # Example usage
 if __name__ == "__main__":
+    import time
+    start_time = time.time()
     # Initialize vision input
     vision_input = VisionInput()
     monitors = vision_input.get_monitors()
-    print(f"Monitors: {monitors}")
+    logger.info(f"Monitors: {monitors}")
     
-    # Process screen
+    logger.info(f"Vision input initialized in {time.time() - start_time} seconds")
+    start_time = time.time()
+    
+    # Process screen with scaled OCR for faster processing
     result = vision_input.process_screen(
-        monitor_index=1,
+        monitor_index=2,
         save_screenshot=True,
-        confidence_threshold=0.5
+        confidence_threshold=0.5,
+        ocr_scale_factor=0.5  # Scale image to 50% for faster OCR
     )
+
+    logger.info(f"Screen processed in {time.time() - start_time} seconds")
     
     if result['success']:
-        print("Screenshot captured successfully")
-        print(f"Detected text: {vision_input.get_detected_text(result['ocr_results'])}")
-        print(f"Image caption: {result['caption']}")
+        logger.info("Screenshot captured successfully")
+        logger.info(f"Detected text: {vision_input.get_detected_text(result['ocr_results'])}")
+        logger.info(f"Image caption: {result['caption']}")
     else:
-        print("Failed to process screen")
+        logger.info("Failed to process screen")
