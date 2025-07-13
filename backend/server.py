@@ -117,6 +117,26 @@ async def get_monitor_info():
             content={"error": f"Failed to get monitor info: {str(e)}"}
         )
 
+async def process_screenshot_async(monitor_index: int, ocr_scale_factor: float):
+    """
+    Async wrapper for screenshot processing to avoid blocking the event loop.
+    """
+    import asyncio
+    loop = asyncio.get_event_loop()
+    
+    # Run the synchronous screenshot processing in a thread pool
+    result = await loop.run_in_executor(
+        None,
+        lambda: vision_input.process_screen(
+            monitor_index=monitor_index,
+            save_screenshot=False,
+            confidence_threshold=0.5,
+            ocr_scale_factor=ocr_scale_factor
+        )
+    )
+    
+    return result
+
 @app.get("/api/screenshot")
 async def get_screenshot(monitor_index: int = 1, ocr_scale_factor: float = 0.5):
     """
@@ -136,13 +156,9 @@ async def get_screenshot(monitor_index: int = 1, ocr_scale_factor: float = 0.5):
                 content={"error": "OCR scale factor must be between 0.1 and 1.0"}
             )
         
-        # Process screen (capture screenshot, perform OCR, generate caption)
-        result = vision_input.process_screen(
-            monitor_index=monitor_index,
-            save_screenshot=False,
-            confidence_threshold=0.5,
-            ocr_scale_factor=ocr_scale_factor
-        )
+        # Process screen asynchronously using asyncio.create_task
+        task = asyncio.create_task(process_screenshot_async(monitor_index, ocr_scale_factor))
+        result = await task
         
         if not result['success']:
             return JSONResponse(
