@@ -4,6 +4,7 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Input } from './ui/input';
+import { Switch } from './ui/switch';
 import { Loader2, Camera, FileText, Image as ImageIcon, AlertCircle, Monitor, Zap, Play, Pause, Clock } from 'lucide-react';
 import { Panel } from './panel';
 import { chatManager } from '@/lib/chatManager';
@@ -46,9 +47,10 @@ export function VisionManager({ className }: VisionManagerProps) {
   const [loadingMonitors, setLoadingMonitors] = useState(true);
   const [ocrScaleFactor, setOcrScaleFactor] = useState<number>(1);
   const [autoCapture, setAutoCapture] = useState(false);
-  const [captureDelay, setCaptureDelay] = useState<number>(0);
+  const [captureDelay, setCaptureDelay] = useState<number>(0.1);
   const [requestDuration, setRequestDuration] = useState<number | null>(null);
   const [intervalId, setIntervalId] = useState<number | null>(null);
+  const [skipOcr, setSkipOcr] = useState(false);
 
   // Load monitor information on component mount
   useEffect(() => {
@@ -111,13 +113,18 @@ export function VisionManager({ className }: VisionManagerProps) {
     setLoading(true);
 
     try {
-      const res = await fetch(`/api/screenshot?monitor_index=${selectedMonitor}&ocr_scale_factor=${ocrScaleFactor}`);
+      const res = await fetch(`/api/screenshot?monitor_index=${selectedMonitor}&ocr_scale_factor=${ocrScaleFactor}&skip_ocr=${skipOcr}`);
       const data = await res.json();
 
       if (data.success) {
         setResponse(data);
         chatManager.setVisionPrompt(data.caption);
-        chatManager.setOcrPrompt(data.extracted_text);
+        if (!skipOcr) {
+          chatManager.setOcrPrompt(data.extracted_text);
+        } else {
+          // Clear OCR prompt when OCR is skipped
+          chatManager.setOcrPrompt("");
+        }
       } else {
         setError(data.error || 'Failed to capture screenshot');
       }
@@ -205,6 +212,24 @@ export function VisionManager({ className }: VisionManagerProps) {
                 <p>Scaled resolution: {scaledResolution.width} × {scaledResolution.height}</p>
               </div>
             )}
+          </div>
+
+          {/* Skip OCR Option */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              OCR Processing
+            </label>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Extract text from image</span>
+              <Switch 
+                checked={!skipOcr} 
+                onCheckedChange={(checked) => setSkipOcr(!checked)}
+              />
+            </div>
+            <div className="text-xs text-muted-foreground">
+              <p>When disabled, only image caption will be generated (faster processing)</p>
+            </div>
           </div>
 
           {/* Auto-Capture Settings */}
@@ -315,7 +340,7 @@ export function VisionManager({ className }: VisionManagerProps) {
                       className="w-full max-w-full rounded-lg border shadow-sm"
                     />
                     <Badge className="absolute top-2 right-2 bg-black/70 text-white">
-                      {response.ocr_count} text regions
+                      {skipOcr ? "OCR skipped" : `${response.ocr_count} text regions`}
                     </Badge>
                   </div>
                 </CardContent>
@@ -337,7 +362,7 @@ export function VisionManager({ className }: VisionManagerProps) {
               )}
 
               {/* Extracted Text */}
-              {response.extracted_text && (
+              {!skipOcr && response.extracted_text && (
                 <div>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -379,6 +404,23 @@ export function VisionManager({ className }: VisionManagerProps) {
                 </div>
               )}
 
+              {/* Show OCR skipped message */}
+              {skipOcr && (
+                <div>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Text Extraction
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-lg bg-muted p-3">
+                      <p className="text-sm text-muted-foreground">OCR processing was skipped for faster performance</p>
+                    </div>
+                  </CardContent>
+                </div>
+              )}
+
               {/* Response Metadata */}
               <div>
                 <CardHeader>
@@ -393,12 +435,12 @@ export function VisionManager({ className }: VisionManagerProps) {
                       </Badge>
                     </div>
                     <div>
-                      <span className="font-medium">OCR Regions:</span>
-                      <span className="ml-2">{response.ocr_count}</span>
+                      <span className="font-medium">OCR Status:</span>
+                      <span className="ml-2">{skipOcr ? "Skipped" : `${response.ocr_count} regions detected`}</span>
                     </div>
                     <div>
                       <span className="font-medium">OCR Scale Factor:</span>
-                      <span className="ml-2">{Math.round(response.ocr_scale_factor * 100)}%</span>
+                      <span className="ml-2">{skipOcr ? "N/A" : `${Math.round(response.ocr_scale_factor * 100)}%`}</span>
                     </div>
                     <div>
                       <span className="font-medium">Has Caption:</span>
@@ -419,7 +461,7 @@ export function VisionManager({ className }: VisionManagerProps) {
                     </div>
                     <div>
                       <span className="font-medium">Has Text:</span>
-                      <span className="ml-2">{response.extracted_text ? 'Yes' : 'No'}</span>
+                      <span className="ml-2">{skipOcr ? 'N/A (OCR skipped)' : (response.extracted_text ? 'Yes' : 'No')}</span>
                     </div>
                     <div>
                       <span className="font-medium">Request Time:</span>

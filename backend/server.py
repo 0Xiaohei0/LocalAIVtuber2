@@ -117,7 +117,7 @@ async def get_monitor_info():
             content={"error": f"Failed to get monitor info: {str(e)}"}
         )
 
-async def process_screenshot_async(monitor_index: int, ocr_scale_factor: float):
+async def process_screenshot_async(monitor_index: int, ocr_scale_factor: float, skip_ocr: bool = False):
     """
     Async wrapper for screenshot processing to avoid blocking the event loop.
     """
@@ -131,23 +131,25 @@ async def process_screenshot_async(monitor_index: int, ocr_scale_factor: float):
             monitor_index=monitor_index,
             save_screenshot=False,
             confidence_threshold=0.5,
-            ocr_scale_factor=ocr_scale_factor
+            ocr_scale_factor=ocr_scale_factor,
+            skip_ocr=skip_ocr
         )
     )
     
     return result
 
 @app.get("/api/screenshot")
-async def get_screenshot(monitor_index: int = 1, ocr_scale_factor: float = 0.5):
+async def get_screenshot(monitor_index: int = 1, ocr_scale_factor: float = 0.5, skip_ocr: bool = False):
     """
     Capture a screenshot and return the image, caption, and extracted text.
     
     Args:
         monitor_index: Index of the monitor to capture
         ocr_scale_factor: Factor to scale down image for OCR processing (0.1 to 1.0)
+        skip_ocr: Whether to skip OCR processing and only generate caption
     """
     try:
-        logger.info(f"Screenshot request for monitor index: {monitor_index}, scale factor: {ocr_scale_factor}")
+        logger.info(f"Screenshot request for monitor index: {monitor_index}, scale factor: {ocr_scale_factor}, skip OCR: {skip_ocr}")
         
         # Validate scale factor
         if ocr_scale_factor < 0.1 or ocr_scale_factor > 1.0:
@@ -157,7 +159,7 @@ async def get_screenshot(monitor_index: int = 1, ocr_scale_factor: float = 0.5):
             )
         
         # Process screen asynchronously using asyncio.create_task
-        task = asyncio.create_task(process_screenshot_async(monitor_index, ocr_scale_factor))
+        task = asyncio.create_task(process_screenshot_async(monitor_index, ocr_scale_factor, skip_ocr))
         result = await task
         
         if not result['success']:

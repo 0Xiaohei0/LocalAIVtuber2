@@ -209,7 +209,7 @@ class VisionInput:
     
     def process_screen(self, monitor_index: int = 0, save_screenshot: bool = False, 
                       screenshot_path: str = None, confidence_threshold: float = 0.5, 
-                      ocr_scale_factor: float = 0.5) -> Dict:
+                      ocr_scale_factor: float = 0.5, skip_ocr: bool = False) -> Dict:
         """
         Complete screen processing: capture screenshot, perform OCR, and generate caption.
         
@@ -219,6 +219,7 @@ class VisionInput:
             screenshot_path: Path to save screenshot if save_screenshot is True
             confidence_threshold: Minimum confidence for OCR
             ocr_scale_factor: Factor to scale down image for OCR processing (0.5 = half size)
+            skip_ocr: Whether to skip OCR processing and only generate caption
             
         Returns:
             Dictionary containing screenshot, OCR results, and caption
@@ -242,17 +243,23 @@ class VisionInput:
         
         result['screenshot'] = screenshot
         
-        # Create path for scaled image if screenshot is being saved
-        scaled_image_path = None
-        if save_screenshot and screenshot_path:
-            # Create a scaled version filename
-            base_name, ext = os.path.splitext(screenshot_path)
-            scaled_image_path = f"{base_name}_scaled{ext}"
-        
-        # Perform OCR with scaled image for faster processing
-        ocr_results = self.perform_ocr(screenshot, confidence_threshold, ocr_scale_factor, 
-                                     save_scaled_image=save_screenshot, scaled_image_path=scaled_image_path)
-        result['ocr_results'] = ocr_results
+        # Perform OCR unless skipped
+        if not skip_ocr:
+            # Create path for scaled image if screenshot is being saved
+            scaled_image_path = None
+            if save_screenshot and screenshot_path:
+                # Create a scaled version filename
+                base_name, ext = os.path.splitext(screenshot_path)
+                scaled_image_path = f"{base_name}_scaled{ext}"
+            
+            # Perform OCR with scaled image for faster processing
+            ocr_results = self.perform_ocr(screenshot, confidence_threshold, ocr_scale_factor, 
+                                         save_scaled_image=save_screenshot, scaled_image_path=scaled_image_path)
+            result['ocr_results'] = ocr_results
+        else:
+            # Skip OCR processing - return empty results
+            result['ocr_results'] = []
+            self.logger.info("OCR processing skipped")
         
         # Generate caption
         caption = self.generate_caption(screenshot)
