@@ -8,9 +8,21 @@ import { MessageCircleCode, Mic, Speech, SquareActivity, Settings, User, Airplay
 import StreamPage from "@/pages/streamPage"
 import MemoryPage from "@/pages/memoryPage"
 import VisionPage from "@/pages/visionPage"
+import { LucideIcon } from "lucide-react"
 
+interface PageComponentProps {
+  isActive: boolean;
+}
 
-const pageMapping = {
+type PageComponent = React.ComponentType<PageComponentProps>;
+
+interface PageConfig {
+  page: PageComponent;
+  icon: LucideIcon;
+  title: string;
+}
+
+const pageMapping: Record<string, PageConfig> = {
     "input": {
         page: InputPage,
         icon: Mic,

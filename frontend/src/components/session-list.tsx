@@ -139,6 +139,12 @@ export default function SessionList() {
         }
     };
 
+    const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        await deleteSession(sessionId);
+        await getSessions(); // Refresh the sessions list after deletion
+    };
+
     if (selectedSessionId) {
         return (
             <SessionDetail 
@@ -253,10 +259,7 @@ export default function SessionList() {
                                 )}
                                 <button 
                                     className="hover:text-red-400"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteSession(session.id);
-                                    }}
+                                    onClick={(e) => handleDeleteSession(session.id, e)}
                                 >
                                     ×
                                 </button>

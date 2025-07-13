@@ -28,7 +28,7 @@ const footerKeys: PageKey[] = ["settings"]
 
 
 
-export function AppSidebar({ onItemClick }: { onItemClick: (key: PageKey) => void }) {
+export function AppSidebar({ onItemClick, activePage }: { onItemClick: (key: PageKey) => void, activePage?: PageKey }) {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -41,7 +41,7 @@ export function AppSidebar({ onItemClick }: { onItemClick: (key: PageKey) => voi
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger>
-                        <SidebarMenuButton asChild>
+                        <SidebarMenuButton asChild isActive={key === activePage}>
                           <a onClick={() => onItemClick(key)}>
                             {React.createElement(pageMapping[key].icon)}
                             <span>{pageMapping[key].title}</span>
@@ -67,7 +67,7 @@ export function AppSidebar({ onItemClick }: { onItemClick: (key: PageKey) => voi
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={key === activePage}>
                     <a onClick={() => onItemClick(key)}>
                       {React.createElement(pageMapping[key].icon)}
                       <span>{pageMapping[key].title}</span>

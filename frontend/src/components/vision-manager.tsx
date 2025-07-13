@@ -258,11 +258,15 @@ export function VisionManager({ className }: VisionManagerProps) {
           </div>
         </SidePanel>
       </div>
+
+
+
       <div className="max-w-4xl mx-auto flex flex-col gap-4 pt-4">
         <Panel>
           <div className="space-y-4">
-
-
+            <div className="text-sm text-muted-foreground">
+              Captures screenshot and analizes its content for AI to understand.
+            </div>
             {/* Capture Buttons */}
             <div className="flex gap-2">
               <Button
@@ -308,7 +312,7 @@ export function VisionManager({ className }: VisionManagerProps) {
             )}
           </div>
         </Panel>
-
+        {response && (
         <Panel className="overflow-y-scroll scrollbar-hide h-[80vh]">
           {error && (
             <Panel className="border-destructive">
@@ -322,7 +326,7 @@ export function VisionManager({ className }: VisionManagerProps) {
             </Panel>
           )}
 
-          {response && (
+          
             <div className={`space-y-6 ${className}`}>
               {/* Screenshot Image */}
               <div>
@@ -473,8 +477,8 @@ export function VisionManager({ className }: VisionManagerProps) {
                 </div>
               </div>
             </div>
-          )}
-        </Panel>
+          </Panel>
+        )}
       </div>
     </div>
   );

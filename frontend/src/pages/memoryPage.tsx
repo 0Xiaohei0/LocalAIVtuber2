@@ -1,10 +1,9 @@
 import SessionList from "@/components/session-list"
 
-
-    function MemoryPage() {
-        return (
-                <SessionList/>
+function MemoryPage() {
+    return (
+        <SessionList />
     )
-  }
-  
-  export default MemoryPage
+}
+
+export default MemoryPage

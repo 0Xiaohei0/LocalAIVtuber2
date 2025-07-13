@@ -12,23 +12,38 @@ function Mainpage() {
     return (
         <SidebarProvider open={false}>
             <SettingsProvider>
-                    <AppSidebar onItemClick={setCurrentPage} />
+                    <AppSidebar onItemClick={setCurrentPage} activePage={currentPage} />
                     <div className="flex flex-col w-full h-screen">
                         <main className="flex-1 relative">
-                            {Object.entries(pageMapping).map(([key, { page: PageComponent }]) => (
-                                <div
-                                    key={key}
-                                    style={{
-                                        width: currentPage === key ? "100%" : "1px",
-                                        height: currentPage === key ? "100%" : "1px",
-                                        position: currentPage === key ? "absolute" : "absolute",
-                                        overflow: currentPage === key ? "visible" : "hidden",
-                                        pointerEvents: currentPage === key ? "auto" : "none",
-                                    }}
-                                >
-                                    <PageComponent />
-                                </div>
-                            ))}
+                            {Object.entries(pageMapping).map(([key, { page: PageComponent }]) => {
+                                const isActive = currentPage === key;
+                                const isCharacterPage = key === "character";
+
+                                // Special handling for character page - minimize instead of unmount
+                                if (isCharacterPage) {
+                                    return (
+                                        <div
+                                            key={key}
+                                            style={{
+                                                width: isActive ? "100%" : "1px",
+                                                height: isActive ? "100%" : "1px",
+                                                position: "absolute",
+                                                overflow: isActive ? "visible" : "hidden",
+                                                pointerEvents: isActive ? "auto" : "none",
+                                            }}
+                                        >
+                                            <PageComponent isActive={isActive} />
+                                        </div>
+                                    );
+                                }
+
+                                // Normal handling for other pages - mount/unmount
+                                return isActive ? (
+                                    <div key={key} className="absolute w-full h-full">
+                                        <PageComponent isActive={true} />
+                                    </div>
+                                ) : null;
+                            })}
                         </main>
                     </div>
             </SettingsProvider>

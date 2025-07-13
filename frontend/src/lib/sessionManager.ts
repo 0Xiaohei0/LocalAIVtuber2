@@ -90,10 +90,9 @@ export const deleteSession = async (sessionId: string) => {
         if (!response.ok) {
             throw new Error('Failed to delete session');
         }
-        
-        await fetchSessions();
     } catch (err) {
         console.error('Failed to delete session:', err);
+        throw err; // Re-throw to let component handle the error
     }
 };
 
