@@ -7,7 +7,7 @@ import { SettingsProvider } from "@/context/SettingsContext"
 type PageKey = keyof typeof pageMapping
 
 function Mainpage() {
-    const [currentPage, setCurrentPage] = useState<PageKey>("vision")
+    const [currentPage, setCurrentPage] = useState<PageKey>("llm")
 
     return (
         <SidebarProvider open={false}>
@@ -17,10 +17,10 @@ function Mainpage() {
                         <main className="flex-1 relative">
                             {Object.entries(pageMapping).map(([key, { page: PageComponent }]) => {
                                 const isActive = currentPage === key;
-                                const isCharacterPage = key === "character";
+                                const keepMounted = key === "character" || key === "llm" || key === "vision";
 
                                 // Special handling for character page - minimize instead of unmount
-                                if (isCharacterPage) {
+                                if (keepMounted) {
                                     return (
                                         <div
                                             key={key}

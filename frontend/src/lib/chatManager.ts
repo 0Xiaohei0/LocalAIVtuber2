@@ -27,16 +27,31 @@ export class ChatManager {
         this.subscribers.forEach(callback => callback([...this.messages]));
     }
 
+    public getSystemPrompt(): string {
+        return this.systemPrompt;
+    }
+
     public setSystemPrompt(systemPrompt: string) {
         this.systemPrompt = systemPrompt;
+        this.notifySubscribers();
+    }
+
+    public getVisionPrompt(): string {
+        return this.visionPrompt;
     }
 
     public setVisionPrompt(visionPrompt: string) {
         this.visionPrompt = visionPrompt;
+        this.notifySubscribers();
+    }
+
+    public getOcrPrompt(): string {
+        return this.ocrPrompt;
     }
 
     public setOcrPrompt(ocrPrompt: string) {
         this.ocrPrompt = ocrPrompt;
+        this.notifySubscribers();
     }
 
     private setupPipelineSubscription() {

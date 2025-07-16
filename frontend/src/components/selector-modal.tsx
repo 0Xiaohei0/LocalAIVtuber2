@@ -61,7 +61,7 @@ const [open, setOpen] = useState(false)
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-60 overflow-hidden text-ellipsis justify-start">
+        <Button variant="outline" className="w-full overflow-hidden text-ellipsis justify-start">
           <Brain className="mr-2 h-4 w-4" />
           {internalSelected ? internalSelected.displayName : "Select AI Model"}
         </Button>
