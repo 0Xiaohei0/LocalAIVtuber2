@@ -12,6 +12,9 @@ export class ChatManager {
     private systemPrompt: string = '';
     private visionPrompt: string = '';
     private ocrPrompt: string = '';
+    private currentImage: string = '';
+    private retrievedContext: string = '';
+    private fullSystemPrompt: string = '';
     private subscribers: Set<ChatUpdateCallback> = new Set();
 
     constructor() {
@@ -51,6 +54,33 @@ export class ChatManager {
 
     public setOcrPrompt(ocrPrompt: string) {
         this.ocrPrompt = ocrPrompt;
+        this.notifySubscribers();
+    }
+
+    public getCurrentImage(): string {
+        return this.currentImage;
+    }
+
+    public setCurrentImage(image: string) {
+        this.currentImage = image;
+        this.notifySubscribers();
+    }
+
+    public getRetrievedContext(): string {
+        return this.retrievedContext;
+    }
+
+    public setRetrievedContext(context: string) {
+        this.retrievedContext = context;
+        this.notifySubscribers();
+    }
+
+    public getFullSystemPrompt(): string {
+        return this.fullSystemPrompt;
+    }
+
+    public setFullSystemPrompt(prompt: string) {
+        this.fullSystemPrompt = prompt;
         this.notifySubscribers();
     }
 
@@ -124,6 +154,10 @@ export class ChatManager {
             if (visionSection || ocrSection || contextSection) {
                 systemPromptWithContext = visionSection + ocrSection + contextSection + this.systemPrompt;
             }
+
+            // Set the retrieved context and full system prompt
+            this.setRetrievedContext(contextText);
+            this.setFullSystemPrompt(systemPromptWithContext);
 
             console.log("getCompletion", JSON.stringify({
                 text: input,

@@ -17,10 +17,10 @@ function Mainpage() {
                         <main className="flex-1 relative">
                             {Object.entries(pageMapping).map(([key, { page: PageComponent }]) => {
                                 const isActive = currentPage === key;
-                                const keepMounted = key === "character" || key === "llm" || key === "vision";
+                                const unmount = key === "memory";
 
                                 // Special handling for character page - minimize instead of unmount
-                                if (keepMounted) {
+                                if (!unmount) {
                                     return (
                                         <div
                                             key={key}

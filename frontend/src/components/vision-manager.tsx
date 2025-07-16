@@ -119,6 +119,7 @@ export function VisionManager({ className }: VisionManagerProps) {
       if (data.success) {
         setResponse(data);
         chatManager.setVisionPrompt(data.caption);
+        chatManager.setCurrentImage(data.image);
         if (!skipOcr) {
           chatManager.setOcrPrompt(data.extracted_text);
         } else {

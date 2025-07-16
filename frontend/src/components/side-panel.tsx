@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ReactNode, useState } from "react";
-import { Panel } from "./panel";
+import { ScrollArea } from "./ui/scroll-area";
 
 interface SidePanelProps {
     children?: ReactNode;
@@ -63,9 +63,9 @@ export function SidePanel({
             >
                 {renderToggleContent()}
             </button>
-            <Panel className="h-full flex flex-col gap-2 items-start rounded-none" style={{width: `${width}px`, background: "#151515"}}>
+            <ScrollArea className="h-full flex flex-col gap-2 items-start rounded-none p-5" style={{width: `${width}px`, background: "#151515"}}>
                 {children}
-            </Panel>
+            </ScrollArea>
         </div>
     );
 }
