@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { chatManager } from '@/lib/chatManager';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
@@ -14,7 +14,7 @@ export function LLMMonitor() {
   const [fullSystemPrompt, setFullSystemPrompt] = useState('');
 
   useEffect(() => {
-    // Subscribe to chat manager updates
+    // Subscribe to chat manager updates with specific change types
     const unsubscribe = chatManager.subscribe(() => {
       setSystemPrompt(chatManager.getSystemPrompt());
       setVisionPrompt(chatManager.getVisionPrompt());
@@ -22,6 +22,13 @@ export function LLMMonitor() {
       setCurrentImage(chatManager.getCurrentImage());
       setRetrievedContext(chatManager.getRetrievedContext());
       setFullSystemPrompt(chatManager.getFullSystemPrompt());
+    }, {
+      onSystemPromptChange: true,
+      onVisionPromptChange: true,
+      onOcrPromptChange: true,
+      onImageChange: true,
+      onContextChange: true,
+      onFullSystemPromptChange: true
     });
 
     // Initial values

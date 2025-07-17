@@ -5,6 +5,16 @@ import { createNewSession, updateSession, fetchSessionContent } from './sessionM
 
 type ChatUpdateCallback = (messages: HistoryItem[]) => void;
 
+interface SubscriptionOptions {
+    onMessagesChange?: boolean;
+    onSystemPromptChange?: boolean;
+    onVisionPromptChange?: boolean;
+    onOcrPromptChange?: boolean;
+    onImageChange?: boolean;
+    onContextChange?: boolean;
+    onFullSystemPromptChange?: boolean;
+}
+
 export class ChatManager {
     private messages: HistoryItem[] = [];
     private sessionId: string | null = null;
@@ -15,19 +25,23 @@ export class ChatManager {
     private currentImage: string = '';
     private retrievedContext: string = '';
     private fullSystemPrompt: string = '';
-    private subscribers: Set<ChatUpdateCallback> = new Set();
+    private subscribers: Map<ChatUpdateCallback, SubscriptionOptions> = new Map();
 
     constructor() {
         this.setupPipelineSubscription();
     }
 
-    public subscribe(callback: ChatUpdateCallback): () => void {
-        this.subscribers.add(callback);
+    public subscribe(callback: ChatUpdateCallback, options: SubscriptionOptions = { onMessagesChange: true }): () => void {
+        this.subscribers.set(callback, options);
         return () => this.subscribers.delete(callback);
     }
 
-    private notifySubscribers() {
-        this.subscribers.forEach(callback => callback([...this.messages]));
+    private notifySubscribers(changeType: keyof SubscriptionOptions) {
+        this.subscribers.forEach((options, callback) => {
+            if (options[changeType]) {
+                callback([...this.messages]);
+            }
+        });
     }
 
     public getSystemPrompt(): string {
@@ -36,7 +50,7 @@ export class ChatManager {
 
     public setSystemPrompt(systemPrompt: string) {
         this.systemPrompt = systemPrompt;
-        this.notifySubscribers();
+        this.notifySubscribers('onSystemPromptChange');
     }
 
     public getVisionPrompt(): string {
@@ -45,7 +59,7 @@ export class ChatManager {
 
     public setVisionPrompt(visionPrompt: string) {
         this.visionPrompt = visionPrompt;
-        this.notifySubscribers();
+        this.notifySubscribers('onVisionPromptChange');
     }
 
     public getOcrPrompt(): string {
@@ -54,7 +68,7 @@ export class ChatManager {
 
     public setOcrPrompt(ocrPrompt: string) {
         this.ocrPrompt = ocrPrompt;
-        this.notifySubscribers();
+        this.notifySubscribers('onOcrPromptChange');
     }
 
     public getCurrentImage(): string {
@@ -63,7 +77,7 @@ export class ChatManager {
 
     public setCurrentImage(image: string) {
         this.currentImage = image;
-        this.notifySubscribers();
+        this.notifySubscribers('onImageChange');
     }
 
     public getRetrievedContext(): string {
@@ -72,7 +86,7 @@ export class ChatManager {
 
     public setRetrievedContext(context: string) {
         this.retrievedContext = context;
-        this.notifySubscribers();
+        this.notifySubscribers('onContextChange');
     }
 
     public getFullSystemPrompt(): string {
@@ -81,7 +95,7 @@ export class ChatManager {
 
     public setFullSystemPrompt(prompt: string) {
         this.fullSystemPrompt = prompt;
-        this.notifySubscribers();
+        this.notifySubscribers('onFullSystemPromptChange');
     }
 
     private setupPipelineSubscription() {
@@ -121,7 +135,7 @@ export class ChatManager {
         const history = this.messages.slice(-30);
         
         this.messages.push(userMessage);
-        this.notifySubscribers();
+        this.notifySubscribers('onMessagesChange');
 
         try {
             // Fetch relevant context from memory
@@ -145,15 +159,26 @@ export class ChatManager {
                 console.warn('Failed to fetch context:', ctxErr);
             }
 
-            // Prepend context to systemPrompt if available
-            let systemPromptWithContext = this.systemPrompt;
-            const visionSection = this.visionPrompt.trim() ? `The user is currently looking at: ${this.visionPrompt}\n\n` : '';
-            const ocrSection = this.ocrPrompt.trim() ? `The text extracted from the screen is: ${this.ocrPrompt}\n\n` : '';
-            const contextSection = contextText.trim() ? `Relevant context from memory:\n${contextText}\n\n` : '';
+            // Assemble system prompt with labeled sections
+            let systemPromptWithContext = '';
             
-            if (visionSection || ocrSection || contextSection) {
-                systemPromptWithContext = visionSection + ocrSection + contextSection + this.systemPrompt;
-            }
+            // Add vision context if available
+            const visionSection = this.visionPrompt.trim() ? 
+                `[SCREEN CONTEXT]\n${this.visionPrompt}\n\n` : '';
+            
+            // Add OCR context if available    
+            const ocrSection = this.ocrPrompt.trim() ? 
+                `[SCREEN TEXT]\n${this.ocrPrompt}\n\n` : '';
+            
+            // Add memory context if available
+            const contextSection = contextText.trim() ? 
+                `[RETRIEVED MEMORY]\n${contextText}\n\n` : '';
+            
+            // Add base instructions
+            const instructionsSection = `[INSTRUCTIONS]\n${this.systemPrompt}\n\n`;
+            
+            // Combine all sections
+            systemPromptWithContext = visionSection + ocrSection + contextSection + instructionsSection;
 
             // Set the retrieved context and full system prompt
             this.setRetrievedContext(contextText);
@@ -191,7 +216,7 @@ export class ChatManager {
             await updateSession(this.sessionId, this.messages);
 
             this.messages = [...this.messages, { role: 'user', content: input }];
-            this.notifySubscribers();
+            this.notifySubscribers('onMessagesChange');
 
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
@@ -208,7 +233,7 @@ export class ChatManager {
                 aiMessage += chunk;
                 
                 this.messages = [...this.messages.slice(0, -1), { role: 'assistant', content: aiMessage }];
-                this.notifySubscribers();
+                this.notifySubscribers('onMessagesChange');
 
                 currentText += chunk;
                 const { sentences, remaining } = cut5(currentText);
@@ -241,7 +266,7 @@ export class ChatManager {
             }
             
             await updateSession(this.sessionId, this.messages);
-            this.notifySubscribers();
+            this.notifySubscribers('onMessagesChange');
 
         } catch (error) {
             if ((error as Error).name === 'AbortError') {
@@ -274,10 +299,10 @@ export class ChatManager {
             const chunk = decoder.decode(value);
             // add to the existing message
             this.messages[index].content += chunk;
-            this.notifySubscribers();
+            this.notifySubscribers('onMessagesChange');
         }
         await updateSession(this.sessionId, this.messages);
-        this.notifySubscribers();
+        this.notifySubscribers('onMessagesChange');
     }
 
     public getMessages(): HistoryItem[] {
@@ -286,7 +311,7 @@ export class ChatManager {
 
     public setMessages(messages: HistoryItem[]) {
         this.messages = messages;
-        this.notifySubscribers();
+        this.notifySubscribers('onMessagesChange');
     }
 
     public getSessionId(): string | null {
@@ -300,7 +325,7 @@ export class ChatManager {
             const session = await fetchSessionContent(id);
             this.messages = session.history;
         }
-        this.notifySubscribers();
+        this.notifySubscribers('onMessagesChange');
     }
 }
 

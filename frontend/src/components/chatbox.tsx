@@ -115,9 +115,10 @@ const Chatbox = () => {
 
     useEffect(() => {
         const unsubscribe = chatManager.subscribe((messages) => {
-            setDisplayedMessages(messages);
-            inputRef.current?.focus();
-        });
+            if (displayedMessages !== messages) {
+                setDisplayedMessages(messages);
+            }
+        }, { onMessagesChange: true });
 
         return () => unsubscribe();
     }, []);
@@ -132,7 +133,14 @@ const Chatbox = () => {
         setInput('');
         await chatManager.sendMessage(input);
         setIsProcessing(false);
+        inputRef.current?.focus(); // Focus after sending
     };
+
+    useEffect(() => {
+        if (!isProcessing) {
+            inputRef.current?.focus(); // Focus when processing completes
+        }
+    }, [isProcessing]);
 
     return (
         <div className="flex flex-col max-w-3xl mx-auto h-[calc(100vh-50px-17px)]">
