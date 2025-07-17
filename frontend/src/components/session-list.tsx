@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Search, Calendar, Database, Plus, RefreshCcw } from 'lucide-react';
+import { Search, Calendar, Database, RefreshCcw, ArrowUpFromLine } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import SessionDetail from './session-detail';
-import { createNewSession, fetchSessions, deleteSession, indexSession, removeSessionIndex, reindexAllSessions } from '@/lib/sessionManager';
+import { fetchSessions, deleteSession, indexSession, removeSessionIndex, reindexAllSessions } from '@/lib/sessionManager';
 import { Session } from '@/lib/types';
+import { ChatExportModal } from './data-export';
 
 interface ChatSession {
     id: string;
@@ -207,13 +208,21 @@ export default function SessionList() {
                             </SelectContent>
                         </Select>
 
-                        <Button 
-                            onClick={createNewSession}
-                            className="flex items-center gap-2"
-                        >
-                            <Plus className="w-4 h-4" />
-                            New Chat
-                        </Button>
+                        <ChatExportModal 
+                            sessions={filteredSessions.map(session => ({
+                                id: session.id,
+                                title: session.title,
+                                date: new Date(session.created_at),
+                                messageCount: session.messageCount || 0,
+                                duration: "N/A" // We don't track duration in our sessions
+                            }))}
+                            trigger={
+                                <Button className="flex items-center gap-2">
+                                    <ArrowUpFromLine className="w-4 h-4" />
+                                    Export Data
+                                </Button>
+                            }
+                        />
 
                         <Button 
                             onClick={handleReindexAll}
