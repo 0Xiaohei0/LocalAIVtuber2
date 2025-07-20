@@ -45,8 +45,6 @@ export function LLMMonitor() {
   return (
     <div className="w-full">
       <CardHeader>
-        <CardTitle>LLM Monitor</CardTitle>
-        <CardDescription>Current prompts and context</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -59,26 +57,23 @@ export function LLMMonitor() {
                   alt="Current vision input"
                   className="w-full max-w-full rounded-lg border shadow-sm"
                 />
-                <Badge className="absolute top-2 right-2 bg-black/70 text-white">
-                  Vision Input
-                </Badge>
               </div>
             </div>
           )}
 
           <div>
             <h3 className="font-medium mb-2">System Prompt</h3>
-            <Textarea className="h-24 w-full rounded-md border p-2" placeholder="No system prompt set" value={systemPrompt} />
+            <Textarea disabled className="h-fit w-full rounded-md border p-2" placeholder="No system prompt set" value={systemPrompt} />
           </div>
 
           <div>
             <h3 className="font-medium mb-2">Vision Prompt</h3>
-            <Textarea className="h-24 w-full rounded-md border p-2" placeholder="No vision context" value={visionPrompt} />
+            <Textarea disabled className="h-fit w-full rounded-md border p-2" placeholder="No vision context" value={visionPrompt} />
           </div>
 
           <div>
             <h3 className="font-medium mb-2">OCR Prompt</h3>
-            <Textarea className="h-24 w-full rounded-md border p-2" placeholder="No OCR context" value={ocrPrompt} />
+            <Textarea disabled className="h-fit w-full rounded-md border p-2" placeholder="No OCR context" value={ocrPrompt} />
           </div>
 
           <Separator className="my-4" />
@@ -87,26 +82,22 @@ export function LLMMonitor() {
             <h3 className="font-medium mb-2">Retrieved Memory Context</h3>
             <div className="relative">
               <Textarea 
-                className="h-24 w-full rounded-md border p-2" 
+                disabled
+                className="h-fit w-full rounded-md border p-2" 
                 placeholder="No context retrieved from memory" 
                 value={retrievedContext}
               />
-              {retrievedContext && (
-                <Badge className="absolute top-2 right-2" variant="secondary">
-                  Memory Context
-                </Badge>
-              )}
             </div>
           </div>
 
           <div>
             <h3 className="font-medium mb-2 flex items-center gap-2">
               Full System Prompt
-              <Badge variant="outline">Final LLM Input</Badge>
             </h3>
             <div className="relative">
               <Textarea 
-                className="h-36 w-full rounded-md border p-2 bg-muted" 
+                disabled
+                className="h-fit w-full rounded-md border p-2 bg-muted" 
                 placeholder="No system prompt composed yet" 
                 value={fullSystemPrompt}
               />

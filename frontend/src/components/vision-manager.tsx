@@ -82,7 +82,7 @@ export function VisionManager({ className }: VisionManagerProps) {
     if (autoCapture && !loading) {
       // Use a minimum delay of 100ms to prevent overwhelming the system
       const delayMs = Math.max(captureDelay * 1000, 100);
-      
+
       const id = window.setInterval(() => {
         captureScreenshot();
       }, delayMs);
@@ -156,10 +156,10 @@ export function VisionManager({ className }: VisionManagerProps) {
   const scaledResolution = getScaledResolution();
 
   return (
-    <div className="relative overflow-hidden h-screen">
-      <div>
-        <SidePanel isOpen={true}>
-          {/* Monitor Selection */}
+    <div className="relative overflow-hidden h-screen ">
+      <SidePanel isOpen={true} width={400}>
+        {/* Monitor Selection */}
+        <div className="flex flex-col gap-2">
           <div className="space-y-2 w-full overflow-hidden">
             <label className="text-sm font-medium flex items-center gap-2">
               <Monitor className="h-4 w-4" />
@@ -223,8 +223,8 @@ export function VisionManager({ className }: VisionManagerProps) {
             </label>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Extract text from image</span>
-              <Switch 
-                checked={!skipOcr} 
+              <Switch
+                checked={!skipOcr}
                 onCheckedChange={(checked) => setSkipOcr(!checked)}
               />
             </div>
@@ -257,8 +257,8 @@ export function VisionManager({ className }: VisionManagerProps) {
               <p>Time to wait after each screenshot before taking the next one</p>
             </div>
           </div>
-        </SidePanel>
-      </div>
+        </div>
+      </SidePanel>
 
 
 
@@ -314,20 +314,20 @@ export function VisionManager({ className }: VisionManagerProps) {
           </div>
         </Panel>
         {response && (
-        <Panel className="overflow-y-scroll scrollbar-hide h-[80vh]">
-          {error && (
-            <Panel className="border-destructive">
-              <div className="pt-6">
-                <div className="flex items-center gap-2 text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <span className="font-medium">Error</span>
+          <Panel className="overflow-y-scroll scrollbar-hide h-[80vh]">
+            {error && (
+              <Panel className="border-destructive">
+                <div className="pt-6">
+                  <div className="flex items-center gap-2 text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="font-medium">Error</span>
+                  </div>
+                  <p className="mt-2 text-sm text-destructive">{error}</p>
                 </div>
-                <p className="mt-2 text-sm text-destructive">{error}</p>
-              </div>
-            </Panel>
-          )}
+              </Panel>
+            )}
 
-          
+
             <div className={`space-y-6 ${className}`}>
               {/* Screenshot Image */}
               <div>
