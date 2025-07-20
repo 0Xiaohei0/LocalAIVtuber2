@@ -144,7 +144,7 @@ const Chatbox = () => {
 
     return (
         <div className="flex flex-col max-w-3xl mx-auto h-[calc(100vh-50px-17px)]">
-            <SidePanel side="left" isOpen={true}>
+            <SidePanel side="left" isOpen={false}>
                 <div className="w-full mb-4">
                     <Button 
                         onClick={handleCreateNewSession}

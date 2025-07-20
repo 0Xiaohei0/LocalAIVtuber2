@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { chatManager } from '@/lib/chatManager';
-import { CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { globalStateManager } from '@/lib/globalStateManager';
+import { CardContent, CardHeader } from './ui/card';
 import { Textarea } from './ui/textarea';
-import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 import { Separator } from './ui/separator';
+import { Mic, MicOff, Camera, CameraOff } from 'lucide-react';
 
 export function LLMMonitor() {
   const [systemPrompt, setSystemPrompt] = useState('');
@@ -12,10 +14,16 @@ export function LLMMonitor() {
   const [currentImage, setCurrentImage] = useState('');
   const [retrievedContext, setRetrievedContext] = useState('');
   const [fullSystemPrompt, setFullSystemPrompt] = useState('');
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const [isAutoCapture, setIsAutoCapture] = useState(false);
+  
+  // useEffect(() => {
+  //   console.log(isVoiceRecording);
+  // }, [isVoiceRecording]);
 
   useEffect(() => {
     // Subscribe to chat manager updates with specific change types
-    const unsubscribe = chatManager.subscribe(() => {
+    const unsubscribeChat = chatManager.subscribe(() => {
       setSystemPrompt(chatManager.getSystemPrompt());
       setVisionPrompt(chatManager.getVisionPrompt());
       setOcrPrompt(chatManager.getOcrPrompt());
@@ -31,6 +39,15 @@ export function LLMMonitor() {
       onFullSystemPromptChange: true
     });
 
+    // Subscribe to global state updates
+    const unsubscribeVoice = globalStateManager.subscribe('isVoiceRecording', (recording) => {
+      setIsVoiceRecording(recording);
+    });
+
+    const unsubscribeCapture = globalStateManager.subscribe('isAutoCapture', (capture) => {
+      setIsAutoCapture(capture);
+    });
+
     // Initial values
     setSystemPrompt(chatManager.getSystemPrompt());
     setVisionPrompt(chatManager.getVisionPrompt());
@@ -38,13 +55,66 @@ export function LLMMonitor() {
     setCurrentImage(chatManager.getCurrentImage());
     setRetrievedContext(chatManager.getRetrievedContext());
     setFullSystemPrompt(chatManager.getFullSystemPrompt());
+    setIsVoiceRecording(globalStateManager.getState('isVoiceRecording'));
+    setIsAutoCapture(globalStateManager.getState('isAutoCapture'));
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeChat();
+      unsubscribeVoice();
+      unsubscribeCapture();
+    };
   }, []);
+
+  const toggleVoiceRecording = () => {
+    globalStateManager.updateState('isVoiceRecording', !isVoiceRecording);
+  };
+
+  const toggleAutoCapture = () => {
+    globalStateManager.updateState('isAutoCapture', !isAutoCapture);
+  };
 
   return (
     <div className="w-full">
       <CardHeader>
+        <div className="flex gap-2 mb-4">
+          <Button
+            onClick={toggleVoiceRecording}
+            variant={isVoiceRecording ? "default" : "outline"}
+            className="w-40"
+            size="sm"
+          >
+            {isVoiceRecording ? (
+              <>
+                <MicOff className="mr-2 h-4 w-4" />
+                Stop Mic
+              </>
+            ) : (
+              <>
+                <Mic className="mr-2 h-4 w-4" />
+                Start Mic
+              </>
+            )}
+          </Button>
+          
+          <Button
+            onClick={toggleAutoCapture}
+            variant={isAutoCapture ? "default" : "outline"}
+            className="w-40"
+            size="sm"
+          >
+            {isAutoCapture ? (
+              <>
+                <CameraOff className="mr-2 h-4 w-4" />
+                Stop Vision
+              </>
+            ) : (
+              <>
+                <Camera className="mr-2 h-4 w-4" />
+                Start Vision
+              </>
+            )}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

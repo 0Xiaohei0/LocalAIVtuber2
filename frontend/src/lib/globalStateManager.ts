@@ -3,12 +3,16 @@ type GlobalStateListener<K extends keyof GlobalState> = (value: GlobalState[K]) 
 interface GlobalState {
     ttsLiveVolume: number;
     systemPrompt: string;
+    isVoiceRecording: boolean;
+    isAutoCapture: boolean;
 }
 
 class GlobalStateManager {
   private state: GlobalState = {
     ttsLiveVolume: 0,
-    systemPrompt: ""
+    systemPrompt: "",
+    isVoiceRecording: false,
+    isAutoCapture: false
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

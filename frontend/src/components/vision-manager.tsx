@@ -9,6 +9,7 @@ import { Loader2, Camera, FileText, Image as ImageIcon, AlertCircle, Monitor, Za
 import { Panel } from './panel';
 import { chatManager } from '@/lib/chatManager';
 import { SidePanel } from './side-panel';
+import { globalStateManager } from '@/lib/globalStateManager';
 
 interface MonitorInfo {
   index: number;
@@ -51,6 +52,18 @@ export function VisionManager({ className }: VisionManagerProps) {
   const [requestDuration, setRequestDuration] = useState<number | null>(null);
   const [intervalId, setIntervalId] = useState<number | null>(null);
   const [skipOcr, setSkipOcr] = useState(false);
+
+  // Subscribe to global auto-capture state
+  useEffect(() => {
+    const unsubscribe = globalStateManager.subscribe('isAutoCapture', (capture) => {
+      setAutoCapture(capture);
+    });
+
+    // Set initial state
+    setAutoCapture(globalStateManager.getState('isAutoCapture'));
+
+    return () => unsubscribe();
+  }, []);
 
   // Load monitor information on component mount
   useEffect(() => {
@@ -139,7 +152,7 @@ export function VisionManager({ className }: VisionManagerProps) {
   };
 
   const toggleAutoCapture = () => {
-    setAutoCapture(!autoCapture);
+    globalStateManager.updateState('isAutoCapture', !autoCapture);
   };
 
   // Calculate scaled resolution based on selected monitor and scale factor
@@ -300,7 +313,7 @@ export function VisionManager({ className }: VisionManagerProps) {
                 ) : (
                   <>
                     <Play className="mr-2 h-4 w-4" />
-                    Start Auto
+                    Start Vision
                   </>
                 )}
               </Button>

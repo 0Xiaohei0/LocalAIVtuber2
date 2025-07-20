@@ -76,8 +76,8 @@ class VisionInput:
             with mss.mss() as sct:
                 # Get monitor info
                 monitors = sct.monitors
-                self.logger.info(f"Available monitors: {len(monitors)}")
-                self.logger.info(f"Requested monitor index: {monitor_index}")
+                self.logger.debug(f"Available monitors: {len(monitors)}")
+                self.logger.debug(f"Requested monitor index: {monitor_index}")
                 
                 # Validate monitor index
                 if monitor_index < 0 or monitor_index >= len(monitors):
@@ -88,8 +88,8 @@ class VisionInput:
                     else:
                         monitor_index = 0
                 
-                self.logger.info(f"Using monitor index: {monitor_index}")
-                self.logger.info(f"Monitor info: {monitors[monitor_index]}")
+                self.logger.debug(f"Using monitor index: {monitor_index}")
+                self.logger.debug(f"Monitor info: {monitors[monitor_index]}")
                 
                 # Capture screenshot
                 screenshot = sct.grab(monitors[monitor_index])

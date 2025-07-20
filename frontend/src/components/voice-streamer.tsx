@@ -12,12 +12,25 @@ import { Panel } from "./panel";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 
 import { pipelineManager } from "@/lib/pipelineManager";
+import { globalStateManager } from "@/lib/globalStateManager";
 
 export default function VoiceStreamer() {
   const [isRecording, setIsRecording] = useState(false);
   const [probability, setProbability] = useState<number | null>(null);
   const [transcriptions, setTranscriptions] = useState<string[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    // Subscribe to global recording state
+    const unsubscribe = globalStateManager.subscribe('isVoiceRecording', (recording) => {
+      setIsRecording(recording);
+    });
+
+    // Set initial state
+    setIsRecording(globalStateManager.getState('isVoiceRecording'));
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     stopRecording()
@@ -43,12 +56,12 @@ export default function VoiceStreamer() {
 
   const startRecording = async () => {
     await fetch("/api/record/start", { method: "POST" });
-    setIsRecording(true);
+    globalStateManager.updateState('isVoiceRecording', true);
   };
 
   const stopRecording = async () => {
     await fetch("/api/record/stop", { method: "POST" });
-    setIsRecording(false);
+    globalStateManager.updateState('isVoiceRecording', false);
   };
 
   return (
@@ -60,7 +73,7 @@ export default function VoiceStreamer() {
             variant={`${isRecording ? "destructive" : "outline"}`}
             onClick={isRecording ? stopRecording : startRecording}
           >
-            {isRecording ? "Stop Recording" : "Start Recording"}
+            {isRecording ? "Stop Voice" : "Start Voice"}
           </Button>
           <div className="w-full">
             <p className="text-sm mb-1">Speech Probability:</p>

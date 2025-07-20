@@ -24,8 +24,8 @@ function LLMPage() {
         <div className="relative h-screen w-full overflow-hidden">
             
             {showMonitor ? (
-                <div className="flex flex-row h-full gap-10 justify-between">
-                    <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pl-20 pt-4 w-5/12 ">
+                <div className="flex flex-row h-full justify-between">
+                    <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pl-20 pr-20 pt-4 w-6/12 ">
                         <Chatbox/>
                     </ScrollArea>
                     <ScrollArea className="w-5/12 pr-20 pt-4">
@@ -37,7 +37,7 @@ function LLMPage() {
                     <Chatbox/>
                 </ScrollArea>
             )}
-            <SidePanel isOpen={true} width={500} toggleText={{open: "Settings", close: "Settings"}} >
+            <SidePanel isOpen={false} width={500} toggleText={{open: "Settings", close: "Settings"}} >
                 <div className="space-y-2 w-full flex flex-col items-start gap-4">
                     <div className="flex flex-col items-start gap-2">
                         <label className="text-sm font-medium">AI Model Selector</label>
