@@ -21,7 +21,7 @@ class TextLLM(BaseLLM):
             n_ctx=n_ctx,
             n_gpu_layers=n_gpu_layers,
             seed=seed,
-            verbose=True,
+            verbose=False,
             chat_format=self.chat_format,
             chat_handler=None,
             chat_template=None,

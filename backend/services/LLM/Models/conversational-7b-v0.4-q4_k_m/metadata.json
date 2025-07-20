@@ -1,0 +1,7 @@
+{
+    "displayName": "Conversational-7B-v0.4-Q4_K_M",
+    "description": "General purpose LLM",
+    "fileName": "conversational-7b-v0.4-q4_k_m.gguf",
+    "link": "https://huggingface.co/xiaoheiqaq/conversational-7b-v0.4-q4_k_m-GGUF/resolve/main/conversational-7b-v0.4-q4_k_m.Q4_K_M.gguf",
+    "type": "text"
+}

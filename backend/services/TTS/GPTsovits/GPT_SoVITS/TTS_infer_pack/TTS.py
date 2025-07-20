@@ -31,6 +31,7 @@ from TTS_infer_pack.TextPreprocessor import TextPreprocessor
 from BigVGAN.bigvgan import BigVGAN
 from module.mel_processing import spectrogram_torch,mel_spectrogram_torch
 from process_ckpt import get_sovits_version_from_path_fast, load_sovits_new
+from services.lib.LAV_logger import logger
 language=os.environ.get("language","Auto")
 language=sys.argv[-1] if sys.argv[-1] in scan_language_list() else language
 i18n = I18nAuto(language=language)
@@ -159,7 +160,7 @@ default_v3:
 def set_seed(seed:int):
     seed = int(seed)
     seed = seed if seed != -1 else random.randint(0, 2**32 - 1)
-    print(f"Set seed to {seed}")
+    logger.debug(f"Set seed to {seed}")
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -477,9 +478,10 @@ class TTS:
             
 
         if if_lora_v3==False:
-            print(f"Loading VITS weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}")
+            pass
+            logger.debug(f"Loading VITS weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}")
         else:
-            print(f"Loading VITS pretrained weights from {weights_path}. {vits_model.load_state_dict(load_sovits_new(path_sovits_v3)['weight'], strict=False)}")
+            logger.debug(f"Loading VITS pretrained weights from {weights_path}. {vits_model.load_state_dict(load_sovits_new(path_sovits_v3)['weight'], strict=False)}")
             lora_rank=dict_s2["lora_rank"]
             lora_config = LoraConfig(
                 target_modules=["to_k", "to_q", "to_v", "to_out.0"],
@@ -488,7 +490,7 @@ class TTS:
                 init_lora_weights=True,
             )
             vits_model.cfm = get_peft_model(vits_model.cfm, lora_config)
-            #print(f"Loading LoRA weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}")
+            logger.debug(f"Loading LoRA weights from {weights_path}. {vits_model.load_state_dict(dict_s2['weight'], strict=False)}")
             
             vits_model.cfm = vits_model.cfm.merge_and_unload()
 
@@ -896,29 +898,29 @@ class TTS:
         super_sampling = inputs.get("super_sampling", False)
 
         if parallel_infer:
-            print(i18n("并行推理模式已开启"))
+            logger.debug(i18n("并行推理模式已开启"))
             self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_batch_infer
         else:
-            print(i18n("并行推理模式已关闭"))
+            logger.debug(i18n("并行推理模式已关闭"))
             self.t2s_model.model.infer_panel = self.t2s_model.model.infer_panel_naive_batched
 
         if return_fragment:
-            print(i18n("分段返回模式已开启"))
+            logger.debug(i18n("分段返回模式已开启"))
             if split_bucket:
                 split_bucket = False
-                print(i18n("分段返回模式不支持分桶处理，已自动关闭分桶处理"))
+                logger.debug(i18n("分段返回模式不支持分桶处理，已自动关闭分桶处理"))
 
         if split_bucket and speed_factor==1.0:
-            print(i18n("分桶处理模式已开启"))
+            logger.debug(i18n("分桶处理模式已开启"))
         elif speed_factor!=1.0:
-            print(i18n("语速调节不支持分桶处理，已自动关闭分桶处理"))
+            logger.debug(i18n("语速调节不支持分桶处理，已自动关闭分桶处理"))
             split_bucket = False
         else:
-            print(i18n("分桶处理模式已关闭"))
+            logger.debug(i18n("分桶处理模式已关闭"))
 
         if fragment_interval<0.01:
             fragment_interval = 0.01
-            print(i18n("分段间隔过小，已自动设置为0.01"))
+            logger.debug(i18n("分段间隔过小，已自动设置为0.01"))
 
         no_prompt_text = False
         if prompt_text in [None, ""]:
@@ -958,7 +960,7 @@ class TTS:
         if not no_prompt_text:
             prompt_text = prompt_text.strip("\n")
             if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_lang != "en" else "."
-            print(i18n("实际输入的参考文本:"), prompt_text)
+            logger.debug(i18n("实际输入的参考文本:"), prompt_text)
             if self.prompt_cache["prompt_text"] != prompt_text:
                 phones, bert_features, norm_text = \
                     self.text_preprocessor.segment_and_extract_feature_for_text(
@@ -993,7 +995,7 @@ class TTS:
                                 precision=self.precision
                                 )
         else:
-            print(f'############ {i18n("切分文本")} ############')
+            logger.debug(f'############ {i18n("切分文本")} ############')
             texts = self.text_preprocessor.pre_seg_text(text, text_lang, text_split_method)
             data = []
             for i in range(len(texts)):
@@ -1003,7 +1005,7 @@ class TTS:
 
             def make_batch(batch_texts):
                 batch_data = []
-                print(f'############ {i18n("提取文本Bert特征")} ############')
+                logger.debug(f'############ {i18n("提取文本Bert特征")} ############')
                 for text in tqdm(batch_texts):
                     phones, bert_features, norm_text = self.text_preprocessor.segment_and_extract_feature_for_text(text, text_lang, self.configs.version)
                     if phones is None:
@@ -1029,7 +1031,7 @@ class TTS:
 
         t2 = ttime()
         try:
-            print("############ 推理 ############")
+            logger.debug("############ 推理 ############")
             ###### inference ######
             t_34 = 0.0
             t_45 = 0.0
@@ -1051,13 +1053,13 @@ class TTS:
                 norm_text:str = item["norm_text"]
                 max_len = item["max_len"]
 
-                print(i18n("前端处理后的文本(每句):"), norm_text)
+                logger.debug(i18n("前端处理后的文本(每句):"), norm_text)
                 if no_prompt_text :
                     prompt = None
                 else:
                     prompt = self.prompt_cache["prompt_semantic"].expand(len(all_phoneme_ids), -1).to(self.configs.device)
 
-                print(f"############ {i18n('预测语义Token')} ############")
+                logger.debug(f"############ {i18n('预测语义Token')} ############")
                 pred_semantic_list, idx_list = self.t2s_model.model.infer_panel(
                     all_phoneme_ids,
                     all_phoneme_lens,
@@ -1091,7 +1093,7 @@ class TTS:
                 # batch_audio_fragment = (self.vits_model.batched_decode(
                 #         pred_semantic, pred_semantic_len, batch_phones, batch_phones_len,refer_audio_spec
                 #     ))
-                print(f"############ {i18n('合成音频')} ############")
+                logger.debug(f"############ {i18n('合成音频')} ############")
                 if not self.configs.is_v3_synthesizer:
                     if speed_factor == 1.0:
                         # ## vits并行推理 method 2
@@ -1131,7 +1133,7 @@ class TTS:
                 t5 = ttime()
                 t_45 += t5 - t4
                 if return_fragment:
-                    print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
+                    logger.debug("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t4 - t3, t5 - t4))
                     yield self.audio_postprocess([batch_audio_fragment],
                                                     output_sr,
                                                     None,
@@ -1148,7 +1150,7 @@ class TTS:
                     return
 
             if not return_fragment:
-                print("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t_34, t_45))
+                logger.debug("%.3f\t%.3f\t%.3f\t%.3f" % (t1 - t0, t2 - t1, t_34, t_45))
                 if len(audio) == 0:
                     yield 16000, np.zeros(int(16000), dtype=np.int16)
                     return
@@ -1218,7 +1220,7 @@ class TTS:
         audio = torch.cat(audio, dim=0)
 
         if super_sampling:
-            print(f"############ {i18n('音频超采样')} ############")
+            logger.debug(f"############ {i18n('音频超采样')} ############")
             t1 = ttime()
             self.init_sr_model()
             if not self.sr_model_not_exist:
@@ -1226,7 +1228,7 @@ class TTS:
                 max_audio=np.abs(audio).max()
                 if max_audio > 1: audio /= max_audio
             t2 = ttime()
-            print(f"超采样用时：{t2-t1:.3f}s")
+            logger.debug(f"超采样用时：{t2-t1:.3f}s")
         else:
             audio = audio.cpu().numpy()
 

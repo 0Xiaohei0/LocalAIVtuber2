@@ -23,7 +23,7 @@ logger.setLevel(logging.DEBUG)
 # Ensure the logger is configured only once
 if not logger.hasHandlers():
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.DEBUG)
+    console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(CustomFormatter())
     logger.addHandler(console_handler)
 

@@ -23,6 +23,7 @@ from AR.modules.transformer import TransformerEncoderLayer
 from torch import nn
 from torch.nn import functional as F
 from torchmetrics.classification import MulticlassAccuracy
+from services.lib.LAV_logger import logger
 
 default_config = {
     "embedding_dim": 512,
@@ -557,7 +558,7 @@ class Text2SemanticDecoder(nn.Module):
                 if prompts.shape[1] == y.shape[1]:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
                     print("bad zero prediction")
-                print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                logger.debug(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
                 break
             # 本次生成的 semantic_ids 和之前的 y 构成新的 y
             # print(samples.shape)#[1,1]#第一个1是bs
@@ -733,7 +734,7 @@ class Text2SemanticDecoder(nn.Module):
                 if y.shape[1]==0:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
                     print("bad zero prediction")
-                print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                logger.debug(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
                 break
 
             ####################### update next step ###################################
@@ -873,7 +874,7 @@ class Text2SemanticDecoder(nn.Module):
                 if y.shape[1] == 0:
                     y = torch.concat([y, torch.zeros_like(samples)], dim=1)
                     print("bad zero prediction")
-                print(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
+                logger.debug(f"T2S Decoding EOS [{prefix_len} -> {y.shape[1]}]")
                 break
 
             ####################### update next step ###################################

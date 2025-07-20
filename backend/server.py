@@ -1,3 +1,10 @@
+import time
+from services.lib.startup_progress import startup_progress
+# Track import time
+start_time = time.time()
+total_start_time = time.time()
+startup_progress.show_step("Importing python modules")
+
 import asyncio
 import traceback
 from services.ChatFetch.Chatfetch import ChatFetch
@@ -14,11 +21,14 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 from services.LLM.LLM import LLM
 from pydantic import BaseModel
-import time
 from datetime import datetime
 import json
 from typing import Any, Dict, List
 import mss
+
+# Show import completion immediately after imports
+import_time = time.time() - start_time
+startup_progress.complete_step(f"Imports completed in {import_time:.2f}s")
 
 app = FastAPI()
 static_files_path = os.path.abspath("../frontend/dist")
@@ -27,12 +37,14 @@ app.mount("/resource", StaticFiles(directory="../frontend/dist/resource"), name=
 
 # Initialize Services
 start_time = time.time()
+startup_progress.show_step("Loading AI Services")
 voice_input:VoiceInput = VoiceInput()
 llm:LLM = LLM()
 memory:Memory = Memory()
 history_store:HistoryStore = HistoryStore()
 tts:TTS = TTS()
 vision_input:VisionInput = VisionInput()
+startup_progress.complete_step(f"AI Services loaded in {time.time() - start_time:.2f}s")
 
 clients = set()
 
@@ -380,11 +392,14 @@ class SettingsManager:
     def apply_settings(self):
         # Create a copy of items to avoid modification during iteration
         settings_items = list(self.settings.items())
+        
+        for key, value in settings_items:
+            if key == "llm.model_filename":
+                llm.load_model_by_filename(value)
+        
         for key, value in settings_items:
             if key == "llm.keep_model_loaded":
                 llm.set_keep_model_loaded(value)
-            if key == "llm.model_filename":
-                llm.load_model_by_filename(value)
             if key == "stream.yt.videoid":
                 chat_fetch.video_id = value
             if key == "tts.voice":
@@ -406,11 +421,24 @@ SETTINGS_FILE = "settings.json"
 settings_manager = SettingsManager(SETTINGS_FILE)
 
 # Apply settings on startup
+start_time = time.time()
+startup_progress.show_step("Applying Settings")
 settings_manager.apply_settings()
+startup_progress.complete_step(f"Settings applied in {time.time() - start_time:.2f}s")
+
+# Warm up TTS to reduce first request latency
+start_time = time.time()
+startup_progress.show_step("Warming up TTS")
+try:
+    tts.syntheize("Hi")
+    startup_progress.complete_step(f"TTS warmed up successfully in {time.time() - start_time:.2f}s")
+except Exception as e:
+    startup_progress.complete_step(f"TTS warm-up failed (non-critical) in {time.time() - start_time:.2f}s")
+    logger.warning(f"TTS warm-up failed (non-critical): {e}")
 
 # Log startup time
-startup_time = time.time() - start_time
-logger.info(f"Server started in {startup_time:.2f} seconds at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+startup_time = time.time() - total_start_time
+startup_progress.complete_step(f"✅ Server Ready in {startup_time:.2f}s at {datetime.now().strftime('%H:%M:%S')}")
 
 # *******************************
 # Settings API
