@@ -139,42 +139,42 @@ export default function EditableChatHistory({ messages, sessionId, onUpdate, onC
                                 ? 'self-end ml-auto'
                                 : 'self-start mr-auto'
                             }`}>
-                            <Button variant="ghost" size="sm" onClick={() => continueMessage(index)}>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={() => continueMessage(index)}>
                                             <ArrowRight className="h-4 w-4" />
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom" sideOffset={14}>
-                                            Continue Message
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => startEditing(index)}>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" sideOffset={14}>
+                                        Continue Message
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={() => startEditing(index)}>
                                             <Edit3 className="h-4 w-4" />
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom" sideOffset={14}>
-                                            Edit Message
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => deleteMessage(index)}>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" sideOffset={14}>
+                                        Edit Message
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={() => deleteMessage(index)}>
                                             <Trash className="h-4 w-4" />
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom" sideOffset={14}>
-                                            Delete Message
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </Button>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom" sideOffset={14}>
+                                        Delete Message
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                     )}
                 </div>
