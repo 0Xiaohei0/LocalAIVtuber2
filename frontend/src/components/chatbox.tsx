@@ -226,6 +226,9 @@ const Chatbox = () => {
                     onContinue={(index) => {
                         chatManager.continueMessage(index);
                     }}
+                    onRegenerate={(index) => {
+                        chatManager.regenerateMessage(index);
+                    }}
                 />
                 <div ref={messagesEndRef}></div>
             </div>

@@ -301,7 +301,7 @@ async def complete_current_response(request: CompleteResponseRequest, fastapi_re
         if not llm.llm:
             llm.load_model(llm.current_model_data)
             
-        response = llm.llm.complete_current_response(request.history, request.systemPrompt)
+        response = llm.complete_current_response(request.history, request.systemPrompt)
         if response is None:
             return {"error": "No response from LLM service"}
         
@@ -410,6 +410,25 @@ class SettingsManager:
                     logger.warning(f"Saved voice '{value}' not found, removing from settings")
                     self.settings.pop("tts.voice")
                     self.save_settings(self.settings)
+        
+        # Apply LLM sampling parameters
+        llm_sampling_params = {}
+        for key, value in settings_items:
+            if key.startswith("llm.") and key.split(".", 1)[1] in ["top_k", "top_p", "min_p", "repeat_penalty", "temperature", "seed"]:
+                param_name = key.split(".", 1)[1]
+                try:
+                    # Convert to appropriate type
+                    if param_name == "seed":
+                        llm_sampling_params[param_name] = int(value)
+                    elif param_name in ["top_k"]:
+                        llm_sampling_params[param_name] = int(value)
+                    else:
+                        llm_sampling_params[param_name] = float(value)
+                except (ValueError, TypeError):
+                    logger.warning(f"Invalid value for {key}: {value}, using default")
+        
+        if llm_sampling_params:
+            llm.update_sampling_params(llm_sampling_params)
 
     def update_settings(self, updated_settings: Dict[str, Any]):
         self.settings.update(updated_settings)

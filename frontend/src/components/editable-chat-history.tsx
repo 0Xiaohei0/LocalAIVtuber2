@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Edit3, Save, X, Trash, ArrowRight } from "lucide-react"
+import { Edit3, Save, X, Trash, ArrowRight, RotateCcw } from "lucide-react"
 import { Button } from "./ui/button"
 import { Textarea } from "./ui/textarea"
 import { HistoryItem } from "@/lib/types"
@@ -13,9 +13,10 @@ interface EditableChatHistoryProps {
     sessionId: string
     onUpdate: (updatedHistory: HistoryItem[]) => void
     onContinue: (index: number) => void
+    onRegenerate: (index: number) => void
 }
 
-export default function EditableChatHistory({ messages, sessionId, onUpdate, onContinue }: EditableChatHistoryProps) {
+export default function EditableChatHistory({ messages, sessionId, onUpdate, onContinue, onRegenerate }: EditableChatHistoryProps) {
     const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null)
     const [editContent, setEditContent] = useState("")
 
@@ -26,6 +27,10 @@ export default function EditableChatHistory({ messages, sessionId, onUpdate, onC
 
     const continueMessage = (index: number) => {
         onContinue(index)
+    }
+
+    const regenerateMessage = (index: number) => {
+        onRegenerate(index)
     }
 
     const deleteMessage = async (index: number) => {
@@ -151,6 +156,20 @@ export default function EditableChatHistory({ messages, sessionId, onUpdate, onC
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
+                            {message.role === 'assistant' && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="sm" onClick={() => regenerateMessage(index)}>
+                                                <RotateCcw className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" sideOffset={14}>
+                                            Regenerate Message
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>

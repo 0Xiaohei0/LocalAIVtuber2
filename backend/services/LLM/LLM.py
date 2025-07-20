@@ -16,6 +16,16 @@ class LLM:
         self.llm: BaseLLM | None = None
         self.all_model_data = None
         self.keep_model_loaded = False
+        
+        # Default sampling parameters
+        self.sampling_params = {
+            'top_k': 40,
+            'top_p': 0.95,
+            'min_p': 0.05,
+            'repeat_penalty': 1.1,
+            'temperature': 0.8,
+            'seed': -1
+        }
 
         # Initialize models directory if it doesn't exist
         if not os.path.exists(self.models_directory):
@@ -120,7 +130,11 @@ class LLM:
             self.load_model(self.current_model_data)
         else:
             self.unload_model()
-        
+
+    def update_sampling_params(self, params: dict):
+        """Update sampling parameters - no model reload needed as these are inference-time parameters"""
+        self.sampling_params.update(params)
+        logger.info(f"Updated sampling parameters: {self.sampling_params}")
 
     def get_completion(self, text, history, system_prompt, screenshot=False):
         if not self.llm:
@@ -132,7 +146,40 @@ class LLM:
             response = self.llm.get_chat_completion(text, history, system_prompt, screenshot)
         elif isinstance(self.llm, TextLLM):
             self.llm: TextLLM
-            response = self.llm.get_chat_completion(text, history, system_prompt)
+            response = self.llm.get_chat_completion(
+                text, 
+                history, 
+                system_prompt,
+                top_k=self.sampling_params['top_k'],
+                top_p=self.sampling_params['top_p'],
+                min_p=self.sampling_params['min_p'],
+                repeat_penalty=self.sampling_params['repeat_penalty'],
+                temperature=self.sampling_params['temperature'],
+                seed=self.sampling_params['seed']
+            )
+        if not self.keep_model_loaded:
+            self.unload_model()
+        return response
+
+    def complete_current_response(self, history, system_prompt):
+        """Complete the current response with sampling parameters from settings"""
+        if not self.llm:
+            self.load_model(self.current_model_data)
+
+        response = None
+        if isinstance(self.llm, TextLLM):
+            self.llm: TextLLM
+            response = self.llm.complete_current_response(
+                history, 
+                system_prompt,
+                top_k=self.sampling_params['top_k'],
+                top_p=self.sampling_params['top_p'],
+                min_p=self.sampling_params['min_p'],
+                repeat_penalty=self.sampling_params['repeat_penalty'],
+                temperature=self.sampling_params['temperature'],
+                seed=self.sampling_params['seed']
+            )
+        
         if not self.keep_model_loaded:
             self.unload_model()
         return response

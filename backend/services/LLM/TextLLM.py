@@ -28,7 +28,9 @@ class TextLLM(BaseLLM):
             jinja2_env=env
         )
 
-    def get_chat_completion(self, text: str, history: list = [], system_prompt: str = "") -> Generator[str, None, None]:
+    def get_chat_completion(self, text: str, history: list = [], system_prompt: str = "", 
+                          top_k: int = 40, top_p: float = 0.95, min_p: float = 0.05, 
+                          repeat_penalty: float = 1.1, temperature: float = 0.8, seed: int = -1) -> Generator[str, None, None]:
         messages = [
             {"role": "system", "content": system_prompt},
         ]
@@ -48,7 +50,20 @@ class TextLLM(BaseLLM):
         while count_tokens(messages) > self.context_length and len(messages) > 1:
             messages.pop(1)
 
-        completion_chunks = self.llm.create_chat_completion(messages, stream=True, max_tokens=1024, temperature=0.9, repeat_penalty=1.1)
+        # Log sampling parameters before inference
+        logger.info(f"Inference parameters - top_k: {top_k}, top_p: {top_p}, min_p: {min_p}, repeat_penalty: {repeat_penalty}, temperature: {temperature}, seed: {seed}")
+
+        completion_chunks = self.llm.create_chat_completion(
+            messages, 
+            stream=True, 
+            max_tokens=1024,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            min_p=min_p,
+            repeat_penalty=repeat_penalty,
+            seed=seed
+        )
         
         for completion_chunk in completion_chunks:
             if "content" in completion_chunk["choices"][0]["delta"].keys():
@@ -56,7 +71,9 @@ class TextLLM(BaseLLM):
             else:
                 pass
 
-    def complete_current_response(self, history: List[Dict[str, str]], system_prompt: str = "") -> Generator[str, None, None]:
+    def complete_current_response(self, history: List[Dict[str, str]], system_prompt: str = "",
+                                top_k: int = 40, top_p: float = 0.95, min_p: float = 0.05, 
+                                repeat_penalty: float = 1.1, temperature: float = 0.8, seed: int = -1) -> Generator[str, None, None]:
         """
         Complete the current response in the conversation by continuing token prediction
         from the current context until an end token is reached.
@@ -64,6 +81,12 @@ class TextLLM(BaseLLM):
         Args:
             history: List of message dictionaries containing the conversation history
             system_prompt: Optional system prompt to guide the completion
+            top_k: Top-k sampling parameter
+            top_p: Top-p sampling parameter
+            min_p: Min-p sampling parameter
+            repeat_penalty: Repeat penalty parameter
+            temperature: Temperature sampling parameter
+            seed: Random seed for generation
             
         Yields:
             str: The completed response chunks
@@ -108,12 +131,19 @@ class TextLLM(BaseLLM):
         logger.debug(f"Prompt: {prompt}")
         logger.debug(f"Stop: {stop}")
 
+        # Log sampling parameters before inference
+        logger.info(f"Complete response parameters - top_k: {top_k}, top_p: {top_p}, min_p: {min_p}, repeat_penalty: {repeat_penalty}, temperature: {temperature}, seed: {seed}")
+
         completion_chunks = self.llm.create_completion(
             prompt, 
             stream=True, 
             max_tokens=2048,  # Increased to allow for longer completions
-            temperature=0.9, 
-            repeat_penalty=1.1,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            min_p=min_p,
+            repeat_penalty=repeat_penalty,
+            seed=seed,
             stop=stop
         )
 
@@ -127,16 +157,24 @@ if __name__ == "__main__":
     current_module_directory = os.path.dirname(__file__)
     import time
     startTime = time.time()
-    text_LLM = TextLLM(model_path=os.path.join(current_module_directory,"Models", "dolphin-2.6-mistral-7b.Q4_0", "dolphin-2.6-mistral-7b.Q4_0.gguf"))
+    text_LLM = TextLLM(
+        model_path=os.path.join(current_module_directory,"Models", "dolphin-2.6-mistral-7b.Q4_0", "dolphin-2.6-mistral-7b.Q4_0.gguf")
+    )
     logger.debug(f"init time: {time.time()-startTime}")
     startTime = time.time()
-    completion_chunks = text_LLM.get_chat_completion("What do you think of Vtubers?")
+    completion_chunks = text_LLM.get_chat_completion(
+        "What do you think of Vtubers?",
+        top_k=40, top_p=0.95, min_p=0.05, repeat_penalty=1.1, temperature=0.8, seed=-1
+    )
     for completion_chunk in completion_chunks:
         print(completion_chunk, end="", flush=True)
     logger.debug(f"Inference time: {time.time()-startTime}")
     startTime = time.time()
-    completion_chunks = text_LLM.complete_current_response([{"role": "user", "content": "What do you think of Vtubers?"},
-                                                          {"role": "assistant", "content": "I think Vtubers"}])
+    completion_chunks = text_LLM.complete_current_response(
+        [{"role": "user", "content": "What do you think of Vtubers?"}, {"role": "assistant", "content": "I think Vtubers"}],
+        system_prompt="",
+        top_k=40, top_p=0.95, min_p=0.05, repeat_penalty=1.1, temperature=0.8, seed=-1
+    )
     for completion_chunk in completion_chunks:
         print(completion_chunk, end="", flush=True)
     logger.debug(f"Inference time: {time.time()-startTime}")

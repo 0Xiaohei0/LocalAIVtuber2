@@ -319,6 +319,88 @@ export class ChatManager {
         this.notifySubscribers('onMessagesChange');
     }
 
+    public async regenerateMessage(index: number) {
+        // Only regenerate assistant messages
+        if (this.messages[index].role !== 'assistant') return;
+        
+        // take history from beginning up to (but not including) the message being regenerated
+        const historyUpToMessage = this.messages.slice(0, index);
+        
+        // Get the user message that prompted this assistant response
+        const lastUserMessage = historyUpToMessage[historyUpToMessage.length - 1];
+        if (!lastUserMessage || lastUserMessage.role !== 'user') return;
+
+        // Clear the current assistant message content
+        this.messages[index].content = '';
+        this.notifySubscribers('onMessagesChange');
+
+        // Use the same context logic as sendMessage for consistency
+        let contextText = '';
+        if (this.enableMemoryRetrieval) {
+            try {
+                const contextRes = await fetch('/api/memory/context', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: lastUserMessage.content, limit: 3 })
+                });
+                if (contextRes.ok) {
+                    const contextData = await contextRes.json();
+                    if (Array.isArray(contextData.context) && contextData.context.length > 0) {
+                        contextText = contextData.context
+                            .map((c: Record<string, unknown>) => typeof c.document === 'string' ? c.document : '')
+                            .filter(Boolean)
+                            .join('\n');
+                    }
+                }
+            } catch (ctxErr) {
+                console.warn('Failed to fetch context:', ctxErr);
+            }
+        }
+
+        // Assemble system prompt with context (same logic as sendMessage)
+        const visionSection = this.visionPrompt.trim() ? 
+            `[SCREEN CONTEXT]\n${this.visionPrompt}\n\n` : '';
+        const ocrSection = this.ocrPrompt.trim() ? 
+            `[SCREEN TEXT]\n${this.ocrPrompt}\n\n` : '';
+        const contextSection = contextText.trim() ? 
+            `[RETRIEVED MEMORY]\n${contextText}\n\n` : '';
+        const instructionsSection = `[INSTRUCTIONS]\n${this.systemPrompt}\n\n`;
+        const systemPromptWithContext = visionSection + ocrSection + contextSection + instructionsSection;
+
+        // Send completion request with history up to the user message
+        const response = await fetch('/api/completion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: lastUserMessage.content,
+                history: historyUpToMessage.slice(0, -1), // exclude the user message since it's passed as 'text'
+                systemPrompt: systemPromptWithContext
+            })
+        });
+
+        if (!response.ok) {
+            console.error("Error during regeneration");
+            return;
+        }
+
+        // Stream the new response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        if (!reader) return;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            this.messages[index].content += chunk;
+            this.notifySubscribers('onMessagesChange');
+        }
+        
+        await updateSession(this.sessionId, this.messages);
+        this.notifySubscribers('onMessagesChange');
+    }
+
     public getMessages(): HistoryItem[] {
         return this.messages;
     }
