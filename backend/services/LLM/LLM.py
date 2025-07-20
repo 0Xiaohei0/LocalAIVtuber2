@@ -85,9 +85,9 @@ class LLM:
         
     def load_model(self, model_data: dict, gpu_layers=-1):
         """Load a model using its metadata"""
-        logger.info(f"Loading model {model_data}...")
+        logger.debug(f"Loading model {model_data}...")
         if (self.llm and self.current_model_data.get('fileName') == model_data.get('fileName')):
-            logger.info(f"Same model already loaded, load cancelled...")
+            logger.debug(f"Same model already loaded, load cancelled...")
             return
 
         self.current_model_data = model_data

@@ -62,17 +62,17 @@ export function LLMMonitor() {
           )}
 
           <div>
-            <h3 className="font-medium mb-2">System Prompt</h3>
+            <h3 className="font-medium mb-2">System Context</h3>
             <Textarea disabled className="h-fit w-full rounded-md border p-2" placeholder="No system prompt set" value={systemPrompt} />
           </div>
 
           <div>
-            <h3 className="font-medium mb-2">Vision Prompt</h3>
+            <h3 className="font-medium mb-2">Vision Context</h3>
             <Textarea disabled className="h-fit w-full rounded-md border p-2" placeholder="No vision context" value={visionPrompt} />
           </div>
 
           <div>
-            <h3 className="font-medium mb-2">OCR Prompt</h3>
+            <h3 className="font-medium mb-2">OCR Context</h3>
             <Textarea disabled className="h-fit w-full rounded-md border p-2" placeholder="No OCR context" value={ocrPrompt} />
           </div>
 
