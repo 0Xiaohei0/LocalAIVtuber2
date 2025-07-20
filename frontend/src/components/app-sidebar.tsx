@@ -23,8 +23,8 @@ import {
 
 type PageKey = keyof typeof pageMapping
 // Menu items.
-const testPipelineKeys: PageKey[] = ["input","vision", "llm", "tts", "pipeline-monitor", "character", "stream", "memory"]
-const footerKeys: PageKey[] = ["settings"]
+const testPipelineKeys: PageKey[] = ["llm",  "character", "memory"]
+const footerKeys: PageKey[] = ["input","vision","tts", "pipeline-monitor", "stream", "settings"]
 
 
 
