@@ -308,7 +308,7 @@ export function VisionManager({ className }: VisionManagerProps) {
                 {autoCapture ? (
                   <>
                     <Pause className="mr-2 h-4 w-4" />
-                    Stop Auto
+                    Stop Vision
                   </>
                 ) : (
                   <>

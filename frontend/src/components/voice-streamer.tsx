@@ -22,8 +22,14 @@ export default function VoiceStreamer() {
 
   useEffect(() => {
     // Subscribe to global recording state
-    const unsubscribe = globalStateManager.subscribe('isVoiceRecording', (recording) => {
+    const unsubscribe = globalStateManager.subscribe('isVoiceRecording', async (recording) => {
       setIsRecording(recording);
+      // Make appropriate API calls based on recording state
+      if (recording) {
+        await fetch("/api/record/start", { method: "POST" });
+      } else {
+        await fetch("/api/record/stop", { method: "POST" });
+      }
     });
 
     // Set initial state

@@ -9,14 +9,18 @@ import { globalStateManager } from '@/lib/globalStateManager';
 
 // const CHARACTER_MODEL_PATH = "src/assets/VRM3D/models/生駒ミル_私服.vrm"
 
-const CHARACTER_MODEL_PATH = "/resource/VRM3D/models/春日部つむぎハイパー.vrm"
+const DEFAULT_CHARACTER_MODEL_PATH = "/resource/VRM3D/models/春日部つむぎハイパー.vrm"
 const ANIMATIONS = {
     DEFAULT: { idle: "/resource/VRM3D/animations/idle.vrma", gestures: [] },
 }
 
 const BACKGROUND_IMAGE = "/black.png" 
 
-const VRM3dCanvas = () => {
+interface VRM3dCanvasProps {
+    modelPath?: string;
+}
+
+const VRM3dCanvas: React.FC<VRM3dCanvasProps> = ({ modelPath }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const vrmRef = useRef<VRM | null>(null);
@@ -135,9 +139,8 @@ const VRM3dCanvas = () => {
     gltfLoaderRef.current.register((parser) => new VRMAnimationLoaderPlugin(parser));
 
     const initVRMScene = async () => {
-      const gltfVrm = await gltfLoaderRef.current.loadAsync(CHARACTER_MODEL_PATH);
+      const gltfVrm = await gltfLoaderRef.current.loadAsync(modelPath || DEFAULT_CHARACTER_MODEL_PATH);
       const vrm: VRM = gltfVrm.userData.vrm;
-      console.log(vrm)
       vrmRef.current = vrm; // Store the VRM for future reference
       VRMUtils.rotateVRM0(vrm);
       VRMUtils.removeUnnecessaryVertices(vrm.scene);
