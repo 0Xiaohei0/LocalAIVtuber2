@@ -15,7 +15,10 @@ from services.Memory.Memory import Memory
 from services.Memory.HistoryStore import HistoryStore
 from services.lib.LAV_logger import logger
 import os
-from fastapi import FastAPI, Query, Request, Response, WebSocket
+import requests
+import aiofiles
+import aiohttp
+from fastapi import FastAPI, Query, Request, Response, WebSocket, HTTPException
 from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -25,6 +28,10 @@ from datetime import datetime
 import json
 from typing import Any, Dict, List
 import mss
+import traceback
+
+# Download progress tracking
+download_progress = {}
 
 # Show import completion immediately after imports
 import_time = time.time() - start_time
@@ -331,6 +338,232 @@ async def get_llm_models():
     return JSONResponse(content={"models": llm.all_model_data, "currentModel": llm.current_model_data})
 
 # *******************************
+# Model Download
+# *******************************
+
+class DownloadModelRequest(BaseModel):
+    model_id: str  # This could be displayName or fileName
+
+@app.post("/api/llm/models/download")
+async def download_model(request: DownloadModelRequest):
+    """Download a model to the appropriate folder"""
+    try:
+        # Find the model in the available models
+        target_model = None
+        for model in llm.all_model_data:
+            if (model.get('displayName') == request.model_id or 
+                model.get('fileName') == request.model_id):
+                target_model = model
+                break
+        
+        if not target_model:
+            return JSONResponse(status_code=404, content={"error": "Model not found"})
+        
+        model_name = target_model.get('fileName')
+        download_url = target_model.get('link')
+        
+        if not download_url:
+            return JSONResponse(status_code=400, content={"error": "No download URL available for this model"})
+        
+        # Determine the target folder and file path
+        if 'model_folder' in target_model:
+            target_folder = target_model['model_folder']
+        else:
+            # Create folder based on model name (without extension)
+            folder_name = os.path.splitext(model_name)[0]
+            target_folder = os.path.join(llm.models_directory, folder_name)
+        
+        # Create the folder if it doesn't exist
+        os.makedirs(target_folder, exist_ok=True)
+        
+        target_file_path = os.path.join(target_folder, model_name)
+        
+        # Check if file already exists
+        if os.path.exists(target_file_path):
+            return JSONResponse(status_code=409, content={
+                "error": "Model already exists", 
+                "message": "Delete the model first before downloading again"
+            })
+        
+        # Start the download in the background
+        download_id = f"{model_name}_{int(time.time())}"
+        download_progress[download_id] = {
+            'model_name': model_name,
+            'status': 'starting',
+            'progress': 0,
+            'total_size': 0,
+            'downloaded_size': 0,
+            'error': None,
+            'start_time': time.time()
+        }
+        
+        # Start background download task
+        asyncio.create_task(download_model_file(download_id, download_url, target_file_path))
+        
+        return JSONResponse(content={
+            "message": "Download started",
+            "download_id": download_id,
+            "target_path": target_file_path
+        })
+        
+    except Exception as e:
+        logger.error(f"Error starting model download: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to start download"})
+
+async def download_model_file(download_id: str, url: str, target_path: str):
+    """Download a model file with progress tracking"""
+    try:
+        download_progress[download_id]['status'] = 'downloading'
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    raise Exception(f"HTTP {response.status}: {await response.text()}")
+                
+                total_size = int(response.headers.get('Content-Length', 0))
+                download_progress[download_id]['total_size'] = total_size
+                
+                downloaded_size = 0
+                
+                # Create a temporary file first
+                temp_path = target_path + '.tmp'
+                
+                async with aiofiles.open(temp_path, 'wb') as file:
+                    async for chunk in response.content.iter_chunked(8192):
+                        await file.write(chunk)
+                        downloaded_size += len(chunk)
+                        
+                        # Update progress
+                        progress = (downloaded_size / total_size * 100) if total_size > 0 else 0
+                        download_progress[download_id].update({
+                            'progress': progress,
+                            'downloaded_size': downloaded_size
+                        })
+                
+                # Move temp file to final location
+                if os.path.exists(target_path):
+                    os.remove(target_path)
+                os.rename(temp_path, target_path)
+                
+                # Mark as completed
+                download_progress[download_id]['status'] = 'completed'
+                download_progress[download_id]['progress'] = 100
+                
+                logger.info(f"Model download completed: {target_path}")
+                
+                # Refresh model list to update file existence status
+                llm._load_available_models()
+                
+    except Exception as e:
+        logger.error(f"Model download failed for {download_id}: {e}")
+        download_progress[download_id]['status'] = 'error'
+        download_progress[download_id]['error'] = str(e)
+        
+        # Clean up temp file if it exists
+        temp_path = target_path + '.tmp'
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+@app.get("/api/llm/models/download/{download_id}/progress")
+async def get_download_progress(download_id: str):
+    """Get the progress of a model download"""
+    if download_id not in download_progress:
+        return JSONResponse(status_code=404, content={"error": "Download ID not found"})
+    
+    progress_info = download_progress[download_id].copy()
+    
+    # Add elapsed time
+    progress_info['elapsed_time'] = time.time() - progress_info['start_time']
+    
+    # Calculate download speed if downloading
+    if progress_info['status'] == 'downloading' and progress_info['elapsed_time'] > 0:
+        speed = progress_info['downloaded_size'] / progress_info['elapsed_time']
+        progress_info['download_speed'] = f"{llm._format_file_size(speed)}/s"
+    
+    return JSONResponse(content=progress_info)
+
+@app.delete("/api/llm/models/download/{download_id}")
+async def cancel_download(download_id: str):
+    """Cancel a model download"""
+    if download_id not in download_progress:
+        return JSONResponse(status_code=404, content={"error": "Download ID not found"})
+    
+    if download_progress[download_id]['status'] in ['completed', 'error']:
+        return JSONResponse(status_code=400, content={"error": "Download cannot be cancelled"})
+    
+    download_progress[download_id]['status'] = 'cancelled'
+    return JSONResponse(content={"message": "Download cancelled"})
+
+@app.get("/api/llm/models/downloads")
+async def get_all_downloads():
+    """Get status of all downloads"""
+    return JSONResponse(content={"downloads": download_progress})
+
+class DeleteModelRequest(BaseModel):
+    model_id: str  # This could be displayName or fileName
+
+@app.delete("/api/llm/models/delete")
+async def delete_model(request: DeleteModelRequest):
+    """Delete a downloaded model file"""
+    try:
+        # Find the model in the available models
+        target_model = None
+        for model in llm.all_model_data:
+            if (model.get('displayName') == request.model_id or 
+                model.get('fileName') == request.model_id):
+                target_model = model
+                break
+        
+        if not target_model:
+            return JSONResponse(status_code=404, content={"error": "Model not found"})
+        
+        model_name = target_model.get('fileName')
+        
+        # Determine the model file path
+        if 'model_folder' in target_model:
+            target_folder = target_model['model_folder']
+        else:
+            # Fallback to old method
+            folder_name = os.path.splitext(model_name)[0]
+            target_folder = os.path.join(llm.models_directory, folder_name)
+        
+        target_file_path = os.path.join(target_folder, model_name)
+        
+        # Check if file exists
+        if not os.path.exists(target_file_path):
+            return JSONResponse(status_code=404, content={"error": "Model file not found"})
+        
+        # Check if this is the currently loaded model
+        if llm.current_model_data and llm.current_model_data.get('fileName') == model_name:
+            if llm.llm:
+                llm.unload_model()
+        
+        # Delete the model file
+        os.remove(target_file_path)
+        logger.info(f"Deleted model file: {target_file_path}")
+        
+        # For vision models, also delete mmproj file if it exists
+        if target_model.get('type') == 'vision':
+            mmproj_path = target_model.get('mmproj_path')
+            if mmproj_path:
+                full_mmproj_path = os.path.join(target_folder, mmproj_path)
+                if os.path.exists(full_mmproj_path):
+                    os.remove(full_mmproj_path)
+                    logger.info(f"Deleted mmproj file: {full_mmproj_path}")
+        
+        # Refresh model list to update file existence status
+        llm._load_available_models()
+        
+        return JSONResponse(content={
+            "message": "Model deleted successfully",
+            "deleted_file": target_file_path
+        })
+        
+    except Exception as e:
+        logger.error(f"Error deleting model: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to delete model"})
+
+# *******************************
 # TTS
 # *******************************
 
@@ -472,7 +705,7 @@ async def update_settings(request: UpdateSettingsRequest):
         settings_manager.update_settings(request.settings)
         return JSONResponse(content={"status": "ok", "message": "Settings updated successfully"})
     except ValueError as ve:
-        logger.error(f"Validation error: {ve}")
+        logger.error(f"Validation error: {ve}, traceback: {traceback.format_exc()}")
         return JSONResponse(status_code=400, content={"error": str(ve)})
     except Exception as e:
         logger.error(f"Error updating settings: {e}", exc_info=True)

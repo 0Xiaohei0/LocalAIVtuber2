@@ -38,18 +38,91 @@ class LLM:
             self.load_model(self.current_model_data, gpu_layers)
 
     def _load_available_models(self):
-        """Load all available models from their respective folders"""
+        """Load all available models from metadata.json files, regardless of folder names"""
         self.all_model_data = []
-        for model_folder in os.listdir(self.models_directory):
-            model_path = os.path.join(self.models_directory, model_folder)
-            if os.path.isdir(model_path):
-                metadata_path = os.path.join(model_path, "metadata.json")
-                if os.path.exists(metadata_path):
-                    with open(metadata_path, 'r') as f:
-                        model_data = json.load(f)
+        
+        # Walk through all directories and subdirectories to find metadata files
+        for root, dirs, files in os.walk(self.models_directory):
+            # Look for metadata files with various naming conventions
+            metadata_files = ['metadata.json']
+            
+            for metadata_file in metadata_files:
+                if metadata_file in files:
+                    metadata_path = os.path.join(root, metadata_file)
+                    try:
+                        with open(metadata_path, 'r', encoding='utf-8') as f:
+                            model_data = json.load(f)
+                        
+                        # Add additional information
+                        model_data['metadata_path'] = metadata_path
+                        model_data['model_folder'] = root
+                        
+                        # Check if model file exists and get its size
+                        model_file_path = os.path.join(root, model_data.get('fileName', ''))
+                        model_data['file_exists'] = os.path.exists(model_file_path)
+                        
+                        if model_data['file_exists']:
+                            try:
+                                file_size = os.path.getsize(model_file_path)
+                                model_data['file_size_bytes'] = file_size
+                                model_data['file_size_readable'] = self._format_file_size(file_size)
+                            except OSError:
+                                model_data['file_size_bytes'] = 0
+                                model_data['file_size_readable'] = "Unknown"
+                        else:
+                            model_data['file_size_bytes'] = 0
+                            model_data['file_size_readable'] = "Not Downloaded"
+                        
+                        # Add vision model support check
+                        if model_data.get('type') == 'vision':
+                            mmproj_path = model_data.get('mmproj_path', '')
+                            if mmproj_path:
+                                full_mmproj_path = os.path.join(root, mmproj_path)
+                                model_data['mmproj_exists'] = os.path.exists(full_mmproj_path)
+                            else:
+                                model_data['mmproj_exists'] = False
+                        
                         self.all_model_data.append(model_data)
-                        if not self.current_model_data:
-                            self.current_model_data = model_data
+                        logger.debug(f"Loaded model metadata: {model_data.get('displayName', 'Unknown')} from {metadata_path}")
+                        
+                    except (json.JSONDecodeError, IOError) as e:
+                        logger.warning(f"Could not load metadata from {metadata_path}: {e}")
+                    break  # Only process the first metadata file found in each directory
+        
+        # Set current model if not set
+        if not self.current_model_data and self.all_model_data:
+            # Prefer a model that actually exists
+            existing_models = [m for m in self.all_model_data if m.get('file_exists', False)]
+            if existing_models:
+                self.current_model_data = existing_models[0]
+            else:
+                self.current_model_data = self.all_model_data[0]
+        
+        logger.info(f"Loaded {len(self.all_model_data)} models from metadata files")
+
+    def _format_file_size(self, size_bytes):
+        """Format file size in human readable format"""
+        if size_bytes == 0:
+            return "0 B"
+        
+        size_names = ["B", "KB", "MB", "GB", "TB"]
+        import math
+        i = int(math.floor(math.log(size_bytes, 1024)))
+        p = math.pow(1024, i)
+        s = round(size_bytes / p, 2)
+        return f"{s} {size_names[i]}"
+
+    def get_model_download_info(self, model_data):
+        """Get download information for a specific model"""
+        return {
+            'displayName': model_data.get('displayName', 'Unknown'),
+            'fileName': model_data.get('fileName', ''),
+            'link': model_data.get('link', ''),
+            'type': model_data.get('type', 'text'),
+            'file_exists': model_data.get('file_exists', False),
+            'file_size_readable': model_data.get('file_size_readable', 'Unknown'),
+            'model_folder': model_data.get('model_folder', '')
+        }
 
     def _migrate_old_structure(self):
         """Migrate from old structure to new folder-based structure"""
@@ -102,19 +175,34 @@ class LLM:
 
         self.current_model_data = model_data
         model_name = model_data.get("fileName")
-        model_folder = os.path.join(self.models_directory, os.path.splitext(model_name)[0])
+        
+        # Use the model_folder from metadata if available, otherwise fall back to old method
+        if 'model_folder' in model_data:
+            model_folder = model_data['model_folder']
+        else:
+            model_folder = os.path.join(self.models_directory, os.path.splitext(model_name)[0])
+        
         model_path = os.path.join(model_folder, model_name)
 
         if not os.path.exists(model_path):
-            logger.error(f"Model {model_name} not found. Please press download to download the model.")
+            logger.error(f"Model {model_name} not found at {model_path}. Please download the model first.")
             return
         else:
             self.unload_model()
             if model_data.get("type") == "text":
                 self.llm = TextLLM(model_path=model_path, n_ctx=4096, n_gpu_layers=gpu_layers, seed=-1)
             elif model_data.get("type") == "vision":
-                mmproj_path = os.path.join(model_folder, model_data.get("mmproj_path"))
-                self.llm = VisionLLM(model_path=model_path, mmproj_path=mmproj_path, n_ctx=4096, n_gpu_layers=gpu_layers, seed=-1)
+                mmproj_path = model_data.get("mmproj_path")
+                if mmproj_path:
+                    full_mmproj_path = os.path.join(model_folder, mmproj_path)
+                    if os.path.exists(full_mmproj_path):
+                        self.llm = VisionLLM(model_path=model_path, mmproj_path=full_mmproj_path, n_ctx=4096, n_gpu_layers=gpu_layers, seed=-1)
+                    else:
+                        logger.error(f"Vision model mmproj file not found: {full_mmproj_path}")
+                        return
+                else:
+                    logger.error(f"Vision model missing mmproj_path in metadata")
+                    return
 
             logger.info(f"Model changed to {model_name}.")
 

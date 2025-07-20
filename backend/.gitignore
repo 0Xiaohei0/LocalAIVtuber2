@@ -5,3 +5,4 @@ venv
 *.zip
 *.exe
 settings.json
+*.tmp

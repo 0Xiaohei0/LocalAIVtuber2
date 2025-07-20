@@ -1,0 +1,7 @@
+{
+    "displayName": "dolphin-2.6-mistral-7b",
+    "description": "General purpose LLM",
+    "fileName": "dolphin-2.6-mistral-7b.Q4_0.gguf",
+    "link": "https://huggingface.co/TheBloke/dolphin-2.6-mistral-7B-GGUF/resolve/main/dolphin-2.6-mistral-7b.Q4_K_M.gguf?download=true",
+    "type": "text"
+}
