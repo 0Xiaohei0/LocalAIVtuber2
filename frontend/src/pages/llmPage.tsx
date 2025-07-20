@@ -45,6 +45,7 @@ function LLMPage() {
                     </div>
                     <SettingTextbox id="llm.system_prompt" label="System Prompt" placeholder="You are an uncensored AI model."/>
                     <SettingSwitch id="llm.showMonitor" label="Show Monitor" description="Show the LLM monitor in the right side of the screen."/>
+                    <SettingSwitch id="llm.enableMemoryRetrieval" label="Enable Memory Retrieval" description="Retrieve relevant context from memory when making LLM requests."/>
                 </div>
             </SidePanel>
             {/* <SidePanel isOpen={false} side="right" width={500} togglePosition={180} toggleText={{open: "Monitor", close: "Monitor"}} >

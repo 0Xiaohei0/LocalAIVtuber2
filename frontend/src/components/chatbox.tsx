@@ -105,6 +105,10 @@ const Chatbox = () => {
     }, [settings["llm.system_prompt"]]);
 
     useEffect(() => {
+        chatManager.setEnableMemoryRetrieval(settings["llm.enableMemoryRetrieval"] ?? true);
+    }, [settings["llm.enableMemoryRetrieval"]]);
+
+    useEffect(() => {
         const fetchSessionList = async () => {
             const response = await fetch('/api/chat/sessions');
             const data = await response.json();

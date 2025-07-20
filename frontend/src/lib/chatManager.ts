@@ -25,6 +25,7 @@ export class ChatManager {
     private currentImage: string = '';
     private retrievedContext: string = '';
     private fullSystemPrompt: string = '';
+    private enableMemoryRetrieval: boolean = true;
     private subscribers: Map<ChatUpdateCallback, SubscriptionOptions> = new Map();
 
     constructor() {
@@ -89,6 +90,14 @@ export class ChatManager {
         this.notifySubscribers('onContextChange');
     }
 
+    public setEnableMemoryRetrieval(enabled: boolean) {
+        this.enableMemoryRetrieval = enabled;
+        // Clear retrieved context immediately when memory retrieval is disabled
+        if (!enabled) {
+            this.setRetrievedContext('');
+        }
+    }
+
     public getFullSystemPrompt(): string {
         return this.fullSystemPrompt;
     }
@@ -138,25 +147,30 @@ export class ChatManager {
         this.notifySubscribers('onMessagesChange');
 
         try {
-            // Fetch relevant context from memory
+            // Fetch relevant context from memory (if enabled)
             let contextText = '';
-            try {
-                const contextRes = await fetch('/api/memory/context', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: input, limit: 3 })
-                });
-                if (contextRes.ok) {
-                    const contextData = await contextRes.json();
-                    if (Array.isArray(contextData.context) && contextData.context.length > 0) {
-                        contextText = contextData.context
-                            .map((c: Record<string, unknown>) => typeof c.document === 'string' ? c.document : '')
-                            .filter(Boolean)
-                            .join('\n');
+            if (this.enableMemoryRetrieval) {
+                try {
+                    const contextRes = await fetch('/api/memory/context', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: input, limit: 3 })
+                    });
+                    if (contextRes.ok) {
+                        const contextData = await contextRes.json();
+                        if (Array.isArray(contextData.context) && contextData.context.length > 0) {
+                            contextText = contextData.context
+                                .map((c: Record<string, unknown>) => typeof c.document === 'string' ? c.document : '')
+                                .filter(Boolean)
+                                .join('\n');
+                        }
                     }
+                } catch (ctxErr) {
+                    console.warn('Failed to fetch context:', ctxErr);
                 }
-            } catch (ctxErr) {
-                console.warn('Failed to fetch context:', ctxErr);
+            } else {
+                // Clear retrieved context when memory retrieval is disabled
+                this.setRetrievedContext('');
             }
 
             // Assemble system prompt with labeled sections
