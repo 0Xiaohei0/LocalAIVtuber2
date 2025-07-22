@@ -1,0 +1,24 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "akari.moc3",
+		"Textures": [
+			"akari.4096/texture_00.png"
+		],
+		"Physics": "akari.physics3.json",
+		"UserData": "akari.userdata3.json",
+		"DisplayInfo": "akari.cdi3.json"
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": []
+		},
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": []
+		}
+	]
+}

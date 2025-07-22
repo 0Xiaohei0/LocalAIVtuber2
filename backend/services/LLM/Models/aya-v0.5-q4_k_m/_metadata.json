@@ -1,7 +1,0 @@
-{
-    "displayName": "aya-v0.5",
-    "description": "finetuned LLM with personality",
-    "fileName": "aya-v0.5-q4_k_m.gguf",
-    "link": "https://huggingface.co/xiaoheiqaq/Aya-v0.5-Q4_K_M-GGUF/resolve/main/aya-v0.5-q4_k_m.gguf?download=true",
-    "type": "text"
-}

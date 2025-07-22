@@ -23,6 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-public/resource/live2D/models
-public/resource/VRM3D/models
+#public/resource/live2D/models
+#public/resource/VRM3D/models
 public/resource/Songs
