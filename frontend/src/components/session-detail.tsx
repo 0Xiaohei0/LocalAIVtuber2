@@ -202,6 +202,8 @@ export default function SessionDetail({ sessionId, onBack }: SessionDetailProps)
               <EditableChatHistory 
                 messages={sessionData.history}
                 sessionId={sessionData.id}
+                onContinue={() => {}}
+                onRegenerate={() => {}}
                 onUpdate={(updatedHistory) => {
                   setSessionData(prev => prev ? {
                     ...prev,
