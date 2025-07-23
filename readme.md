@@ -32,6 +32,7 @@ https://developer.nvidia.com/cuda-12-4-0-download-archive
 
 ### 3. Create environemnt
 ```
+cd backend
 python -m venv venv
 .\venv\Scripts\activate
 ```
