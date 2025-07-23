@@ -1,5 +1,4 @@
-# Local AI Vtuber 2 (Fully local AI vtuber that can see your screen and talk in real time.)
-
+# Local AI Vtuber 2 (Fully local AI vtuber that can see your screen and talk in real time)
 
 Full demo and setup guide:
 
@@ -11,6 +10,17 @@ Full demo and setup guide:
 - Long term memory storage and retrieval.
 - Can edit conversations and export as training data.
 
+  
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/f2a88171-f99b-4a78-a0d7-a03cc380c841" /></td>
+    <td><img src="https://github.com/user-attachments/assets/26ccf81d-bfe7-444f-944b-116fb7af4fa5" /></td>
+  </tr>
+</table>
+
+## Download
+You can download the release package here:
+https://huggingface.co/xiaoheiqaq/LocalAiVtuber2-windows-package/resolve/main/LocalAIVtuber2.zip?download=true
 
 ## Installation
 
