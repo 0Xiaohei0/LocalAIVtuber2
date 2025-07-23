@@ -1,6 +1,6 @@
 # Local AI Vtuber 2 (Fully local AI vtuber that can see your screen and talk in real time)
 
-Full demo and setup guide:
+Full demo and setup guide: https://youtu.be/gD1y4by3CPg?si=oinKcReuUd5xzjKT
 
 - All AI models run locally.
 - Can chat about what's on your screen.
