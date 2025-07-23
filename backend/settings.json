@@ -1,0 +1,10 @@
+{
+    "frontend.character.selectedLive2DModel": "/resource/live2D/models/akari_vts/akari.model3.json",
+    "frontend.character.selectedVRMModel": "/resource/VRM3D/models/\u751f\u99d2\u30df\u30eb_\u79c1\u670d.vrm",
+    "llm.showMonitor": true,
+    "llm.keep_model_loaded": true,
+    "llm.model_filename": "conversational-7b-v0.4-q4_k_m.gguf",
+    "llm.system_prompt": "You are Aya.",
+    "llm.enableMemoryRetrieval": true,
+    "frontend.character.renderModel": true
+}
