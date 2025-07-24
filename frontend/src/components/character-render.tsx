@@ -3,6 +3,7 @@ import Live2DCanvas from "@/components/live-2d-renderer"
 import VRM3dCanvas from "@/components/vrm-3d-renderer"
 import { SidePanel } from "@/components/side-panel"
 import SettingSwitch from "@/components/setting-switch"
+import SettingSlider from "@/components/setting-slider"
 import { useSettings } from "@/context/SettingsContext"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
@@ -25,6 +26,10 @@ const AVAILABLE_LIVE2D_MODELS: Live2DModel[] = [
     {
         name: "KITU17/haru",
         path: "/resource/live2D/models/KITU17/KITU17.model3.json"
+    },
+    {
+        name: "pachan 2.0 or you can pick any name",
+        path: "/resource/live2D/models/pachan 2.0/pachirisu anime girl - top half.model3.json"
     }
 ]
 
@@ -51,6 +56,11 @@ export function CharacterRender() {
     const selectedLive2DModelId = "frontend.character.selectedLive2DModel"
     const selectedVRMModelId = "frontend.character.selectedVRMModel"
     
+    // Add setting IDs for Live2D position and scale controls
+    const live2DXPositionId = "frontend.character.live2D.xPosition"
+    const live2DYPositionId = "frontend.character.live2D.yPosition" 
+    const live2DScaleId = "frontend.character.live2D.scale"
+    
     const { settings, updateSetting } = useSettings()
 
     useEffect(() => {
@@ -62,10 +72,21 @@ export function CharacterRender() {
             if (!settings[selectedVRMModelId] && AVAILABLE_VRM_MODELS.length > 0) {
                 await updateSetting(selectedVRMModelId, AVAILABLE_VRM_MODELS[0].path)
             }
+            
+            // Set default Live2D position and scale if not set
+            if (settings[live2DXPositionId] === undefined) {
+                await updateSetting(live2DXPositionId, 50) // Center X (50%)
+            }
+            if (settings[live2DYPositionId] === undefined) {
+                await updateSetting(live2DYPositionId, 100) // Bottom Y (100%)
+            }
+            if (settings[live2DScaleId] === undefined) {
+                await updateSetting(live2DScaleId, 0.3) // Default scale
+            }
         }
 
         setDefaultModels()
-    }, [settings, updateSetting, selectedLive2DModelId, selectedVRMModelId])
+    }, [settings, updateSetting, selectedLive2DModelId, selectedVRMModelId, live2DXPositionId, live2DYPositionId, live2DScaleId])
 
     const handleLive2DModelChange = async (modelPath: string) => {
         await updateSetting(selectedLive2DModelId, modelPath)
@@ -77,7 +98,7 @@ export function CharacterRender() {
 
     return (
         <div className="relative h-screen overflow-hidden">
-            <SidePanel>
+            <SidePanel width={400}>
                 
                 <div className="space-y-4">
                     
@@ -126,6 +147,43 @@ export function CharacterRender() {
                             </SelectContent>
                         </Select>
                     </div>
+                    
+                    {/* Live2D Position and Scale Controls */}
+                    {settings[rendererSwitchId] && (
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-medium">Live2D Controls</h3>
+                            
+                            <SettingSlider
+                                id={live2DXPositionId}
+                                label="X Position"
+                                description="Horizontal position (0% = left, 50% = center, 100% = right)"
+                                min={-100}
+                                max={200}
+                                step={1}
+                                defaultValue={50}
+                            />
+                            
+                            <SettingSlider
+                                id={live2DYPositionId}
+                                label="Y Position"
+                                description="Vertical position (0% = top, 50% = center, 100% = bottom)"
+                                min={-100}
+                                max={200}
+                                step={1}
+                                defaultValue={100}
+                            />
+                            
+                            <SettingSlider
+                                id={live2DScaleId}
+                                label="Scale"
+                                description="Model size (0.1 = very small, 1.0 = normal, 3.0 = very large)"
+                                min={0.01}
+                                max={5.0}
+                                step={0.01}
+                                defaultValue={0.3}
+                            />
+                        </div>
+                    )}
                 </div>
             </SidePanel>
 
@@ -133,7 +191,12 @@ export function CharacterRender() {
                 <div>
                     {settings[rendererSwitchId] ? (
                         settings[selectedLive2DModelId] ? (
-                            <Live2DCanvas modelPath={settings[selectedLive2DModelId]} />
+                            <Live2DCanvas 
+                                modelPath={settings[selectedLive2DModelId]} 
+                                xPosition={settings[live2DXPositionId] || 50}
+                                yPosition={settings[live2DYPositionId] || 100}
+                                scale={settings[live2DScaleId] || 0.3}
+                            />
                         ) : (
                             <div className="flex items-center h-full w-full justify-center">
                                 <h2 className="mt-10 scroll-m-20 pb-2 text-3xl font-semibold tracking-tight transition-colors first:mt-0">
