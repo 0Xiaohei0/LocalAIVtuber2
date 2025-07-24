@@ -81,3 +81,52 @@ npm run build
 ```
 
 The project should be ready for development.
+
+## FAQ
+### How to add character models
+1. Add your live2d model folder to ```frontend\public\resource\live2D\models``` or for vrm 3d models ```frontend\public\resource\VRM3D\models```. For example, if you want to add a new live2d model called pachan 2.0, put the files here
+   <img width="521" height="368" alt="image" src="https://github.com/user-attachments/assets/06f0a983-0ced-484d-a40e-e55b5a763b2f" />
+
+2. Add the path to the ```.model3.json``` or ```.vrm``` to ```frontend\src\components\character-render.tsx```, for example:
+```
+const AVAILABLE_LIVE2D_MODELS: Live2DModel[] = [
+    {
+        name: "akari_vts/akari",
+        path: "/resource/live2D/models/akari_vts/akari.model3.json"
+    },
+    {
+        name: "KITU17/haru",
+        path: "/resource/live2D/models/KITU17/KITU17.model3.json"
+    }
+    // ===============add this entry here==============
+    ,
+    {
+        name: "pachan 2.0 or you can pick any name",
+        path: "/resource/live2D/models/pachan 2.0/pachirisu anime girl - top half.model3.json"
+    }
+    // ===============add this entry here==============
+]
+```
+3. Install nodejs https://nodejs.org/en/download
+4. build frontend:
+```
+cd frontend
+npm i
+npm run build
+```
+
+Model should show up
+<img width="307" height="179" alt="image" src="https://github.com/user-attachments/assets/6ca522f5-a70e-4286-b76a-f0e3071ae71c" />
+
+Live 2d models may not be properly positioned depending on your model, you can adjust the scale and position here:
+https://github.com/0Xiaohei0/LocalAIVtuber2/blob/df0985f028adebb2a9525fc415d54e639d9811d1/frontend/src/components/live-2d-renderer.tsx#L40
+
+use ```npm run dev``` and go to http://localhost:5173/ to test parameters without rebuilding.
+
+(Will improve this process in the next version)
+
+### How to add new voices
+1. Get a 3 to 10 second audio clip of the voice saying a sentence in English, change the filename to the same sentence.
+2. Create a folder here and place the audio file inside, currently only .wav format works. ```backend\services\TTS\models\leaf\The birch canoe slid on the smooth planks. Glue the sheet to the dark blue background.wav```
+
+New voice should show up in UI.
