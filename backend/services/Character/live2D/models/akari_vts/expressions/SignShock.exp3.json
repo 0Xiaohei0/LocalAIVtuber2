@@ -1,0 +1,10 @@
+{
+	"Type": "Live2D Expression",
+	"Parameters": [
+		{
+			"Id": "ParamShockSign",
+			"Value": 1,
+			"Blend": "Add"
+		}
+	]
+}

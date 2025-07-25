@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Live2DCanvas from "@/components/live-2d-renderer"
 import VRM3dCanvas from "@/components/vrm-3d-renderer"
 import { SidePanel } from "@/components/side-panel"
@@ -7,48 +7,7 @@ import SettingSlider from "@/components/setting-slider"
 import { useSettings } from "@/context/SettingsContext"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-
-interface Live2DModel {
-    name: string
-    path: string
-}
-
-interface VRMModel {
-    name: string
-    path: string
-}
-
-const AVAILABLE_LIVE2D_MODELS: Live2DModel[] = [
-    {
-        name: "akari_vts/akari",
-        path: "/resource/live2D/models/akari_vts/akari.model3.json"
-    },
-    {
-        name: "KITU17/haru",
-        path: "/resource/live2D/models/KITU17/KITU17.model3.json"
-    },
-    {
-        name: "pachan 2.0 or you can pick any name",
-        path: "/resource/live2D/models/pachan 2.0/pachirisu anime girl - top half.model3.json"
-    }
-]
-
-const AVAILABLE_VRM_MODELS: VRMModel[] = [
-    {
-        name: "春日部つむぎハイパー",
-        path: "/resource/VRM3D/models/春日部つむぎハイパー.vrm"
-    },
-    {
-        name: "CamomeCamome",
-        path: "/resource/VRM3D/models/CamomeCamome.vrm"
-    },
-    {
-        name: "生駒ミル_私服",
-        path: "/resource/VRM3D/models/生駒ミル_私服.vrm"
-    }
-]
-
-
+import { fetchLive2DModels, fetchVRMModels, CharacterModel } from "@/lib/characterModels"
 
 export function CharacterRender() {
     const rendererSwitchId = "frontend.character.3d2dSwitch"
@@ -62,15 +21,44 @@ export function CharacterRender() {
     const live2DScaleId = "frontend.character.live2D.scale"
     
     const { settings, updateSetting } = useSettings()
+    
+    // State for dynamic model loading
+    const [live2DModels, setLive2DModels] = useState<CharacterModel[]>([])
+    const [vrmModels, setVrmModels] = useState<CharacterModel[]>([])
+    const [modelsLoading, setModelsLoading] = useState(true)
+
+    // Load models from backend
+    useEffect(() => {
+        const loadModels = async () => {
+            setModelsLoading(true)
+            try {
+                const [live2DResult, vrmResult] = await Promise.all([
+                    fetchLive2DModels(),
+                    fetchVRMModels()
+                ])
+                setLive2DModels(live2DResult)
+                setVrmModels(vrmResult)
+            } catch (error) {
+                console.error('Failed to load character models:', error)
+            } finally {
+                setModelsLoading(false)
+            }
+        }
+        
+        loadModels()
+    }, [])
 
     useEffect(() => {
         const setDefaultModels = async () => {
+            // Wait for models to load before setting defaults
+            if (modelsLoading) return
+            
             // Set default models if none selected
-            if (!settings[selectedLive2DModelId] && AVAILABLE_LIVE2D_MODELS.length > 0) {
-                await updateSetting(selectedLive2DModelId, AVAILABLE_LIVE2D_MODELS[0].path)
+            if (!settings[selectedLive2DModelId] && live2DModels.length > 0) {
+                await updateSetting(selectedLive2DModelId, live2DModels[0].path)
             }
-            if (!settings[selectedVRMModelId] && AVAILABLE_VRM_MODELS.length > 0) {
-                await updateSetting(selectedVRMModelId, AVAILABLE_VRM_MODELS[0].path)
+            if (!settings[selectedVRMModelId] && vrmModels.length > 0) {
+                await updateSetting(selectedVRMModelId, vrmModels[0].path)
             }
             
             // Set default Live2D position and scale if not set
@@ -86,7 +74,7 @@ export function CharacterRender() {
         }
 
         setDefaultModels()
-    }, [settings, updateSetting, selectedLive2DModelId, selectedVRMModelId, live2DXPositionId, live2DYPositionId, live2DScaleId])
+    }, [settings, updateSetting, selectedLive2DModelId, selectedVRMModelId, live2DXPositionId, live2DYPositionId, live2DScaleId, modelsLoading, live2DModels, vrmModels])
 
     const handleLive2DModelChange = async (modelPath: string) => {
         await updateSetting(selectedLive2DModelId, modelPath)
@@ -112,19 +100,22 @@ export function CharacterRender() {
                         <Select
                             value={settings[selectedLive2DModelId] || ""}
                             onValueChange={handleLive2DModelChange}
-                            disabled={AVAILABLE_LIVE2D_MODELS.length === 0}
+                            disabled={modelsLoading || live2DModels.length === 0}
                         >
                             <SelectTrigger className="w-full" id="live2d-model-select">
-                                <SelectValue placeholder="Select Live2D model" />
+                                <SelectValue placeholder={modelsLoading ? "Loading models..." : "Select Live2D model"} />
                             </SelectTrigger>
                             <SelectContent>
-                                {AVAILABLE_LIVE2D_MODELS.map((model: Live2DModel) => (
+                                {live2DModels.map((model: CharacterModel) => (
                                     <SelectItem key={model.path} value={model.path}>
-                                        {model.name}
+                                        {model.displayName}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+                        {!modelsLoading && live2DModels.length === 0 && (
+                            <p className="text-sm text-muted-foreground">No Live2D models found</p>
+                        )}
                     </div>
 
                     {/* VRM Model Selection */}
@@ -133,19 +124,22 @@ export function CharacterRender() {
                         <Select
                             value={settings[selectedVRMModelId] || ""}
                             onValueChange={handleVRMModelChange}
-                            disabled={AVAILABLE_VRM_MODELS.length === 0}
+                            disabled={modelsLoading || vrmModels.length === 0}
                         >
                             <SelectTrigger className="w-full" id="vrm-model-select">
-                                <SelectValue placeholder="Select VRM model" />
+                                <SelectValue placeholder={modelsLoading ? "Loading models..." : "Select VRM model"} />
                             </SelectTrigger>
                             <SelectContent>
-                                {AVAILABLE_VRM_MODELS.map((model: VRMModel) => (
+                                {vrmModels.map((model: CharacterModel) => (
                                     <SelectItem key={model.path} value={model.path}>
-                                        {model.name}
+                                        {model.displayName}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+                        {!modelsLoading && vrmModels.length === 0 && (
+                            <p className="text-sm text-muted-foreground">No VRM models found</p>
+                        )}
                     </div>
                     
                     {/* Live2D Position and Scale Controls */}
@@ -200,7 +194,7 @@ export function CharacterRender() {
                         ) : (
                             <div className="flex items-center h-full w-full justify-center">
                                 <h2 className="mt-10 scroll-m-20 pb-2 text-3xl font-semibold tracking-tight transition-colors first:mt-0">
-                                    No Live2D model selected
+                                    {modelsLoading ? "Loading models..." : "No Live2D model selected"}
                                 </h2>
                             </div>
                         )

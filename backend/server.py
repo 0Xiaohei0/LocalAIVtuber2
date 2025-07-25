@@ -13,6 +13,7 @@ from services.Input.VisionInput import VisionInput
 from services.TTS.TTS import TTS
 from services.Memory.Memory import Memory
 from services.Memory.HistoryStore import HistoryStore
+from services.Character.characterManager import CharacterManager
 from services.lib.LAV_logger import logger
 import os
 import requests
@@ -51,6 +52,7 @@ memory:Memory = Memory()
 history_store:HistoryStore = HistoryStore()
 tts:TTS = TTS()
 vision_input:VisionInput = VisionInput()
+character_manager:CharacterManager = CharacterManager()
 startup_progress.complete_step(f"AI Services loaded in {time.time() - start_time:.2f}s")
 
 clients = set()
@@ -602,7 +604,51 @@ async def get_audio(request: TTSRequest):
     response = tts.syntheize(request.text)
     return Response(response, media_type="audio/wav")
     
+# *******************************
+# Character Models
+# *******************************
 
+@app.get("/api/character/live2d/models")
+async def get_live2d_models():
+    """Get all available Live2D models"""
+    try:
+        models = character_manager.get_live2d_models()
+        return JSONResponse(content={"models": models})
+    except Exception as e:
+        logger.error(f"Error getting Live2D models: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to get Live2D models"})
+
+@app.get("/api/character/vrm/models")
+async def get_vrm_models():
+    """Get all available VRM models"""
+    try:
+        models = character_manager.get_vrm_models()
+        return JSONResponse(content={"models": models})
+    except Exception as e:
+        logger.error(f"Error getting VRM models: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to get VRM models"})
+
+@app.get("/api/character/files/{file_path:path}")
+async def serve_character_files(file_path: str, request: Request):
+    """Serve character model files from backend"""
+    try:
+        # Get the full request path
+        full_path = request.url.path
+        
+        # Get the absolute file path using CharacterManager
+        absolute_path = character_manager.get_file_path(full_path)
+        
+        if absolute_path is None:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        return FileResponse(str(absolute_path))
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving character file: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
 # *******************************
 # Settings
 # *******************************
