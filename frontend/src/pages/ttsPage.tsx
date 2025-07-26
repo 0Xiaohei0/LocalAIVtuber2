@@ -4,7 +4,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
 import { Separator } from "@/components/ui/separator"
 import { Download, Settings, Mic, Volume2 } from "lucide-react"
 import AudioPlayer from "@/components/audio-player"
@@ -25,17 +24,6 @@ export default function TTSPage() {
   const currentAudioRef = useRef<HTMLAudioElement | null>(null)
   const isProcessingRef = useRef(false)
   const isPlayingRef = useRef(false)
-
-  // GPT-SoVITS settings
-  const [gptSovitsSettings, setGptSovitsSettings] = useState({
-    referenceAudio: "",
-    referenceText: "",
-    temperature: [0.7],
-    topP: [0.9],
-    topK: [50],
-    speed: [1.0],
-    emotion: "neutral",
-  })
 
   useEffect(() => {
     const handlePipelineUpdate = () => {

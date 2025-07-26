@@ -601,7 +601,7 @@ async def change_voice(request: ChangeVoiceRequest):
 
 @app.post("/api/tts")
 async def get_audio(request: TTSRequest):
-    response = tts.syntheize(request.text)
+    response = tts.synthesize(request.text)
     return Response(response, media_type="audio/wav")
     
 # *******************************
@@ -802,7 +802,7 @@ startup_progress.complete_step(f"Settings applied in {time.time() - start_time:.
 start_time = time.time()
 startup_progress.show_step("Warming up TTS")
 try:
-    tts.syntheize("Hi")
+    tts.synthesize("Hi")
     startup_progress.complete_step(f"TTS warmed up successfully in {time.time() - start_time:.2f}s")
 except Exception as e:
     startup_progress.complete_step(f"TTS warm-up failed (non-critical) in {time.time() - start_time:.2f}s")
