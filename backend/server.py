@@ -587,7 +587,7 @@ async def get_available_voices():
         logger.error(f"Error getting voices: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": "Failed to get available voices"})
 
-@app.post("/api/tts/voice")
+@app.post("/api/tts/change-voice")
 async def change_voice(request: ChangeVoiceRequest):
     try:
         result = tts.change_voice(request.voice_name)
