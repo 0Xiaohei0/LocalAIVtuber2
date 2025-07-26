@@ -14,14 +14,14 @@ export function CharacterRender() {
     const toggleRenderId = "frontend.character.renderModel"
     const selectedLive2DModelId = "frontend.character.selectedLive2DModel"
     const selectedVRMModelId = "frontend.character.selectedVRMModel"
-    
+
     // Add setting IDs for Live2D position and scale controls
     const live2DXPositionId = "frontend.character.live2D.xPosition"
-    const live2DYPositionId = "frontend.character.live2D.yPosition" 
+    const live2DYPositionId = "frontend.character.live2D.yPosition"
     const live2DScaleId = "frontend.character.live2D.scale"
-    
+
     const { settings, updateSetting } = useSettings()
-    
+
     // State for dynamic model loading
     const [live2DModels, setLive2DModels] = useState<CharacterModel[]>([])
     const [vrmModels, setVrmModels] = useState<CharacterModel[]>([])
@@ -44,7 +44,7 @@ export function CharacterRender() {
                 setModelsLoading(false)
             }
         }
-        
+
         loadModels()
     }, [])
 
@@ -52,7 +52,7 @@ export function CharacterRender() {
         const setDefaultModels = async () => {
             // Wait for models to load before setting defaults
             if (modelsLoading) return
-            
+
             // Set default models if none selected
             if (!settings[selectedLive2DModelId] && live2DModels.length > 0) {
                 await updateSetting(selectedLive2DModelId, live2DModels[0].path)
@@ -60,7 +60,7 @@ export function CharacterRender() {
             if (!settings[selectedVRMModelId] && vrmModels.length > 0) {
                 await updateSetting(selectedVRMModelId, vrmModels[0].path)
             }
-            
+
             // Set default Live2D position and scale if not set
             if (settings[live2DXPositionId] === undefined) {
                 await updateSetting(live2DXPositionId, 50) // Center X (50%)
@@ -87,66 +87,70 @@ export function CharacterRender() {
     return (
         <div className="relative h-screen overflow-hidden">
             <SidePanel width={400}>
-                
+
                 <div className="space-y-4">
-                    
+
                     <SettingSwitch id={rendererSwitchId} label={"3D / 2D switch"} description={""} />
                     <SettingSwitch id={toggleRenderId} label={"Render model"} description={""} />
                 </div>
                 <div className="space-y-4 mt-4">
-                    {/* Live2D Model Selection */}
-                    <div className="space-y-2">
-                        <Label htmlFor="live2d-model-select">Live2D Model</Label>
-                        <Select
-                            value={settings[selectedLive2DModelId] || ""}
-                            onValueChange={handleLive2DModelChange}
-                            disabled={modelsLoading || live2DModels.length === 0}
-                        >
-                            <SelectTrigger className="w-full" id="live2d-model-select">
-                                <SelectValue placeholder={modelsLoading ? "Loading models..." : "Select Live2D model"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {live2DModels.map((model: CharacterModel) => (
-                                    <SelectItem key={model.path} value={model.path}>
-                                        {model.displayName}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {!modelsLoading && live2DModels.length === 0 && (
-                            <p className="text-sm text-muted-foreground">No Live2D models found</p>
-                        )}
-                    </div>
 
-                    {/* VRM Model Selection */}
-                    <div className="space-y-2">
-                        <Label htmlFor="vrm-model-select">VRM Model</Label>
-                        <Select
-                            value={settings[selectedVRMModelId] || ""}
-                            onValueChange={handleVRMModelChange}
-                            disabled={modelsLoading || vrmModels.length === 0}
-                        >
-                            <SelectTrigger className="w-full" id="vrm-model-select">
-                                <SelectValue placeholder={modelsLoading ? "Loading models..." : "Select VRM model"} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {vrmModels.map((model: CharacterModel) => (
-                                    <SelectItem key={model.path} value={model.path}>
-                                        {model.displayName}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {!modelsLoading && vrmModels.length === 0 && (
-                            <p className="text-sm text-muted-foreground">No VRM models found</p>
-                        )}
-                    </div>
-                    
+                    {!settings[rendererSwitchId] && (
+                        <div className="space-y-4">
+                            {/* VRM Model Selection */}
+                            <div className="space-y-2">
+                                <Label htmlFor="vrm-model-select">VRM Model</Label>
+                                <Select
+                                    value={settings[selectedVRMModelId] || ""}
+                                    onValueChange={handleVRMModelChange}
+                                    disabled={modelsLoading || vrmModels.length === 0}
+                                >
+                                    <SelectTrigger className="w-full" id="vrm-model-select">
+                                        <SelectValue placeholder={modelsLoading ? "Loading models..." : "Select VRM model"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {vrmModels.map((model: CharacterModel) => (
+                                            <SelectItem key={model.path} value={model.path}>
+                                                {model.displayName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {!modelsLoading && vrmModels.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">No VRM models found</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+
                     {/* Live2D Position and Scale Controls */}
                     {settings[rendererSwitchId] && (
                         <div className="space-y-4">
-                            <h3 className="text-sm font-medium">Live2D Controls</h3>
-                            
+                            {/* Live2D Model Selection */}
+                            <div className="space-y-2">
+                                <Label htmlFor="live2d-model-select">Live2D Model</Label>
+                                <Select
+                                    value={settings[selectedLive2DModelId] || ""}
+                                    onValueChange={handleLive2DModelChange}
+                                    disabled={modelsLoading || live2DModels.length === 0}
+                                >
+                                    <SelectTrigger className="w-full" id="live2d-model-select">
+                                        <SelectValue placeholder={modelsLoading ? "Loading models..." : "Select Live2D model"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {live2DModels.map((model: CharacterModel) => (
+                                            <SelectItem key={model.path} value={model.path}>
+                                                {model.displayName}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {!modelsLoading && live2DModels.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">No Live2D models found</p>
+                                )}
+                            </div>
+
                             <SettingSlider
                                 id={live2DXPositionId}
                                 label="X Position"
@@ -156,7 +160,7 @@ export function CharacterRender() {
                                 step={1}
                                 defaultValue={50}
                             />
-                            
+
                             <SettingSlider
                                 id={live2DYPositionId}
                                 label="Y Position"
@@ -166,7 +170,7 @@ export function CharacterRender() {
                                 step={1}
                                 defaultValue={100}
                             />
-                            
+
                             <SettingSlider
                                 id={live2DScaleId}
                                 label="Scale"
@@ -185,8 +189,8 @@ export function CharacterRender() {
                 <div>
                     {settings[rendererSwitchId] ? (
                         settings[selectedLive2DModelId] ? (
-                            <Live2DCanvas 
-                                modelPath={settings[selectedLive2DModelId]} 
+                            <Live2DCanvas
+                                modelPath={settings[selectedLive2DModelId]}
                                 xPosition={settings[live2DXPositionId] || 50}
                                 yPosition={settings[live2DYPositionId] || 100}
                                 scale={settings[live2DScaleId] || 0.3}
