@@ -1,0 +1,16 @@
+#the remaining dependencies
+python-dotenv
+numpy
+scipy
+soundfile
+torchaudio
+librosa #because some dependencies use anyway so can't avoid sry
+pyworld
+praat-parselmouth
+torchcrepe
+huggingface-hub
+fairseq
+faiss-cpu
+#git+https://github.com/One-sixth/fairseq.git #for python 3.11+ support.
+
+
