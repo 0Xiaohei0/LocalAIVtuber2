@@ -8,6 +8,7 @@ import { useSettings } from "@/context/SettingsContext"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { fetchLive2DModels, fetchVRMModels, CharacterModel } from "@/lib/characterModels"
+import ModelUploadManager from "@/components/model-upload-manager"
 
 export function CharacterRender() {
     const rendererSwitchId = "frontend.character.3d2dSwitch"
@@ -92,6 +93,29 @@ export function CharacterRender() {
 
                     <SettingSwitch id={rendererSwitchId} label={"3D / 2D switch"} description={""} />
                     <SettingSwitch id={toggleRenderId} label={"Render model"} description={""} />
+                    <ModelUploadManager 
+                        live2DModels={live2DModels}
+                        vrmModels={vrmModels}
+                        onModelsChange={() => {
+                            // Reload models when changes occur
+                            const loadModels = async () => {
+                                setModelsLoading(true)
+                                try {
+                                    const [live2DResult, vrmResult] = await Promise.all([
+                                        fetchLive2DModels(),
+                                        fetchVRMModels()
+                                    ])
+                                    setLive2DModels(live2DResult)
+                                    setVrmModels(vrmResult)
+                                } catch (error) {
+                                    console.error('Failed to load character models:', error)
+                                } finally {
+                                    setModelsLoading(false)
+                                }
+                            }
+                            loadModels()
+                        }}
+                    />
                 </div>
                 <div className="space-y-4 mt-4">
 
@@ -203,7 +227,7 @@ export function CharacterRender() {
                             </div>
                         )
                     ) : (
-                        <VRM3dCanvas modelPath={settings[selectedVRMModelId]} />
+                        <VRM3dCanvas modelPath={settings[selectedVRMModelId]} key={settings[selectedVRMModelId]} />
                     )}
                 </div>
             ) : (

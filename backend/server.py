@@ -19,7 +19,7 @@ import os
 import requests
 import aiofiles
 import aiohttp
-from fastapi import FastAPI, Query, Request, Response, WebSocket, HTTPException
+from fastapi import FastAPI, Query, Request, Response, WebSocket, HTTPException, File, UploadFile, Form
 from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -648,7 +648,81 @@ async def serve_character_files(file_path: str, request: Request):
     except Exception as e:
         logger.error(f"Error serving character file: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
-    
+
+@app.post("/api/character/vrm/upload")
+async def upload_vrm_model(file: UploadFile = File(...)):
+    """Upload a VRM model file"""
+    try:
+        # Read file content
+        file_data = await file.read()
+        
+        # Upload using character manager
+        success, message = character_manager.upload_vrm_model(file_data, file.filename)
+        
+        if success:
+            return JSONResponse(status_code=200, content={"message": message})
+        else:
+            return JSONResponse(status_code=400, content={"error": message})
+            
+    except Exception as e:
+        logger.error(f"Error uploading VRM model: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to upload model"})
+
+@app.post("/api/character/live2d/upload-folder")
+async def upload_live2d_folder(files: List[UploadFile] = File(...)):
+    """Upload a Live2D model folder"""
+    try:
+        # Read all files and their relative paths
+        file_data = []
+        for file in files:
+            content = await file.read()
+            file_data.append((file.filename, content))
+        
+        # Upload using character manager
+        success, message = character_manager.upload_live2d_folder(file_data)
+        
+        if success:
+            return JSONResponse(status_code=200, content={"message": message})
+        else:
+            return JSONResponse(status_code=400, content={"error": message})
+            
+    except Exception as e:
+        logger.error(f"Error uploading Live2D model folder: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to upload model folder"})
+
+class DeleteModelRequest(BaseModel):
+    path: str
+
+@app.post("/api/character/vrm/delete")
+async def delete_vrm_model(request: DeleteModelRequest):
+    """Delete a VRM model"""
+    try:
+        success, message = character_manager.delete_vrm_model(request.path)
+        
+        if success:
+            return JSONResponse(status_code=200, content={"message": message})
+        else:
+            return JSONResponse(status_code=400, content={"error": message})
+            
+    except Exception as e:
+        logger.error(f"Error deleting VRM model: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to delete model"})
+
+@app.post("/api/character/live2d/delete")
+async def delete_live2d_model(request: DeleteModelRequest):
+    """Delete a Live2D model folder"""
+    try:
+        success, message = character_manager.delete_live2d_model(request.path)
+        
+        if success:
+            return JSONResponse(status_code=200, content={"message": message})
+        else:
+            return JSONResponse(status_code=400, content={"error": message})
+            
+    except Exception as e:
+        logger.error(f"Error deleting Live2D model: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": "Failed to delete model"})
+
 # *******************************
 # Settings
 # *******************************
