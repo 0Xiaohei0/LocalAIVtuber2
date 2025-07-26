@@ -11,7 +11,7 @@ import { globalStateManager } from '@/lib/globalStateManager';
 
 const DEFAULT_CHARACTER_MODEL_PATH = "/resource/VRM3D/models/春日部つむぎハイパー.vrm"
 const ANIMATIONS = {
-    DEFAULT: { idle: "/resource/VRM3D/animations/idle.vrma", gestures: [] },
+    DEFAULT: { idle: "/api/character/files/VRM3D/animations/idle.vrma", gestures: [] },
 }
 
 const BACKGROUND_IMAGE = "/black.png" 
@@ -327,7 +327,7 @@ const VRM3dCanvas: React.FC<VRM3dCanvasProps> = ({ modelPath }) => {
 
     console.log("playing animation " + filename)
     // setLastInteractionTime(Date.now());
-    const fullPath = filename
+    const fullPath = filename.startsWith('/api/character/files/') ? filename : `/api/character/files/VRM3D/animations/${filename}`;
     if (!mixerRef.current) {
       return
     }
