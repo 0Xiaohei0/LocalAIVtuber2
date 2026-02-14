@@ -7,7 +7,7 @@ from services.lib.startup_progress import startup_progress
 # Track import time
 start_time = time.time()
 total_start_time = time.time()
-startup_progress.show_step("Importing python modules")
+startup_progress.show_step("⚡ Importing python modules")
 
 import asyncio
 import traceback
@@ -21,6 +21,10 @@ from services.Character.characterManager import CharacterManager
 from services.lib.LAV_logger import logger
 from services.lib.port_forward import create_proxy_middleware
 from services.lib.process_manager import process_manager
+
+# Import performance optimizer
+from utils.performance_optimizer import perf_optimizer, MemoryOptimizer
+
 import os
 import aiofiles
 import aiohttp
@@ -43,7 +47,7 @@ download_progress = {}
 
 # Show import completion immediately after imports
 import_time = time.time() - start_time
-startup_progress.complete_step(f"Imports completed in {import_time:.2f}s")
+startup_progress.complete_step(f"⚡ Imports completed in {import_time:.2f}s")
 
 # Initialize RVC server
 rvc_server_port = 8001  # Different port from main server
@@ -69,9 +73,22 @@ static_files_path = os.path.abspath("../frontend/dist")
 app.mount("/assets", StaticFiles(directory="../frontend/dist/assets"), name="assets")
 app.mount("/resource", StaticFiles(directory="../frontend/dist/resource"), name="resource")
 
+# Performance optimizer startup/shutdown events
+@app.on_event("startup")
+async def startup_event():
+    """Initialize performance optimizer on startup"""
+    await perf_optimizer.start()
+    logger.info("🚀 Performance optimizer initialized")
+
+@app.on_event("shutdown") 
+async def shutdown_event():
+    """Cleanup performance optimizer on shutdown"""
+    await perf_optimizer.stop()
+    logger.info("⚡ Performance optimizer stopped")
+
 # Initialize Services
 start_time = time.time()
-startup_progress.show_step("Loading AI Services")
+startup_progress.show_step("⚡ Loading AI Services with Performance Optimization")
 voice_input:VoiceInput = VoiceInput()
 llm:LLM = LLM()
 memory:Memory = Memory()
@@ -1144,6 +1161,73 @@ async def query_memory_context(request: QueryContextRequest):
     except Exception as e:
         logger.error(f"Error querying memory context: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": "Failed to query memory context"})
+
+# *******************************
+# Performance Monitoring APIs
+# *******************************
+
+@app.get("/api/performance/stats")
+async def get_performance_stats():
+    """Get comprehensive performance statistics"""
+    try:
+        stats = {
+            'system': {
+                'memory': MemoryOptimizer.get_memory_usage(),
+                'gc_stats': MemoryOptimizer.get_gc_stats()
+            },
+            'llm': llm.get_performance_stats() if hasattr(llm, 'get_performance_stats') else {},
+            'tts': tts.get_performance_stats() if hasattr(tts, 'get_performance_stats') else {},
+            'cache': perf_optimizer.cache.get_stats(),
+            'uptime': time.time() - total_start_time
+        }
+        return JSONResponse(content=stats)
+    except Exception as e:
+        logger.error(f"Error getting performance stats: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/api/performance/optimize")
+async def trigger_performance_optimization():
+    """Trigger performance optimization (cache cleanup, GC, etc.)"""
+    try:
+        # Clear expired cache entries
+        cache_cleared = perf_optimizer.cache.clear_expired()
+        
+        # Force garbage collection
+        objects_collected = MemoryOptimizer.force_gc()
+        
+        # Get memory usage after optimization
+        memory_after = MemoryOptimizer.get_memory_usage()
+        
+        result = {
+            'cache_entries_cleared': cache_cleared,
+            'objects_collected': objects_collected,
+            'memory_usage_mb': memory_after['rss_mb'],
+            'memory_percent': memory_after['percent']
+        }
+        
+        logger.info(f"🚀 Performance optimization completed: {result}")
+        return JSONResponse(content=result)
+        
+    except Exception as e:
+        logger.error(f"Error during performance optimization: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/api/performance/cache/stats")
+async def get_cache_stats():
+    """Get detailed cache statistics"""
+    try:
+        return JSONResponse(content=perf_optimizer.cache.get_stats())
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/api/performance/cache/clear")
+async def clear_cache():
+    """Clear all cached data"""
+    try:
+        perf_optimizer.cache.clear_all()
+        return JSONResponse(content={"message": "Cache cleared successfully"})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # Add RVC proxy middleware
 app.middleware("http")(create_proxy_middleware("/api/rvc", rvc_server_port))

@@ -6,6 +6,8 @@ import SettingTextbox from "@/components/setting-textbox"
 import SettingSlider from "@/components/setting-slider"
 import { LLMMonitor } from "@/components/llm-monitor"
 import SettingSwitch from "@/components/setting-switch"
+import { SciFiCard, SciFiCardHeader, SciFiCardTitle, SciFiCardContent, SciFiCardStatus } from "@/components/ui/SciFiCard"
+import { SciFiButton, SciFiCriticalButton } from "@/components/ui/SciFiButton"
 import { useSettings } from "@/context/SettingsContext"
 import { useEffect, useState } from "react"
 
@@ -17,29 +19,98 @@ export type SessionInfo = {
 function LLMPage() {
     const { settings } = useSettings();
     const [showMonitor, setShowMonitor] = useState(settings["llm.showMonitor"]);
+    const [sciFiMode, setSciFiMode] = useState(false);
+    
     useEffect(() => {
         setShowMonitor(settings["llm.showMonitor"]);
     }, [settings["llm.showMonitor"]]);
 
     return (
-        <div className="relative h-screen w-full overflow-hidden">
+        <div className={`relative h-screen w-full overflow-hidden ${sciFiMode ? 'bg-gradient-to-br from-black via-slate-900 to-blue-900' : ''}`}>
+            
+            {/* Sci-Fi Theme Toggle */}
+            <div className="absolute top-4 right-4 z-50">
+                <SciFiCard variant="scifiGlass" className="p-3">
+                    <div className="flex items-center gap-3">
+                        <SciFiCardStatus status={sciFiMode ? "online" : "offline"}>
+                            {sciFiMode ? "Sci-Fi Mode" : "Standard Mode"}
+                        </SciFiCardStatus>
+                        <SciFiButton 
+                            variant="scifiGhost" 
+                            size="sm"
+                            onClick={() => setSciFiMode(!sciFiMode)}
+                        >
+                            ⚡ Toggle
+                        </SciFiButton>
+                    </div>
+                </SciFiCard>
+            </div>
             
             {showMonitor ? (
                 <div className="flex flex-row h-full justify-between">
                     <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pl-20 pr-20 pt-4 w-6/12 ">
-                        <Chatbox/>
+                        {sciFiMode ? (
+                            <SciFiCard variant="scifiSolid" animated className="mb-4">
+                                <SciFiCardHeader>
+                                    <SciFiCardTitle>⚡ NEX-ARIS AI Chat Terminal ⚡</SciFiCardTitle>
+                                </SciFiCardHeader>
+                                <SciFiCardContent>
+                                    <Chatbox/>
+                                </SciFiCardContent>
+                            </SciFiCard>
+                        ) : (
+                            <Chatbox/>
+                        )}
                     </ScrollArea>
                     <ScrollArea className="w-5/12 pr-20 pt-4">
-                        <LLMMonitor />
+                        {sciFiMode ? (
+                            <SciFiCard variant="scifiNeon" className="mb-4">
+                                <SciFiCardHeader>
+                                    <SciFiCardTitle>🧠 Neural Network Monitor</SciFiCardTitle>
+                                    <SciFiCardStatus status="processing">Active</SciFiCardStatus>
+                                </SciFiCardHeader>
+                                <SciFiCardContent>
+                                    <LLMMonitor />
+                                </SciFiCardContent>
+                            </SciFiCard>
+                        ) : (
+                            <LLMMonitor />
+                        )}
                     </ScrollArea>
                 </div>
             ): (
                 <ScrollArea className="border-t-1 border-l-1 h-full overflow-auto pl-20 pt-4 w-full">
-                    <Chatbox/>
+                    {sciFiMode ? (
+                        <SciFiCard variant="scifiSolid" animated className="max-w-4xl mx-auto">
+                            <SciFiCardHeader>
+                                <SciFiCardTitle>⚡ NEX-ARIS AI Chat Terminal ⚡</SciFiCardTitle>
+                                <SciFiCardStatus status="online">System Ready</SciFiCardStatus>
+                            </SciFiCardHeader>
+                            <SciFiCardContent>
+                                <Chatbox/>
+                            </SciFiCardContent>
+                        </SciFiCard>
+                    ) : (
+                        <Chatbox/>
+                    )}
                 </ScrollArea>
             )}
+            
             <SidePanel isOpen={false} width={500} toggleText={{open: "Settings", close: "Settings"}} >
                 <div className="space-y-2 w-full flex flex-col items-start gap-4">
+                    {sciFiMode && (
+                        <SciFiCard variant="scifiGlass" className="w-full mb-4">
+                            <SciFiCardHeader>
+                                <SciFiCardTitle>🎛️ Neural Configuration</SciFiCardTitle>
+                            </SciFiCardHeader>
+                            <SciFiCardContent>
+                                <SciFiCriticalButton className="w-full mb-3">
+                                    Initialize AI Core
+                                </SciFiCriticalButton>
+                            </SciFiCardContent>
+                        </SciFiCard>
+                    )}
+                    
                     <div className="flex flex-col items-start gap-2">
                         <label className="text-sm font-medium">AI Model Selector</label>
                         <AIModelSelector />

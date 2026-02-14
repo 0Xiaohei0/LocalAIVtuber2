@@ -1,0 +1,215 @@
+{
+  "llm_providers": {
+    "glm_4_5": {
+      "type": "glm",
+      "enabled": false,
+      "priority": 1,
+      "config": {
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "model": "glm-4-plus",
+        "max_tokens": 4096,
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "stream": true,
+        "timeout": 60,
+        "max_retries": 3,
+        "rate_limit_rpm": 100
+      },
+      "description": "GLM 4.5 - Advanced Chinese and English language model with excellent reasoning capabilities",
+      "features": [
+        "Streaming responses",
+        "Multi-language support",
+        "Long context handling",
+        "Advanced reasoning"
+      ]
+    },
+    "glm_4_flash": {
+      "type": "glm",
+      "enabled": false,
+      "priority": 2,
+      "config": {
+        "base_url": "https://open.bigmodel.cn/api/paas/v4",
+        "model": "glm-4-flash",
+        "max_tokens": 2048,
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "stream": true,
+        "timeout": 30,
+        "max_retries": 3,
+        "rate_limit_rpm": 200
+      },
+      "description": "GLM 4 Flash - Fast and efficient version optimized for speed",
+      "features": [
+        "Ultra-fast responses",
+        "Lower latency",
+        "Cost-effective",
+        "High throughput"
+      ]
+    }
+  },
+  "tts_providers": {
+    "elevenlabs_premium": {
+      "type": "elevenlabs",
+      "enabled": false,
+      "priority": 1,
+      "config": {
+        "base_url": "https://api.elevenlabs.io/v1",
+        "default_voice_id": "21m00Tcm4TlvDq8ikWAM",
+        "model_id": "eleven_multilingual_v2",
+        "stability": 0.5,
+        "similarity_boost": 0.5,
+        "style": 0.0,
+        "use_speaker_boost": true,
+        "optimize_streaming_latency": 2,
+        "output_format": "mp3_44100_128",
+        "timeout": 30,
+        "max_retries": 3,
+        "rate_limit_rpm": 200,
+        "max_text_length": 5000
+      },
+      "description": "ElevenLabs Premium - High-quality AI voice synthesis with voice cloning",
+      "features": [
+        "Professional voice quality",
+        "Voice cloning",
+        "Streaming synthesis",
+        "Multiple languages",
+        "Emotion control",
+        "Real-time generation"
+      ]
+    },
+    "elevenlabs_turbo": {
+      "type": "elevenlabs",
+      "enabled": false,
+      "priority": 2,
+      "config": {
+        "base_url": "https://api.elevenlabs.io/v1",
+        "default_voice_id": "21m00Tcm4TlvDq8ikWAM",
+        "model_id": "eleven_turbo_v2",
+        "stability": 0.6,
+        "similarity_boost": 0.7,
+        "style": 0.0,
+        "use_speaker_boost": true,
+        "optimize_streaming_latency": 3,
+        "output_format": "mp3_22050_32",
+        "timeout": 20,
+        "max_retries": 3,
+        "rate_limit_rpm": 300,
+        "max_text_length": 2500
+      },
+      "description": "ElevenLabs Turbo - Fast voice synthesis optimized for speed",
+      "features": [
+        "Ultra-fast generation",
+        "Lower latency",
+        "Cost-effective",
+        "Good quality",
+        "Streaming capable"
+      ]
+    }
+  },
+  "security": {
+    "encryption": {
+      "enabled": true,
+      "algorithm": "AES-256-GCM",
+      "key_rotation_days": 30
+    },
+    "api_key_validation": {
+      "enabled": true,
+      "mask_in_logs": true,
+      "length_requirements": {
+        "min": 20,
+        "max": 200
+      }
+    },
+    "rate_limiting": {
+      "enabled": true,
+      "global_limit": 1000,
+      "per_provider_limit": 500,
+      "window_minutes": 60
+    },
+    "request_validation": {
+      "max_text_length": 10000,
+      "forbidden_patterns": [
+        "\\b(password|secret|key)\\s*[:=]\\s*\\w+",
+        "\\b(token|auth)\\s*[:=]\\s*[\\w-]+",
+        "\\b(api[_-]?key)\\s*[:=]\\s*[\\w-]+"
+      ],
+      "sanitize_output": true
+    }
+  },
+  "monitoring": {
+    "health_checks": {
+      "enabled": true,
+      "interval_minutes": 5,
+      "timeout_seconds": 30,
+      "failure_threshold": 3,
+      "recovery_threshold": 2
+    },
+    "metrics": {
+      "enabled": true,
+      "collection_interval_seconds": 60,
+      "retention_hours": 24,
+      "export_format": "prometheus"
+    },
+    "alerting": {
+      "enabled": true,
+      "channels": ["log", "webhook"],
+      "thresholds": {
+        "error_rate_percent": 5,
+        "response_time_ms": 5000,
+        "queue_size": 100
+      }
+    }
+  },
+  "performance": {
+    "caching": {
+      "enabled": true,
+      "ttl_seconds": 300,
+      "max_entries": 1000,
+      "cleanup_interval_minutes": 10
+    },
+    "connection_pooling": {
+      "enabled": true,
+      "max_connections": 100,
+      "max_connections_per_host": 20,
+      "keepalive_timeout_seconds": 60
+    },
+    "retry_policy": {
+      "enabled": true,
+      "max_retries": 3,
+      "base_delay_ms": 1000,
+      "max_delay_ms": 10000,
+      "backoff_factor": 2.0,
+      "jitter": true
+    },
+    "load_balancing": {
+      "enabled": true,
+      "strategy": "priority_health",
+      "health_check_weight": 0.3,
+      "response_time_weight": 0.4,
+      "priority_weight": 0.3
+    }
+  },
+  "fallback": {
+    "enabled": true,
+    "strategy": "local_first",
+    "timeout_ms": 30000,
+    "max_attempts": 3,
+    "preserve_quality": true,
+    "automatic_recovery": true
+  },
+  "usage_limits": {
+    "daily_requests": {
+      "llm": 10000,
+      "tts": 5000
+    },
+    "monthly_tokens": {
+      "llm": 1000000,
+      "tts_characters": 500000
+    },
+    "cost_limits": {
+      "daily_usd": 50.00,
+      "monthly_usd": 1000.00,
+      "alert_threshold_percent": 80
+    }
+  }
+}
