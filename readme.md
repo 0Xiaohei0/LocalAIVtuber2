@@ -18,6 +18,13 @@ Full demo and setup guide: https://youtu.be/gD1y4by3CPg?si=oinKcReuUd5xzjKT
   </tr>
 </table>
 
+## System requirements
+
+OS: Windows
+
+GPU: NVIDIA GPU 40 series or older, recommend ~8gb vram
+
+
 ## Install
 ### Windows
 If you are a Windows user, you can download the release package here, unzip and double click start.bat to start webui:
@@ -92,3 +99,11 @@ Open a terminal any where and run
 pip install nltk
 python -m nltk.downloader -d C:\nltk_data all
 ```
+
+
+
+## Known issues
+
+NVIDIA 50 series GPU requires newer cuda versions which are not compatable right now
+
+AMD GPU does not support pytorch on windows so not compatable
